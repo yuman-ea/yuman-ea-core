@@ -20,7 +20,7 @@ Project maintainers are responsible for clarifying and enforcing our standards o
 Scope
 This Code of Conduct applies within all community spaces (issues, pull requests, discussions) and also applies when an individual is officially representing the community in public spaces.
 Enforcement
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the maintainers at vvjcoder@gmail.com. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the maintainers at rajesh.malviya@gmail.com and vishal.javalkar@gmail.com  All complaints will be reviewed and investigated promptly and fairly.
 Maintainers are obligated to respect the privacy and security of the reporter of any incident.
 Enforcement Guidelines
 Maintainers will follow these Community Impact Guidelines in determining consequences:
