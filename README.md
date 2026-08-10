@@ -47,4 +47,4 @@ MIT — see [LICENSE](./LICENSE).
 
 ## Maintainers
 
-Maintained by [@vvjcoder](https://github.com/vvjcoder) and co-maintainers. Reach out via GitHub Issues or Discussions.
+Maintained by [@vishaljavalkar-ai] [@rajesh-malviya] and co-maintainers. Reach out via GitHub Issues or Discussions.
