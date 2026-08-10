@@ -1,16 +1,26 @@
 # yuman-ea
 
-**yuman-ea** is an open source framework for Enterprise Architecture (EA), built around a suite of AI agents and skills that assist EA practitioners across:
+**An open source framework of AI agents and skills for Enterprise Architecture** — covering business architecture, technology architecture, and portfolio management.
+
+## Mission — codify enterprise architecture
+
+Enterprise architecture's methods live in consultants' heads, proprietary platforms, and expensive training. They are rarely written down, almost never inspectable, and impossible to improve collectively.
+
+**Yuman EA writes them down** — as open, executable skills that state their criteria, their weightings, the data a decision actually requires, and the artifact it should produce. Any organization can run them, inspect them, argue with them, and override them for its own context.
+
+The measure of success is a real decision improved: an architect who can walk into a steering committee with analysis that holds up.
+
+Three commitments follow, and they constrain every design decision in this repository:
+
+- **Work with the data teams actually have.** Skills declare what they need, what's optional, and what they do when it's missing — degrading honestly rather than demanding a complete CMDB before producing anything.
+- **Produce output a non-specialist can defend.** Deliverables explain their reasoning in the language of the business, not the vocabulary of a framework. A user should never need to have read TOGAF to use, or defend, the result.
+- **Always show the work.** Every recommendation ships with its assumptions, its confidence, and what would change the answer. Consultants win arguments partly by showing their reasoning; this framework does it by default.
+
+## What's covered
 
 - **Business Architecture** — capability mapping, value streams, operating model analysis
-- **Technology Architecture** — reference architectures, tech radar / rationalization, standards compliance
-- **Portfolio Management** — application and project portfolio analysis, roadmapping, investment prioritization
-
-The goal is to give EA teams a modular, extensible set of agents that can be composed into real EA workflows — reducing the manual overhead of artifact creation, analysis, and governance so architects can focus on decisions rather than documentation.
-
-## Why yuman-ea
-
-Enterprise Architecture work is broad and repetitive: stakeholder interviews, capability models, tech assessments, portfolio reviews, and governance artifacts all follow recognizable patterns. yuman-ea packages these patterns as reusable, composable AI agents and skills, so any team can plug them into their own EA practice instead of building from scratch.
+- **Technology Architecture** — build-vs-buy, reference architectures, technology lifecycle, standards conformance
+- **Portfolio Management** — application rationalization, roadmapping, investment prioritization
 
 ## What's inside
 
@@ -23,8 +33,8 @@ Enterprise Architecture work is broad and repetitive: stakeholder interviews, ca
 ## Getting started
 
 ```bash
-git clone https://github.com/<org>/yuman-ea.git
-cd yuman-ea
+git clone https://github.com/yuman-ea/yuman-ea-core.git
+cd yuman-ea-core
 ```
 
 Setup and usage instructions will be added as the initial agent/skill set lands. Track progress in [Issues](../../issues) and [Discussions](../../discussions).
@@ -39,7 +49,7 @@ Setup and usage instructions will be added as the initial agent/skill set lands.
 
 ## Contributing
 
-Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for how to propose new agents/skills, coding conventions, and the PR process. Please also review our [Code of Conduct](./CODE_OF_CONDUCT.md).
+Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for how to propose new agents/skills, coding conventions, and the PR process. Please also review our [Code of Conduct](./CODE-OF-CONDUCT.md).
 
 ## License
 
