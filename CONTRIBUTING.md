@@ -1,6 +1,7 @@
 # Contributing to yuman-ea
 
-Thanks for your interest in contributing. yuman-ea is a community effort to build a framework of AI agents and skills for Enterprise Architecture — contributions of all sizes are welcome, from typo fixes to new agents.
+Thanks for your interest in contributing. 
+yuman-ea is a community effort to build a framework of AI agents and skills for Enterprise Architecture — contributions of all sizes are welcome, from typo fixes to new agents.
 
 ## Ways to contribute
 
