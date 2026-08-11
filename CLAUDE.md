@@ -103,6 +103,16 @@ Every skill implements all seven, in this order, using these exact key names in 
 
 ---
 
+## How this gets invoked — and what it demands of a skill
+
+Skills run inside a tool the architect already has (Claude Desktop, Claude Code, Copilot, Cursor, Gemini CLI). **We ship no runtime, no server, no account.** Full reasoning in `docs/adr/0001-invocation-and-distribution.md`. Three consequences bind every skill author:
+
+1. **`triggers` are not optional.** Users invoke conversationally — *"should we build or buy a customer portal?"* — without naming a skill. The orchestrator routes on `triggers`. A skill with weak triggers is invisible, and fails review on that basis alone.
+2. **Every artifact declares a markdown fallback.** Hosts differ in whether they can write `.docx`/`.xlsx`. A skill whose output is unusable without Office file generation is unusable by our primary user.
+3. **Phase-1 skills work with manual input and CSV only.** No CMDB, no EA repository. This is what `data_intensity: low` and `on_missing` are actually for.
+
+---
+
 ## Skill or subagent?
 
 | Skill | Subagent |
