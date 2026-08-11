@@ -1,0 +1,21 @@
+application_id,fiscal_year,licence_cost_usd,hosting_cost_usd,support_cost_usd,internal_labour_cost_usd,total_cost_usd,cost_confidence,notes
+nw-001,FY2026,0,180000,0,620000,800000,high,
+nw-002,FY2026,0,95000,0,232500,327500,high,
+nw-003,FY2026,0,140000,0,403000,543000,high,
+nw-004,FY2026,0,40000,0,186000,226000,medium,Hosting shared with nw-001 and apportioned by estimate
+nw-005,FY2026,96000,0,24000,46500,166500,high,
+nw-006,FY2026,410000,120000,165000,387500,1082500,high,
+nw-007,FY2026,230000,55000,70000,139500,494500,high,
+nw-008,FY2026,180000,0,36000,62000,278000,high,
+nw-009,FY2026,0,15000,0,93000,108000,low,Internal effort is an estimate; no time is booked against this application
+nw-010,FY2026,620000,210000,240000,527000,1597000,high,
+nw-011,FY2026,180000,60000,72000,217000,529000,medium,Licence apportioned from a bundled agreement with nw-010
+nw-012,FY2026,145000,0,22000,62000,229000,high,
+nw-013,FY2026,0,0,310000,77500,387500,high,Bureau fee recorded as support; there is no licence line
+nw-014,FY2026,0,85000,0,263500,348500,high,
+nw-015,FY2026,0,70000,0,310000,380000,medium,Internal effort spans four people none of whom work on it full time
+nw-016,FY2026,480000,0,40000,124000,644000,high,
+nw-017,FY2026,88000,0,14000,62000,164000,high,
+nw-018,FY2026,260000,130000,65000,232500,687500,high,
+nw-019,FY2026,195000,75000,90000,325500,685500,high,
+nw-020,FY2026,210000,0,30000,77500,317500,high,

@@ -1,0 +1,38 @@
+spec_version: "1.0"
+id: declares-gap-when-unroutable
+target: orchestrator
+description: >
+  Phase 1 ships one domain agent. The question below belongs to portfolio-ea, which
+  does not exist. The correct behaviour is to say so and stop — improvising a
+  substitute makes every genuine answer in the system suspect.
+
+given:
+  user_message: >
+    We've got about twenty applications in our estate and the run cost is out of
+    control. Which ones should we retire?
+  available_agents: [technology-ea]
+  available_skills: [yea.technology.build-vs-buy]
+
+expect:
+  routes_to: null
+  on_unroutable: state_gap_and_stop
+  must_state:
+    - that this is a portfolio question
+    - that no portfolio agent is shipped in this release
+    - what it can legitimately offer instead, if anything
+  must_not:
+    - propose a rationalization method of its own
+    - invoke build-vs-buy because it is the only skill available
+    - produce a list of applications to retire
+    - estimate savings
+
+fails_if:
+  - It answers the question by improvising a disposition rubric.
+  - It stretches build-vs-buy to cover a rationalization question.
+  - It apologises at length instead of stating the gap in a sentence and moving on.
+
+notes: >
+  The wrong-skill-because-it-is-the-only-skill failure is specific to phase 1 and
+  disappears as domain coverage grows. It is worth an eval now precisely because
+  the pressure to use the one thing you have is highest when it is the one thing
+  you have.

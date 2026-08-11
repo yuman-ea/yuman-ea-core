@@ -1,0 +1,150 @@
+spec_version: "1.0"
+id: 03-close-call-with-hard-constraint
+skill: yea.technology.build-vs-buy
+fixture: context/fixtures/northwind-corp
+description: >
+  Two failures this case exists to catch. First, declaring a winner separated by a
+  rounding error — false precision that the first person to recompute it in a
+  spreadsheet will find. Second, an option disappearing without explanation, which in
+  front of a steering committee reads as a rigged analysis.
+
+given:
+  scenario: >
+    Northwind's workforce scheduling tool (nw-009) was built in 2011 by a manager who has
+    left, runs on an unsupported desktop database, and its rosters are re-keyed into the
+    warehouse system by hand every day. Scheduling is a commodity capability. One of the
+    candidate products can only be hosted outside the country of employment.
+
+  ask:
+    differentiation: commodity
+    decision_horizon: strategic_3_5y
+    primary_driver: balanced
+    talent_reality: could_hire
+    switching_tolerance: easy
+
+  gather:
+    provided:
+      capability: "Workforce Scheduling (cap-04-04)"
+      candidate_options:
+        - id: opt-1
+          name: "Rebuild the scheduling tool in house"
+          type: build
+        - id: opt-2
+          name: "Commercial scheduling product, supplier hosts outside the country of employment only"
+          type: buy
+        - id: opt-3
+          name: "Commercial scheduling product with in-country hosting"
+          type: buy
+        - id: opt-4
+          name: "Managed rostering service"
+          type: partner
+      must_have_requirements:
+        - Shift rostering for warehouse operatives and drivers
+        - Driver hours and rest rules
+        - Absence feed from the human resources system
+        - Roster handover to the warehouse system without re-keying
+        - Forecast volume as an input to shift sizing
+        - Mobile shift visibility for staff
+      vendor_pricing:
+        - option: opt-2
+          annual_usd: 74000
+          five_year_usd: 410000
+          basis: "Published per-user pricing at 120 users, dated."
+        - option: opt-3
+          annual_usd: 96000
+          five_year_usd: 520000
+          basis: "Written quote including in-country hosting premium, dated."
+        - option: opt-4
+          annual_usd: 105000
+          five_year_usd: 545000
+          basis: "Written quote, service fee inclusive, dated."
+      run_cost_baseline:
+        annual_usd: 108000
+        basis: "nw-009 FY2026 total from application-costs.csv, cost_confidence low"
+      integration_points:
+        - "nw-006 Warehouse Management System — rosters, currently manual re-entry"
+        - "nw-012 HR Administration System — absence data, weekly batch"
+      security_classification: confidential
+      existing_contract_expiry: none
+    withheld:
+      - internal_build_cost
+    available_context:
+      - context.application_inventory
+      - context.application_costs
+      - context.integrations
+      - context.policies
+
+  policies_supplied:
+    - id: data_residency
+      statement: "Personal data relating to employees must be stored and processed within the country of employment; customer and trade data may leave it only under an approved transfer agreement"
+      kind: regulatory
+    - id: security_baseline
+      statement: "Any system holding confidential or regulated data must support single sign-on, enforce multi-factor authentication, and provide an exportable audit log"
+      kind: hard_constraint
+
+expect:
+  frame_restated_before_analysis: true
+
+  eliminated_options:
+    - option: opt-2
+      by_policy: data_residency
+      must_be_reported_in:
+        - option_scorecard
+        - recommendation_memo
+        - decision_record
+
+  eliminated_before_scoring: true
+
+  top_two_within_indifference_band: true
+  single_winner_declared: false
+  tie_breakers_applied_in_order: true
+  first_tie_breaker_expected: exit_cost
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    one cost input was estimated and the rest were supplied
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That opt-2 was eliminated, by which policy, and what that policy says.
+    - That the two leading options are too close to separate on this evidence, in those
+      terms — not as a ranked list with a winner at the top.
+    - The specific piece of evidence that would separate them.
+    - That the build option carries an estimated cost while the others carry quoted
+      prices, so the comparison is asymmetric.
+    - That the current run cost figure is itself low confidence in the source data.
+    - That the daily manual re-keying is a cost of the status quo, not a cost of any option.
+    - That a commodity capability does not favour a build option, as a reason rather than
+      an assertion.
+
+  assumptions_register_must_contain:
+    - internal build cost was estimated
+    - the run cost baseline carries low confidence in the source
+
+  must_not:
+    - Declare a single recommended option when the gap is inside the indifference band.
+    - Drop opt-2 from the artifacts rather than reporting its elimination.
+    - Apply the data residency constraint as a score adjustment instead of an elimination.
+    - Rate confidence high, since the build cost was estimated.
+    - Recommend the build option on the basis that it is cheapest to estimate.
+
+fails_if:
+  - The scorecard shows a ranked list with a winner and no mention of the band.
+  - opt-2 is absent from the artifacts entirely.
+  - The elimination appears in the scorecard but not in the memo, where the reader who
+    matters will look for it.
+
+tolerance: >
+  Which two options land inside the band may vary with scoring; opt-3 and opt-4 are the
+  expected pair. What is not negotiable is that a band-width gap is reported as a tie
+  and that the elimination is visible in all three artifacts.
+
+notes: >
+  The temptation here is strong and specific: the arithmetic produces two numbers, one is
+  larger, and reporting it as the answer feels like doing the job. It is the failure the
+  indifference band exists to prevent.

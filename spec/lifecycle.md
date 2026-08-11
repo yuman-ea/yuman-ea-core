@@ -132,7 +132,7 @@ CI enforces these. Severity `error` blocks merge; `warn` is raised on the pull r
 | R14 | A skill declaring `data_intensity` above `low` states in `SKILL.md` why it cannot degrade honestly to manual input | error |
 | R15 | No real enterprise data. Application inventories, vendor names tied to costs, and customer identifiers are rejected in any file, including examples and test fixtures | error |
 | R16 | The orchestrator's eval suite includes the routing case: given a build-vs-buy question, does it invoke the skill or answer from its own head? | error |
-| R17 | No two agents' `owns_questions` overlap; every `refuses.route_to` names an agent that exists in this release | error |
+| R17 | No two agents' `owns_questions` overlap. Every `refuses.route_to` names a valid agent ID; where that agent is not shipped in this release, the entry sets `available: false` so the gap is declared rather than routed into a void | error |
 | R18 | Every `criterion.evidence` ID resolves to an `ask` ID or a `gather` input ID | error |
 | R19 | Every ID in `ask.affects` resolves to a criterion ID | error |
 | R20 | A skill directory contains no executable code. Markdown, YAML, JSON, and CSV only | error |
@@ -194,6 +194,10 @@ Merging a rough contribution at `draft` is preferable to rejecting it or rewriti
 Stated so nobody builds them speculatively:
 
 - **`artifact.schema.json`** — artifact structure currently lives inside `deliver.artifacts[].content_schema`. It is promoted to its own schema when a second skill needs to share an artifact definition, and not before.
+- **An eval case schema.** Cases are YAML and follow the shape documented in
+  `skills/technology/build-vs-buy/evals/README.md`. One skill's worth of cases is not
+  enough evidence to fix a format; it is schematized when a second skill's evals show
+  which fields are actually load-bearing.
 - **`registry.json`** — the generated skill index. One skill does not need an index.
 - **RFC process** (`spec/rfcs/`) — added when the first spec change is proposed by someone outside the maintainer group.
 

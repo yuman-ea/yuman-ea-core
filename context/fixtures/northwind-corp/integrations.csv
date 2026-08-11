@@ -1,0 +1,27 @@
+integration_id,source_application_id,target_application_id,description,pattern,frequency,criticality,brokered
+int-01,nw-002,nw-001,Customer orders placed in the portal are submitted for validation,api_synchronous,real_time,critical,no
+int-02,nw-020,nw-001,Field sales orders are submitted for validation,api_synchronous,real_time,high,yes
+int-03,nw-001,nw-003,Order lines are priced against customer price lists,api_synchronous,real_time,critical,no
+int-04,nw-001,nw-006,Validated orders are released to the warehouse for picking,api_asynchronous,real_time,critical,yes
+int-05,nw-006,nw-007,Dispatch manifests are handed to route planning,batch_file,daily,high,yes
+int-06,nw-007,nw-008,Planned routes are registered for temperature monitoring,batch_file,daily,medium,yes
+int-07,nw-008,nw-018,Temperature records are extracted for compliance reporting,batch_file,daily,high,yes
+int-08,nw-015,nw-001,Trade account master data is published to order capture,database_link,real_time,critical,no
+int-09,nw-015,nw-002,Trade account master data is published to the portal,database_link,hourly,critical,no
+int-10,nw-015,nw-003,Customer hierarchy is published to pricing,batch_file,daily,critical,yes
+int-11,nw-015,nw-011,Trade accounts and credit terms are published to billing,batch_file,daily,critical,yes
+int-12,nw-015,nw-020,Trade account data is published to field sales,api_asynchronous,hourly,high,yes
+int-13,nw-015,nw-018,Customer dimension is loaded for reporting,batch_file,daily,medium,yes
+int-14,nw-001,nw-011,Fulfilled orders are handed to billing for invoicing,batch_file,daily,critical,yes
+int-15,nw-011,nw-010,Invoices and receipts are posted to the general ledger,batch_file,daily,critical,yes
+int-16,nw-006,nw-010,Stock movements and valuations are posted to the ledger,batch_file,daily,high,yes
+int-17,nw-014,nw-002,Product data and imagery are published to the portal,api_asynchronous,hourly,high,yes
+int-18,nw-014,nw-020,Product data is published to field sales,api_asynchronous,hourly,medium,yes
+int-19,nw-014,nw-001,Product master is published to order capture,batch_file,daily,high,yes
+int-20,nw-004,nw-006,Forecast demand informs replenishment planning,batch_file,weekly,medium,no
+int-21,nw-005,nw-006,Confirmed purchase orders are registered for receiving,batch_file,daily,medium,yes
+int-22,nw-001,nw-004,Order history is extracted to train the forecast,batch_file,weekly,medium,no
+int-23,nw-009,nw-006,Shift rosters are keyed into the warehouse system by hand,manual_reentry,daily,medium,no
+int-24,nw-012,nw-013,Employee changes are sent to the payroll bureau,batch_file,monthly,critical,yes
+int-25,nw-012,nw-009,Absence data is exported for scheduling,batch_file,weekly,low,no
+int-26,nw-001,nw-018,Order and margin data is loaded for reporting,batch_file,daily,high,yes

@@ -1,0 +1,492 @@
+spec_version: "1.0"
+id: yea.technology.build-vs-buy
+slug: build-vs-buy
+name: Build vs Buy Evaluation
+display_name: Build, buy, or partner
+description: >
+  Decides whether to build, buy, or partner for a business capability. Scores the
+  realistic options against declared, overridable criteria and produces a scorecard,
+  a recommendation memo a non-specialist can defend, and a decision record — each
+  stating its assumptions, its confidence, and what would change the answer. Works
+  from manual input and CSV; no portfolio tooling required.
+
+version: 0.1.0
+domain: technology
+category: design
+owner_agent: technology-ea
+maturity: draft
+license: MIT
+
+# Every input below can be answered by an architect from their own knowledge, a
+# conversation, or a spreadsheet they can produce unaided. Nothing here needs a CMDB.
+data_intensity: low
+
+# One host. R22 blocks promotion past draft until a second standard-compliant
+# host is verified — the open question in ADR-0001.
+hosts_verified:
+  - claude-code
+
+# ---------------------------------------------------------------------------
+# Discovery. Users do not name skills; they describe a problem.
+# ---------------------------------------------------------------------------
+triggers:
+  phrases:
+    - "build or buy"
+    - "build vs buy"
+    - "make or buy"
+    - "should we build this ourselves"
+    - "should we build it or buy it"
+    - "buy off the shelf or develop it"
+    - "custom build or commercial product"
+    - "in-house or vendor"
+    - "develop internally or license"
+    - "write it ourselves"
+  decision_types:
+    - sourcing
+    - solution_selection
+  not_this_skill:
+    - phrase: "which of these two products should we pick"
+      route_to: technology-ea
+    - phrase: "should we keep this application or retire it"
+      route_to: portfolio-ea
+    - phrase: "should we move this to the cloud"
+      route_to: technology-ea
+    - phrase: "what is the business case for this investment"
+      route_to: portfolio-ea
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — restate before analysing, so a wrong question is caught while cheap.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Determine whether to build, buy, or partner for {capability}, optimizing for
+    {primary_driver} over a {decision_horizon} horizon, evaluated across
+    {candidate_options}.
+  decision_statement_fields:
+    - capability
+    - primary_driver
+    - decision_horizon
+    - candidate_options
+  out_of_scope:
+    - Selecting between shortlisted commercial products once buy has been chosen.
+    - Deciding whether the capability is worth funding at all.
+    - Sequencing this against other investments in the portfolio.
+    - Negotiating commercial terms with a supplier.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped. Each declares what it moves.
+# ---------------------------------------------------------------------------
+ask:
+  - id: differentiation
+    question: "Does this capability differentiate you competitively, or is it something every organization in your sector needs?"
+    why: "Differentiating capabilities bias toward build; commodity capabilities bias toward buy. This is the single largest swing in the analysis."
+    type: choice
+    options: [differentiating, competitive_parity, commodity]
+    option_labels:
+      differentiating: "Customers or margin depend on us doing this differently"
+      competitive_parity: "We need to be as good as our peers, not better"
+      commodity: "Everyone does this the same way and nobody wins on it"
+    required: true
+    default_if_skipped: competitive_parity
+    affects: [strategic_differentiation]
+
+  - id: decision_horizon
+    question: "Is this a decision for the next 12 months, or a 3-5 year commitment?"
+    why: "A short horizon weights time to value and understates build cost recovery; a long horizon weights five-year cost of ownership and exit cost."
+    type: choice
+    options: [tactical_12m, strategic_3_5y]
+    option_labels:
+      tactical_12m: "We need something working inside a year"
+      strategic_3_5y: "Whatever we choose, we live with for 3-5 years"
+    required: true
+    default_if_skipped: strategic_3_5y
+    affects: [tco_5y, time_to_value, exit_cost]
+
+  - id: primary_driver
+    question: "What is the decision actually being optimized for?"
+    why: "Tilts the weighting toward the criterion the organization will be judged on. Choosing balanced applies the published default weights unchanged."
+    type: choice
+    options: [cost, speed_to_market, control_and_flexibility, risk_reduction, balanced]
+    option_labels:
+      cost: "The number on the page is what this turns on"
+      speed_to_market: "Late is the failure mode we care about"
+      control_and_flexibility: "We need to change it on our own schedule"
+      risk_reduction: "Predictability matters more than upside"
+      balanced: "No single driver dominates"
+    required: true
+    default_if_skipped: balanced
+    affects: [tco_5y, time_to_value, integration_complexity, vendor_risk]
+
+  - id: talent_reality
+    question: "Do you have — or can you realistically hire within the horizon — the engineers to build this AND run it for five years?"
+    why: "Build options fail on the run, not the build. An honest answer here eliminates build options that would otherwise score well on paper."
+    type: choice
+    options: [team_in_place, could_hire, no_realistic_path]
+    option_labels:
+      team_in_place: "The people exist today and are not fully committed elsewhere"
+      could_hire: "We would need to recruit, and believe we could"
+      no_realistic_path: "We would be pretending"
+    required: true
+    default_if_skipped: could_hire
+    affects: [talent_availability, time_to_value]
+
+  - id: switching_tolerance
+    question: "If this turns out to be the wrong choice in three years, how hard would it be to change course?"
+    why: "Sets how much weight reversibility carries. Where switching is effectively impossible, a marginally better score does not justify the lock-in."
+    type: choice
+    options: [easy, costly_but_possible, effectively_locked_in]
+    option_labels:
+      easy: "We could move within a year without major disruption"
+      costly_but_possible: "Painful and expensive, but survivable"
+      effectively_locked_in: "The data or the process would hold us there"
+    required: true
+    default_if_skipped: costly_but_possible
+    affects: [exit_cost, vendor_risk]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs, all answerable from the architect's head.
+#    Everything else degrades honestly and pays for it in confidence.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: capability
+      description: "The business capability in scope, named as the business would name it."
+      source: [user, context.capability_model]
+      format: scalar
+
+    - id: candidate_options
+      description: "The options being compared. At least one build option and one buy option; add a partner option where a managed or hosted arrangement is realistically available."
+      source: user
+      format: list
+
+    - id: must_have_requirements
+      description: "What the solution must do for this to be considered a success. Five to ten items; the things whose absence would make the decision wrong."
+      source: user
+      format: list
+
+  optional:
+    - id: internal_build_cost
+      description: "Estimated cost to build the solution in-house, including the first year of running it."
+      source: [user, connector.finance]
+      format: scalar
+      on_missing: estimate_with_assumption
+      assumption_template: "Internal build cost was not supplied. It has been estimated from the must-have requirement count and the stated team position, at {value} over {period}, which is the largest single uncertainty in this analysis."
+      confidence_penalty: high
+
+    - id: vendor_pricing
+      description: "Indicative licence, subscription, or implementation pricing for the buy and partner options."
+      source: [user, connector.vendor_catalog]
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "No supplier pricing was available. Buy and partner options have been costed from a public list-price range for this category, which typically overstates what is negotiated; the estimate is stated as a range, not a point."
+      confidence_penalty: high
+
+    - id: run_cost_baseline
+      description: "What the organization spends today on the capability, however it is met now."
+      source: [user, connector.finance, context.application_costs]
+      format: scalar
+      on_missing: use_proxy_metric
+      proxy: "Annual run cost of the applications currently mapped to this capability in the application inventory; where none are mapped, the baseline is recorded as unknown rather than zero."
+      assumption_template: "Current run cost was taken from the applications mapped to this capability rather than from finance, so it excludes internal effort not charged to those applications."
+      confidence_penalty: medium
+
+    - id: integration_points
+      description: "The systems this solution has to exchange data with, and how tightly."
+      source: [user, context.integrations]
+      format: list
+      on_missing: ask_user
+      confidence_penalty: low
+
+    - id: security_classification
+      description: "The highest data classification the solution will hold."
+      source: [user, context.policies]
+      format: scalar
+      on_missing: use_default_value
+      default_value: confidential
+      assumption_template: "Data classification was not stated, so the solution has been assessed as holding confidential data. If it holds regulated or personal data, re-run the analysis — the vendor risk scores change materially."
+      confidence_penalty: medium
+
+    - id: existing_contract_expiry
+      description: "When the current arrangement for this capability ends, if there is one."
+      source: [user, context.application_inventory]
+      format: scalar
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No existing contract end date was supplied, so the analysis assumes no contractual window constrains the timing. A live contract would change the sequencing, not the ranking."
+      confidence_penalty: low
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only. An overlay says what they mean; core never does.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - cloud_first
+    - approved_vendors
+    - budget_ceiling
+    - data_residency
+    - security_baseline
+    - open_source_policy
+  # The primary user has no overlay. Running is the correct default; the
+  # assumptions register records which constraints were unstated.
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - approved_vendors
+    - budget_ceiling
+    - data_residency
+    - security_baseline
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — every weight addressable, every score traceable to evidence.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: strategic_differentiation
+      display_name: Strategic differentiation
+      weight: 0.25
+      description: "Whether owning this capability outright is how the organization competes, or whether it is table stakes that everyone meets the same way."
+      evidence: [differentiation, capability, decision_horizon]
+      direction: higher_is_better
+
+    - id: tco_5y
+      display_name: Five-year cost of ownership
+      weight: 0.20
+      description: "Total cost over five years including build or licence, implementation, running, support, and the internal effort each option consumes."
+      evidence: [internal_build_cost, vendor_pricing, run_cost_baseline]
+      direction: higher_is_better
+
+    - id: time_to_value
+      display_name: Time to first business value
+      weight: 0.15
+      description: "How long before the business is actually using this, not when the project is declared finished."
+      evidence: [talent_reality, candidate_options, must_have_requirements]
+      direction: higher_is_better
+
+    - id: integration_complexity
+      display_name: Integration effort
+      weight: 0.15
+      description: "How much work it takes to make this option exchange data with what the organization already runs, and how brittle that leaves the estate."
+      evidence: [integration_points, must_have_requirements]
+      direction: higher_is_better
+
+    - id: vendor_risk
+      display_name: Supplier and continuity risk
+      weight: 0.10
+      description: "Exposure to a supplier's viability, roadmap, pricing changes, and security posture, weighted by how much of the capability sits with them."
+      evidence: [security_classification, existing_contract_expiry, candidate_options]
+      direction: higher_is_better
+
+    - id: talent_availability
+      display_name: People to build and run it
+      weight: 0.10
+      description: "Whether the organization can staff this option for five years, not just deliver it once."
+      evidence: [talent_reality, capability]
+      direction: higher_is_better
+
+    - id: exit_cost
+      display_name: Cost of changing course
+      weight: 0.05
+      description: "What it would cost to reverse this decision in three years, including data extraction and process rework."
+      evidence: [switching_tolerance, existing_contract_expiry]
+      direction: higher_is_better
+
+  # One scale for the whole skill. Scores express FAVOURABILITY, never magnitude:
+  # a cheap option scores 5 on cost, not the cost itself. Mixed conventions are
+  # the fastest way to produce a scorecard nobody can read.
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — this criterion alone would be grounds to reject the option."
+      - value: 2
+        meaning: "Unfavourable — a material disadvantage the organization would have to accept and actively manage."
+      - value: 3
+        meaning: "Neutral — no real advantage either way, or advantages and disadvantages that cancel out."
+      - value: 4
+        meaning: "Favourable — a clear advantage a reviewer would recognize without needing it explained."
+      - value: 5
+        meaning: "Strongly favourable — the best outcome realistically available on this criterion."
+
+  steps:
+    - "Restate the decision using the frame template and confirm it with the user before scoring anything."
+    - "Establish the option set: at least one build option and one buy option, plus a partner option wherever a managed or hosted arrangement realistically exists."
+    - "Apply hard constraints first. Record every option eliminated and the policy ID that eliminated it; an option that vanishes without explanation reads as a rigged analysis."
+    - "Resolve every gather input. For each one that is absent, apply its declared on_missing behaviour and write the assumption into the register BEFORE any score depends on it."
+    - "Score each surviving option against each criterion on the 1-5 favourability scale, citing for every score the evidence ID it rests on."
+    - "Compute the weighted score per option. Where a criterion was omitted for lack of evidence, renormalize the remaining weights and record that this happened."
+    - "Compare the top two weighted scores against the indifference band. Inside the band, report the result as too close to separate and apply tie-breakers in order rather than declaring a winner."
+    - "Run every declared sensitivity target and record which conclusions flip and at what threshold."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used. Never assert a rating that the rules do not support."
+    - "Write the artifacts, checking that every number in them traces to an evidence ID or a numbered assumption."
+
+  tie_breakers:
+    - "Prefer the option with the lower exit cost. A reversible decision is worth more than a marginally better irreversible one."
+    - "Prefer the option that delivers the must-have requirements earliest, since the tie means the end states are comparable."
+    - "Prefer keeping the differentiating part in-house even where the surrounding parts are bought — a split option is often the honest answer to a genuine tie."
+    - "If still tied, report the tie and name the single piece of evidence that would break it."
+
+  references:
+    - ./references/sourcing-criteria.md
+    - ./references/cost-model-notes.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER — markdown is the floor; richer formats are an upgrade, not a route.
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, finance]
+  artifacts:
+    - id: option_scorecard
+      display_name: Option scorecard
+      description: "One row per option per criterion, with the score, the weight, the evidence it rests on, and the assumption it depends on."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/option-scorecard.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: option_id
+            type: string
+            description: "Short identifier used consistently across all three artifacts."
+          - id: option_name
+            type: string
+          - id: option_type
+            type: enum
+            enum_values: [build, buy, partner]
+          - id: criterion_id
+            type: enum
+            enum_values: [strategic_differentiation, tco_5y, time_to_value, integration_complexity, vendor_risk, talent_availability, exit_cost]
+          - id: score
+            type: score
+            description: "1-5 favourability, against the declared anchors."
+          - id: weight
+            type: number
+            description: "Effective weight after any overlay override and any renormalization."
+          - id: weighted_score
+            type: number
+          - id: evidence_basis
+            type: string
+            description: "The evidence ID and the specific fact behind the score. Not a restatement of the criterion."
+          - id: assumption_ref
+            type: string
+            description: "Numbered assumption this score depends on, or empty where the score rests on supplied data."
+          - id: score_confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: recommendation_memo
+      display_name: Recommendation memo
+      description: "The argument, in business language, for a reader who was not in the room and has not read a framework."
+      formats: [md, docx]
+      preferred_format: docx
+      markdown_template: ./assets/recommendation-memo.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: decision_statement
+            heading: "The decision"
+            required: true
+          - id: recommendation
+            heading: "Recommendation"
+            required: true
+            description: "One option, or an explicit statement that two options are too close to separate."
+          - id: why_this_option
+            heading: "Why"
+            required: true
+            description: "The two or three criteria that actually decided it. Not a walk through all seven."
+          - id: what_it_costs
+            heading: "What it costs"
+            required: true
+            description: "Five-year cost per option, with ranges where the figures are estimated."
+          - id: options_considered
+            heading: "Options considered"
+            required: true
+          - id: options_eliminated
+            heading: "Options eliminated, and by what"
+            required: true
+            description: "Every option removed by a hard constraint, with the policy that removed it. Empty section stated explicitly if none."
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+            description: "The assumptions register, numbered, each with what it affects."
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this answer"
+            required: true
+            description: "The sensitivity result in plain sentences, with thresholds."
+          - id: next_steps
+            heading: "Next steps"
+            required: true
+          - id: dissenting_view
+            heading: "The case against"
+            required: false
+            description: "Included where a reasonable architect could have reached the other conclusion."
+
+    - id: decision_record
+      display_name: Decision record
+      description: "A short, dated record of what was decided and what would trigger revisiting it, in the organization's own repository."
+      formats: [md]
+      preferred_format: md
+      markdown_template: ./assets/decision-record.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: status
+            heading: "Status"
+            required: true
+          - id: context
+            heading: "Context"
+            required: true
+          - id: decision
+            heading: "Decision"
+            required: true
+          - id: consequences
+            heading: "Consequences"
+            required: true
+          - id: alternatives_considered
+            heading: "Alternatives considered"
+            required: true
+          - id: revisit_trigger
+            heading: "What would make us revisit this"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY — not garnish. This is what the user is actually taking with them.
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "internal_build_cost and vendor_pricing were both supplied rather than estimated, no criterion was scored on a proxy, and at least two materially different options were evaluated."
+    - level: medium
+      when: "at most one of internal_build_cost or vendor_pricing was estimated, and no criterion carrying a weight of 0.15 or more was scored without direct evidence."
+    - level: low
+      when: "both cost inputs were estimated or absent, or any criterion carrying a weight of 0.15 or more was scored without direct evidence, or only one option was genuinely evaluated."
+
+  sensitivity_targets:
+    - target: internal_build_cost
+      variation: "+/- 30%"
+      report: "Whether the leading option changes, and the build-cost error at which it would."
+    - target: vendor_pricing
+      variation: "+/- 20%"
+      report: "Whether the leading option changes, and at what licence or subscription price the ranking flips."
+    - target: strategic_differentiation
+      variation: "weight +/- 0.10"
+      report: "Whether the recommendation survives an organization that values differentiation more, or less, than the default weighting."
+    - target: tco_5y
+      variation: "weight +/- 0.10"
+      report: "Whether a cost-led organization would reach the same conclusion from the same scores."
+
+  evals: ./evals/

@@ -1,0 +1,39 @@
+spec_version: "1.0"
+id: r16-routes-instead-of-answering
+target: orchestrator
+rule: R16
+description: >
+  The orchestrator-bloat guard. A build-vs-buy question is easy to answer plausibly
+  from general knowledge, which is exactly why answering it is the failure. The
+  orchestrator must invoke the skill through the owning agent, not reason its way
+  to a recommendation.
+
+given:
+  user_message: >
+    We're trying to decide whether to build our own customer ordering portal or buy
+    a commercial one. What do you think?
+  available_agents: [technology-ea]
+  available_skills: [yea.technology.build-vs-buy]
+  context_available: [context.capability_model, context.application_inventory]
+
+expect:
+  classified_intent: sourcing
+  routes_to: technology-ea
+  invokes_skill: yea.technology.build-vs-buy
+  names_the_method_before_running: true
+  must_state:
+    - which method it is invoking, before it runs
+  must_not:
+    - state or imply a build, buy, or partner recommendation before the skill has run
+    - score the options itself
+    - produce cost figures, timelines, or vendor pricing of its own
+    - ask more than one disambiguating question of its own
+
+fails_if:
+  - The response contains a recommendation with no skill invocation.
+  - The response contains numbers that no skill or context slice produced.
+  - The response runs the seven phases inline rather than delegating them.
+
+notes: >
+  "What do you think?" is the trap. It invites an opinion, and an opinion is
+  precisely what this framework exists to replace with a defensible argument.

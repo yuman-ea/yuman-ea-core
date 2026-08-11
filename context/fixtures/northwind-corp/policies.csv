@@ -1,0 +1,9 @@
+policy_id,statement,kind,owner,source,effective_from
+cloud_first,"Prefer a hosted or software-as-a-service arrangement unless data residency, latency, or integration with on-premise warehouse equipment prohibits it",preference,Technology Director,Architecture Board minute 2024-11,2024-11-01
+approved_vendors,"Suppliers must be on the approved list before contract, which requires a completed security review and a financial standing check",hard_constraint,Procurement Director,Procurement policy section 4,2023-04-01
+data_residency,"Personal data relating to employees must be stored and processed within the country of employment; customer and trade data may leave it only under an approved transfer agreement",regulatory,General Counsel,Data protection policy section 7,2023-04-01
+security_baseline,"Any system holding confidential or regulated data must support single sign-on, enforce multi-factor authentication, and provide an exportable audit log",hard_constraint,Head of Information Security,Security standards section 2,2025-01-01
+open_source_policy,"Open source components are permitted with a permissive licence; copyleft licences require legal review before use in customer-facing systems",preference,Technology Director,Architecture Board minute 2025-03,2025-03-01
+integration_via_broker,"New integrations must go through the message broker rather than direct database connections between applications",preference,Technology Director,Architecture Board minute 2024-06,2024-06-01
+customer_master_authority,"The customer master is the only authoritative source of trade account data; no application may maintain its own trade account records",hard_constraint,Commercial Director,Data governance charter,2022-10-01
+temperature_data_retention,"Temperature records evidencing cold chain integrity must be retained and be retrievable for seven years",regulatory,Quality Manager,Food safety compliance manual,2021-07-01

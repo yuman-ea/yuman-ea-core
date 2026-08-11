@@ -1,0 +1,62 @@
+# Northwind Corp — organization profile
+# SYNTHETIC. Northwind Corp does not exist. See README.md.
+#
+# These are the facts a skill may read as context.organization_profile. They are the
+# same shape an overlay's `profile` block supplies for a real organization, so a skill
+# written against this fixture works unchanged against a real overlay.
+
+organization: Northwind Corp
+sector: Specialty food and beverage distribution
+currency: USD
+fiscal_year_start: "04-01"
+current_fiscal_year: FY2026
+
+# Undiscounted comparisons mildly favour options with costs late in the term.
+# Northwind has a stated rate, so multi-year comparisons discount and say so.
+discount_rate: 0.08
+planning_horizon_years: 5
+risk_appetite: low
+
+scale:
+  revenue_usd: 740000000
+  employees: 1800
+  trade_accounts: 4200
+  product_skus: 11000
+  sites:
+    head_office: 1
+    distribution_centres: 4
+    cold_storage_facilities: 1
+
+technology:
+  # Used to reconcile internal_ftes with internal_labour_cost_usd in
+  # application-costs.csv. Fully loaded: salary, employment costs, overhead.
+  loaded_engineer_cost_usd: 155000
+  total_it_ftes: 28.7
+  application_run_cost_fy2026_usd: 9995500
+  # There is no CMDB and no EA repository. The inventory is a spreadsheet.
+  ea_repository: none
+  cmdb: none
+
+# What Northwind believes it competes on. Recorded here because a build-vs-buy run
+# will ask, and because the honest answer differs by capability — which is the whole
+# reason this fixture is useful.
+strategic_position:
+  differentiating:
+    - Perishable route planning and delivery reliability
+    - Cold chain integrity and traceability
+    - Customer-specific trade pricing and promotions
+    - Demand forecasting for short-shelf-life products
+  parity:
+    - Order capture and customer self-service
+    - Warehouse operations
+    - Product information management
+  commodity:
+    - Finance, payroll, human resources administration
+    - Collaboration, service desk, workforce scheduling
+
+known_data_gaps:
+  - No build cost has ever been estimated formally; there is no historical basis.
+  - Run cost is captured per application but not per capability.
+  - User counts are missing for four applications and are blank rather than zero.
+  - No budget ceiling is published, so skills consulting budget_ceiling must take
+    their on_policy_absent path.
