@@ -1,0 +1,31 @@
+capability_id,name,level,parent_capability_id,description,strategic_importance,owning_function
+cap-01,Customer Management,1,,Acquiring trade accounts and managing the relationship through its life,parity,Commercial
+cap-01-01,Customer Onboarding,2,cap-01,Setting up a trade account including credit checks and terms,commodity,Commercial
+cap-01-02,Customer Self-Service,2,cap-01,Letting customers place and track orders without calling a representative,parity,Commercial
+cap-01-03,Customer Master Data,2,cap-01,Maintaining one trusted record of each trade account across the estate,parity,Commercial
+cap-02,Order Management,1,,Taking an order and turning it into a fulfilled delivery,parity,Operations
+cap-02-01,Order Capture,2,cap-02,Receiving orders through every channel and validating them,parity,Operations
+cap-02-02,Pricing and Promotions,2,cap-02,Setting customer-specific prices and running trade promotions,differentiating,Commercial
+cap-02-03,Order Fulfilment,2,cap-02,Allocating stock and releasing orders to the warehouse,parity,Operations
+cap-03,Supply Chain Planning,1,,Deciding what to buy and hold across a short-shelf-life range,differentiating,Supply Chain
+cap-03-01,Demand Forecasting,2,cap-03,Predicting demand for products that spoil,differentiating,Supply Chain
+cap-03-02,Supplier Management,2,cap-03,Managing supplier relationships purchase orders and performance,parity,Supply Chain
+cap-03-03,Inventory Planning,2,cap-03,Setting stock levels and replenishment across sites,parity,Supply Chain
+cap-04,Warehouse and Logistics,1,,Storing picking and delivering goods within their shelf life,differentiating,Operations
+cap-04-01,Warehouse Operations,2,cap-04,Receiving putaway picking and dispatch,parity,Operations
+cap-04-02,Route Planning and Delivery,2,cap-04,Planning delivery routes against time windows and temperature constraints,differentiating,Operations
+cap-04-03,Cold Chain Compliance,2,cap-04,Monitoring and evidencing temperature integrity end to end,differentiating,Quality
+cap-04-04,Workforce Scheduling,2,cap-04,Rostering warehouse and driver shifts against forecast volume,commodity,Operations
+cap-05,Finance,1,,Recording controlling and reporting the money,commodity,Finance
+cap-05-01,Financial Accounting,2,cap-05,General ledger period close and statutory reporting,commodity,Finance
+cap-05-02,Billing and Receivables,2,cap-05,Invoicing trade accounts and collecting what is owed,commodity,Finance
+cap-06,People,1,,Employing paying and developing staff,commodity,People
+cap-06-01,Human Resources Administration,2,cap-06,Employee records absence and recruitment administration,commodity,People
+cap-06-02,Payroll,2,cap-06,Paying staff accurately and on time,commodity,People
+cap-07,Product and Category Management,1,,Deciding what to sell and describing it consistently,parity,Commercial
+cap-07-01,Product Information Management,2,cap-07,Maintaining product data allergens and imagery across channels,parity,Commercial
+cap-08,Corporate Services,1,,The shared services the business runs on,commodity,Technology
+cap-08-01,Collaboration and Productivity,2,cap-08,Email documents meetings and shared working,commodity,Technology
+cap-08-02,Service Desk,2,cap-08,Handling technology incidents and requests,commodity,Technology
+cap-08-03,Integration and Data Services,2,cap-08,Moving data between applications reliably,parity,Technology
+cap-08-04,Enterprise Reporting,2,cap-08,Reporting and analytics across the business,parity,Technology

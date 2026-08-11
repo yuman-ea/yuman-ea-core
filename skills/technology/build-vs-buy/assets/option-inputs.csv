@@ -1,0 +1,4 @@
+option_id,option_name,option_type,one_line_description,year_1_cost,five_year_cost,cost_basis,months_to_first_value,must_haves_met,must_haves_total,integration_points,data_classification,exit_difficulty,notes
+opt-1,Build in house,build,"Replace with a solution developed by the internal team",,,unknown,,,,,,,"Leave cost blank if unknown — the method estimates it and records the assumption"
+opt-2,Commercial platform,buy,"Licensed product configured to our process",,,unknown,,,,,,,"List price is not the negotiated price; record which you have"
+opt-3,Managed service,partner,"Supplier runs the capability against an agreed service level",,,unknown,,,,,,,"Include a partner option wherever one realistically exists"

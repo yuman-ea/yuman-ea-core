@@ -1,0 +1,137 @@
+spec_version: "1.0"
+id: 02-differentiating-capability-full-data
+skill: yea.technology.build-vs-buy
+fixture: context/fixtures/northwind-corp
+description: >
+  The opposite pole from case 01. Every input is available and the cheaper option is
+  not the right one. This case checks that the method follows its declared weights
+  rather than defaulting to lowest cost, and that a high confidence rating is earned
+  by evidence rather than produced by a clean-looking scorecard.
+
+given:
+  scenario: >
+    Northwind's route planning system (nw-007) cannot model temperature constraints, so
+    planners override roughly a third of routes by hand. The supplier will not commit to
+    temperature-aware routing. The contract ends 2026-12-31. Route planning is one of the
+    four capabilities Northwind believes it competes on.
+
+  ask:
+    differentiation: differentiating
+    decision_horizon: strategic_3_5y
+    primary_driver: control_and_flexibility
+    talent_reality: team_in_place
+    switching_tolerance: costly_but_possible
+
+  gather:
+    provided:
+      capability: "Route Planning and Delivery (cap-04-02)"
+      candidate_options:
+        - id: opt-1
+          name: "Build a temperature-aware routing engine in house"
+          type: build
+        - id: opt-2
+          name: "Renew with the incumbent supplier"
+          type: buy
+        - id: opt-3
+          name: "Replace with an alternative commercial routing product"
+          type: buy
+        - id: opt-4
+          name: "Buy a routing product and build the temperature constraint layer on top"
+          type: build
+      must_have_requirements:
+        - Route optimisation against delivery time windows
+        - Vehicle temperature compartment constraints modelled in the optimisation
+        - Driver hours and break rules
+        - Same-day replanning when a vehicle fails
+        - Manifest handover to the warehouse system
+        - Route registration with cold chain monitoring
+        - Planner override with a recorded reason
+      internal_build_cost:
+        year_1_usd: 780000
+        five_year_usd: 2150000
+        basis: "Three engineers for ten months, then one engineer sustained. Costed by the engineering manager against the loaded rate in organization.yaml."
+      vendor_pricing:
+        - option: opt-2
+          annual_usd: 330000
+          five_year_usd: 1850000
+          basis: "Incumbent renewal quote including 200,000 of integration rework, dated."
+        - option: opt-3
+          annual_usd: 290000
+          five_year_usd: 1900000
+          basis: "Written quote including implementation and data migration, dated."
+      run_cost_baseline:
+        annual_usd: 494500
+        basis: "nw-007 FY2026 total from application-costs.csv"
+      integration_points:
+        - "nw-006 Warehouse Management System — dispatch manifests, daily batch"
+        - "nw-008 Cold Chain Monitoring — route registration, daily batch"
+      security_classification: internal
+      existing_contract_expiry: "2026-12-31"
+    withheld: []
+    available_context:
+      - context.application_inventory
+      - context.application_costs
+      - context.integrations
+      - context.capability_model
+      - context.policies
+
+  overlay: none
+
+expect:
+  frame_restated_before_analysis: true
+
+  recommendation_type_in: [build]
+  recommendation_may_be_split_option: true
+  cheapest_option_is_not_recommended: true
+
+  confidence: high
+  confidence_reason_must_reference: >
+    both cost inputs were supplied rather than estimated, and no criterion was scored on a proxy
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+
+  must_state:
+    - That the recommended option is NOT the cheapest, and why that is the right answer here.
+    - Strategic differentiation as one of the two or three criteria that decided it, in
+      business language rather than by criterion name.
+    - That the supplier will not commit to temperature-aware routing, as evidence under
+      supplier and continuity risk.
+    - The margin between the top two options, and that it is narrow.
+    - That under a cost-led weighting the recommendation REVERSES, with the weight shift
+      at which that happens.
+    - That the 2026-12-31 contract expiry sets the timing, and that timing is a separate
+      question from the ranking.
+    - The split option (opt-4) explicitly, whether or not it is recommended.
+
+  sensitivity_must_report:
+    - target: tco_5y
+      finding: "A cost-led organization reaches the opposite conclusion from the same scores."
+    - target: internal_build_cost
+      finding: "The build-cost overrun at which buying becomes the better option."
+
+  must_not:
+    - Recommend on cost alone.
+    - Rate confidence below high, given every input was supplied.
+    - Present the margin between the top two options as decisive.
+    - Treat contract expiry as a reason to choose an option rather than a constraint on sequencing.
+    - Name a real commercial product.
+
+fails_if:
+  - It picks the lowest five-year cost and reasons backwards to justify it.
+  - It omits the sensitivity finding that a cost-led weighting flips the answer. That
+    finding is the most useful sentence in the whole analysis for this decision.
+  - It ignores the split option, which is the most common gap in a real build-versus-buy paper.
+
+tolerance: >
+  Whether the recommendation is the pure build (opt-1) or the split (opt-4) is
+  acceptable either way, provided the reasoning is stated. A buy recommendation fails
+  unless the run also demonstrates that the declared weights produce it, which they do
+  not at the supplied evidence.
+
+notes: >
+  Designed so the weighted result and the cheapest result disagree, and so that a ten
+  point weight shift between differentiation and cost reverses it. Both properties are
+  deliberate: they are the difference between a method and a preference.

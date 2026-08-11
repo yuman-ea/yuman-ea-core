@@ -1,0 +1,125 @@
+spec_version: "1.0"
+id: 01-commodity-capability-no-cost-data
+skill: yea.technology.build-vs-buy
+fixture: context/fixtures/northwind-corp
+description: >
+  The primary-user case. An architect with no cost model asks whether to replace a
+  failing customer portal. Nothing financial is available. This case exists to check
+  that the skill produces a defensible answer anyway AND is honest about what that
+  answer rests on — the two failures being a refusal to proceed, and a confident
+  recommendation built on invented numbers.
+
+given:
+  scenario: >
+    Northwind's customer ordering portal (nw-002, built 2014) is on an unsupported
+    framework and mobile experience is the top customer complaint. The commercial
+    director wants it replaced. Nobody has costed anything.
+
+  ask:
+    differentiation: competitive_parity
+    decision_horizon: strategic_3_5y
+    primary_driver: speed_to_market
+    talent_reality: could_hire
+    switching_tolerance: costly_but_possible
+
+  gather:
+    provided:
+      capability: "Customer Self-Service (cap-01-02)"
+      candidate_options:
+        - id: opt-1
+          name: "Rebuild the portal in house"
+          type: build
+        - id: opt-2
+          name: "Commercial trade commerce platform"
+          type: buy
+        - id: opt-3
+          name: "Managed commerce service run by a supplier"
+          type: partner
+      must_have_requirements:
+        - Order placement against customer-specific price lists
+        - Order tracking and delivery window visibility
+        - Repeat-order and standing-order templates
+        - Mobile browser usable one-handed in a walk-in fridge
+        - Single sign-on for trade account users
+        - Credit position visible at order time
+        - Product data including allergens
+        - Substitution handling for out-of-stock lines
+        - Accessibility to the organization's published standard
+    withheld:
+      - internal_build_cost
+      - vendor_pricing
+      - run_cost_baseline
+      - integration_points
+      - security_classification
+      - existing_contract_expiry
+    available_context:
+      - context.application_inventory
+      - context.application_costs
+      - context.capability_model
+      - context.policies
+
+  overlay: none
+
+expect:
+  frame_restated_before_analysis: true
+
+  recommendation: buy
+  ranking_top_option_type: buy
+  build_is_not_top: true
+
+  confidence: low
+  confidence_reason_must_reference: >
+    both cost inputs were estimated rather than supplied
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  artifacts_produced:
+    - build-vs-buy--option-scorecard.md
+    - build-vs-buy--recommendation-memo.md
+    - build-vs-buy--decision-record.md
+
+  must_state:
+    - An estimated internal build cost expressed as a RANGE, not a point figure.
+    - That the build range is asymmetric because estimates made this way run optimistic.
+    - That supplier pricing is a list-price band and not a negotiated price.
+    - The threshold at which the recommendation would change if the build estimate is low.
+    - Which applications the run-cost proxy was taken from. Both nw-002 and nw-020 are
+      mapped to cap-01-02; the run must either include both or say why nw-020 was excluded.
+    - That integration points were not supplied, and ask for them or record the gap.
+    - That no budget ceiling is published, so the budget_ceiling constraint was not applied.
+    - That a partner option was evaluated, not just build and buy.
+
+  assumptions_register_must_contain:
+    - internal build cost was estimated
+    - supplier pricing was estimated from a list-price band
+    - current run cost was taken from mapped applications rather than from finance
+    - data classification was assumed to be confidential
+
+  must_not:
+    - Present any estimated cost as a single figure without a range.
+    - Rate confidence medium or high.
+    - Score five-year cost of ownership 5 for any option, since no cost was supplied.
+    - Refuse to produce artifacts because cost data is missing.
+    - Name a real commercial product.
+    - Ask more than the five declared questions.
+
+fails_if:
+  - It halts and demands a cost baseline before producing anything.
+  - It produces a clean recommendation at medium or high confidence.
+  - A cost figure appears in an artifact with no corresponding assumption number.
+  - It silently drops the five-year cost criterion instead of estimating and saying so.
+
+tolerance: >
+  Individual scores may vary by one point. The buy recommendation, the low confidence
+  rating, and the presence of every listed assumption are not negotiable — they are what
+  this case tests.
+
+notes: >
+  This is the case the mission is written around. An architect with no platform, no
+  budget, and partial data must leave with something they can take to a steering
+  committee, clearly labelled as to what it rests on. A skill that scores well here and
+  badly elsewhere is more useful than the reverse.

@@ -1,0 +1,13 @@
+vendor_id,name,category,applications,relationship_since,contract_end_date,annual_contract_value_usd,notice_period_months,approved,notes
+vendor_alpha,Vendor Alpha,Warehouse management,nw-006,2016,2027-06-30,575000,6,yes,Deployment is two major versions behind the supplier's current release
+vendor_bravo,Vendor Bravo,Supplier collaboration,nw-005,2022,2029-01-31,120000,3,yes,
+vendor_charlie,Vendor Charlie,Route optimisation,nw-007,2018,2026-12-31,300000,6,yes,Renewal decision due; supplier has not committed to temperature-aware routing
+vendor_delta,Vendor Delta,Cold chain telemetry,nw-008,2021,2028-04-30,216000,6,yes,Holds regulated temperature evidence used in audits
+vendor_echo,Vendor Echo,Finance and billing,nw-010;nw-011,2013,2028-03-31,1082000,12,yes,Single bundled agreement covering both applications
+vendor_foxtrot,Vendor Foxtrot,Human resources,nw-012,2020,2027-09-30,167000,3,yes,
+vendor_golf,Vendor Golf,Payroll bureau,nw-013,2015,2027-03-31,310000,6,yes,Managed service rather than licensed software
+vendor_hotel,Vendor Hotel,Collaboration,nw-016,2019,2027-12-31,520000,3,yes,
+vendor_india,Vendor India,Service management,nw-017,2023,2027-06-30,102000,3,yes,
+vendor_juliet,Vendor Juliet,Reporting and analytics,nw-018,2020,2027-10-31,325000,6,yes,
+vendor_kilo,Vendor Kilo,Integration middleware,nw-019,2014,2026-09-30,285000,12,yes,Product version is in extended support and carries a surcharge
+vendor_lima,Vendor Lima,Field sales,nw-020,2023,2028-08-31,240000,3,yes,
