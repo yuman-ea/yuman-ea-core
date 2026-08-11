@@ -1,0 +1,725 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/yuman-ea/yuman-ea-core/main/spec/skill.schema.json",
+  "title": "Yuman EA skill contract",
+  "description": "Schema for skill.yaml. The contract a skill declares to the orchestrator, to overlays, and to CI. Prose belongs in SKILL.md; every weight, threshold, criterion, and missing-data behaviour belongs here so that an overlay can address it. Normative narrative: spec/lifecycle.md.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": [
+    "spec_version",
+    "id",
+    "name",
+    "version",
+    "domain",
+    "category",
+    "owner_agent",
+    "maturity",
+    "license",
+    "data_intensity",
+    "triggers",
+    "frame",
+    "ask",
+    "gather",
+    "bound",
+    "analyze",
+    "deliver",
+    "verify"
+  ],
+
+  "properties": {
+    "spec_version": {
+      "const": "1.0",
+      "description": "Version of this schema the skill is written against."
+    },
+
+    "id": {
+      "type": "string",
+      "pattern": "^(yea|x\\.[a-z][a-z0-9]*(-[a-z0-9]+)*)\\.(business|technology|portfolio|risk|assurance|cross)\\.[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "description": "Canonical skill ID: yea.<domain>.<slug> for core skills, x.<org>.<domain>.<slug> for third-party or organization skills. Must agree with the domain field and with the directory path.",
+      "examples": ["yea.technology.build-vs-buy", "x.acme.technology.mainframe-exit"]
+    },
+
+    "slug": {
+      "$ref": "#/$defs/skill_slug",
+      "description": "Directory name of the skill. Must equal the last segment of id. Redundant on purpose: it is what artifact filenames are derived from."
+    },
+
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 80,
+      "description": "Canonical human-readable name. One name per concept — no aliases."
+    },
+
+    "display_name": {
+      "type": "string",
+      "maxLength": 80,
+      "description": "Optional friendlier label for docs and UI. The ONLY place a second label for this skill may exist."
+    },
+
+    "description": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 1024,
+      "description": "One paragraph, functional language, no framework vocabulary. Mirrored into SKILL.md frontmatter — see spec/standard-mapping.md."
+    },
+
+    "version": {
+      "$ref": "#/$defs/semver",
+      "description": "Semver, per skill. Weight or criteria change = minor. Changed artifact schema = major."
+    },
+
+    "domain": {
+      "$ref": "#/$defs/domain"
+    },
+
+    "category": {
+      "$ref": "#/$defs/category"
+    },
+
+    "owner_agent": {
+      "$ref": "#/$defs/agent_id",
+      "description": "The L1 domain agent that owns this skill. Never 'orchestrator' — the router does not own methods."
+    },
+
+    "maturity": {
+      "$ref": "#/$defs/maturity"
+    },
+
+    "license": {
+      "type": "string",
+      "description": "SPDX identifier. Must match the repository licence for core skills."
+    },
+
+    "data_intensity": {
+      "enum": ["low", "medium", "high"],
+      "description": "How much organizational data the skill needs before it produces a defensible answer. low = usable with manual input and the architect's own knowledge; medium = usable with CSV exports the architect can produce unaided; high = needs a maintained repository or connector feed. Phase-1 skills are low. A skill is 'medium' or 'high' only if it CANNOT degrade honestly to manual input — see lifecycle.md R14."
+    },
+
+    "deprecated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Set for a minimum of two releases before removal."
+    },
+
+    "superseded_by": {
+      "type": "string",
+      "description": "Skill ID that replaces this one. Required when deprecated is true."
+    },
+
+    "hosts_verified": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string" },
+      "description": "Agent Skills standard hosts the evals have been run against. Claude Code is the reference host; at least one other is required to promote past draft (ADR-0001 §6)."
+    },
+
+    "triggers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phrases"],
+      "description": "How the orchestrator finds this skill when the user names a problem rather than a skill. A skill with weak triggers is invisible and fails review on that basis alone (ADR-0001 §2).",
+      "properties": {
+        "phrases": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 3, "maxLength": 80 },
+          "description": "Things a practitioner actually says, in their words, not ours. Include the colloquial forms."
+        },
+        "decision_types": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/snake_case_id" },
+          "description": "Coarse intent labels the orchestrator classifies to."
+        },
+        "not_this_skill": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["phrase", "route_to"],
+            "properties": {
+              "phrase": { "type": "string" },
+              "route_to": { "type": "string", "description": "Skill ID or agent ID that should handle it instead." }
+            }
+          },
+          "description": "Near-miss phrases that belong somewhere else. Cheap to write, and the main defence against two skills claiming one question."
+        }
+      }
+    },
+
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restatement_template"],
+      "description": "Phase 1. Restate the user's goal as a precise EA decision statement, so the user can correct the question before any work is done.",
+      "properties": {
+        "restatement_template": {
+          "type": "string",
+          "minLength": 30,
+          "description": "Template with {placeholders} that resolve from ask answers and gather inputs."
+        },
+        "decision_statement_fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/snake_case_id" },
+          "description": "The placeholders the template consumes. CI checks these resolve from ask/gather IDs."
+        },
+        "out_of_scope": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What this skill deliberately does not decide. Stated to the user during framing."
+        }
+      }
+    },
+
+    "ask": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "description": "Phase 2. Only questions that change the answer. Maximum five, enforced here. Structured data, never prose: this block must render as a chat interview, a web form, or a batch payload without modification.",
+      "items": { "$ref": "#/$defs/ask_item" }
+    },
+
+    "gather": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "optional"],
+      "description": "Phase 3. Inputs, where they come from, and — for every optional input — what the skill does when it is absent. Both keys are required; use an empty array rather than omitting one.",
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/required_input" },
+          "description": "Inputs without which the skill cannot run at all. Keep this list short: every entry is a reason the primary user gives up."
+        },
+        "optional": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/optional_input" },
+          "description": "Everything else. Each declares on_missing and a confidence penalty — degrade honestly, never demand."
+        }
+      }
+    },
+
+    "bound": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policies"],
+      "description": "Phase 4. Constraints referenced BY POLICY ID only. Inline constraint text is rejected: an overlay cannot override prose.",
+      "properties": {
+        "policies": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/policy_ref" },
+          "description": "Policy IDs supplied by an overlay. A core skill declares which policies it consults; it never states what they say."
+        },
+        "on_policy_absent": {
+          "enum": ["proceed_and_note", "ask_user", "halt_with_explanation"],
+          "default": "proceed_and_note",
+          "description": "Behaviour when no overlay supplies a declared policy. The primary user has no overlay, so the default must be usable."
+        },
+        "hard_constraints": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/policy_ref" },
+          "description": "Subset of policies that eliminate options outright rather than adjusting scores. Elimination must be reported in the artifact, never silent."
+        }
+      }
+    },
+
+    "analyze": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "criteria", "scoring_scale", "weights_overridable"],
+      "description": "Phase 5. The method itself: criteria, weights, scoring scale, reasoning steps. Everything here is addressable by an overlay.",
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/snake_case_id",
+          "description": "Common values: weighted_multi_criteria, matrix_placement, threshold_test, scenario_comparison, decision_tree, clustering. Not a closed enum."
+        },
+        "criteria": {
+          "type": "array",
+          "minItems": 2,
+          "description": "Weights must sum to 1.0 within tolerance (lifecycle.md R7). Every criterion states what evidence scores it, so a reviewer can challenge the score rather than the vibe.",
+          "items": { "$ref": "#/$defs/criterion" }
+        },
+        "scoring_scale": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "anchors"],
+          "properties": {
+            "type": {
+              "enum": ["ordinal_1_5", "ordinal_1_3", "ordinal_0_10", "normalized_0_1"],
+              "description": "One scale for the whole skill. Mixed scales make scores incomparable and are the fastest way to lose a steering committee."
+            },
+            "anchors": {
+              "type": "array",
+              "minItems": 2,
+              "description": "What each scale point means in business language. Anchors are what make a score reproducible run to run.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["value", "meaning"],
+                "properties": {
+                  "value": { "type": "number" },
+                  "meaning": { "type": "string", "minLength": 10 }
+                }
+              }
+            }
+          }
+        },
+        "weights_overridable": {
+          "type": "boolean",
+          "description": "Whether an overlay may change the weights. Normally true. False requires a justification in SKILL.md."
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 10 },
+          "description": "Ordered reasoning steps. Constrain the model's procedure; do not teach it the framework."
+        },
+        "tie_breakers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Applied in order when weighted scores are within the indifference band. Without these, run-to-run consistency is luck."
+        },
+        "indifference_band": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5,
+          "description": "Score gap below which two options are reported as too close to separate, rather than ranked. Reporting a false winner is worse than reporting a tie."
+        },
+        "subagents": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/subagent_id" },
+          "description": "L2 workers this skill may fan out for labour. The method stays in the skill."
+        },
+        "references": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^\\./references/" },
+          "description": "Loaded on demand, not upfront. Cite external frameworks; never reproduce proprietary content."
+        }
+      }
+    },
+
+    "deliver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifacts"],
+      "description": "Phase 6. Named artifacts with defined schemas. Every artifact declares markdown among its formats — markdown is the guaranteed floor across hosts (ADR-0001 §4).",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/artifact" }
+        },
+        "audience": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["architect", "steering_committee", "finance", "delivery_team", "vendor"] },
+          "description": "Who reads the output. Drives register, not content."
+        }
+      }
+    },
+
+    "verify": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["emits", "confidence_rules", "sensitivity_targets", "evals"],
+      "description": "Phase 7. Not quality garnish — the product. A recommendation without its assumptions, its confidence, and what would change it is a well-formatted opinion.",
+      "properties": {
+        "emits": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": ["assumptions_register", "confidence_rating", "sensitivity_analysis", "data_quality_note", "dissent_note"]
+          },
+          "allOf": [
+            { "contains": { "const": "assumptions_register" } },
+            { "contains": { "const": "confidence_rating" } },
+            { "contains": { "const": "sensitivity_analysis" } }
+          ],
+          "description": "The three mandatory emissions cannot be omitted. CI rejects a skill without them."
+        },
+        "confidence_rules": {
+          "type": "array",
+          "minItems": 2,
+          "description": "Maps evidence state to a confidence level, so the rating is derived rather than asserted.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["level", "when"],
+            "properties": {
+              "level": { "enum": ["low", "medium", "high"] },
+              "when": {
+                "type": "string",
+                "minLength": 10,
+                "description": "Checkable condition, expressed against gather inputs and their on_missing outcomes."
+              }
+            }
+          }
+        },
+        "sensitivity_targets": {
+          "type": "array",
+          "minItems": 1,
+          "description": "What gets varied, by how much, and what the report says. 'Which recommendation flips at ±20% cost error' is the sentence that survives a CFO.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["target", "variation", "report"],
+            "properties": {
+              "target": { "type": "string", "description": "Criterion ID, weight, or gather input ID being varied." },
+              "variation": { "type": "string", "description": "e.g. '+/- 20%', 'weight +/- 0.10'." },
+              "report": { "type": "string", "description": "What the artifact must state about the result." }
+            }
+          }
+        },
+        "evals": {
+          "type": "string",
+          "const": "./evals/",
+          "description": "Golden cases live beside the skill. Minimum three to merge at draft (lifecycle.md R12)."
+        }
+      }
+    }
+  },
+
+  "allOf": [
+    {
+      "if": { "properties": { "deprecated": { "const": true } }, "required": ["deprecated"] },
+      "then": { "required": ["superseded_by"] }
+    }
+  ],
+
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+    },
+
+    "snake_case_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$",
+      "maxLength": 48
+    },
+
+    "skill_slug": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "maxLength": 48,
+      "not": {
+        "anyOf": [
+          { "pattern": "-(helper|manager|handler|service|util|utils|tool|assistant)$" },
+          { "pattern": "[-_]?v?[0-9]+$" }
+        ]
+      },
+      "description": "Noun phrase naming the decision or the deliverable. Banned suffixes and version numbers are rejected here rather than in review. The no-gerunds rule is a lint warning, not a schema constraint — regex cannot separate 'evaluating-sourcing-options' from 'pricing-model'. See lifecycle.md R2."
+    },
+
+    "domain": {
+      "enum": ["business", "technology", "portfolio", "risk", "assurance", "cross"],
+      "description": "Closed enum. Extending it requires an ADR."
+    },
+
+    "category": {
+      "enum": ["discover", "assess", "aggregate", "prioritize", "simplify", "design", "govern", "align"],
+      "description": "Closed enum of eight. Extending it requires an ADR."
+    },
+
+    "maturity": {
+      "enum": ["draft", "usable", "proven", "certified"],
+      "description": "Closed enum. Promotion criteria in lifecycle.md."
+    },
+
+    "agent_id": {
+      "type": "string",
+      "pattern": "^(business|technology|portfolio|risk|assurance|cross)-ea$"
+    },
+
+    "subagent_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)+$",
+      "description": "<verb>-<noun>, e.g. app-profiler, cost-modeler."
+    },
+
+    "policy_ref": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$",
+      "maxLength": 48,
+      "description": "A policy ID, not a policy. The length limit exists to stop inline constraint prose."
+    },
+
+    "input_source": {
+      "type": "string",
+      "pattern": "^(user|context\\.[a-z0-9_]+(\\.[a-z0-9_]+)*|connector\\.[a-z0-9_]+|tool\\.[a-z0-9_]+|skill\\.[a-z0-9_.-]+|assets\\.[a-z0-9_.-]+)$",
+      "description": "Where the input comes from. connector.* names a CAPABILITY (connector.finance, connector.vendor_catalog), never a product. Vendor names are rejected by CI lint R9."
+    },
+
+    "ask_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "question", "why", "type", "required"],
+      "properties": {
+        "id": { "$ref": "#/$defs/snake_case_id" },
+        "question": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Asked in the practitioner's language. If answering it needs framework training, rewrite it."
+        },
+        "why": {
+          "type": "string",
+          "minLength": 15,
+          "description": "What changes in the answer depending on the response. If you cannot write this sentence, the question does not belong in ask."
+        },
+        "type": { "enum": ["choice", "multi_choice", "text", "number", "boolean", "currency", "date"] },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/snake_case_id" },
+          "description": "Required for choice and multi_choice."
+        },
+        "option_labels": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Optional display text per option value, for hosts that render a form."
+        },
+        "required": { "type": "boolean" },
+        "default_if_skipped": {
+          "description": "Used when the user declines or a batch payload omits the answer. Required when required is true, so the skill never deadlocks on an unanswered question."
+        },
+        "affects": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/snake_case_id" },
+          "description": "Criterion IDs whose weight or score this answer moves. Makes the 'only questions that change the answer' rule machine-checkable."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "enum": ["choice", "multi_choice"] } }, "required": ["type"] },
+          "then": { "required": ["options"] }
+        },
+        {
+          "if": { "properties": { "required": { "const": true } }, "required": ["required"] },
+          "then": { "required": ["default_if_skipped"] }
+        }
+      ]
+    },
+
+    "required_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/snake_case_id" },
+        "description": { "type": "string", "minLength": 10 },
+        "source": {
+          "oneOf": [
+            { "$ref": "#/$defs/input_source" },
+            { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/input_source" } }
+          ]
+        },
+        "format": {
+          "enum": ["scalar", "list", "table", "document"],
+          "description": "Shape of the input, so a CSV column mapping can be checked."
+        },
+        "schema_ref": {
+          "type": "string",
+          "description": "Path to a context schema this input must conform to, e.g. context/schema/application.schema.json."
+        }
+      }
+    },
+
+    "optional_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "source", "on_missing", "confidence_penalty"],
+      "properties": {
+        "id": { "$ref": "#/$defs/snake_case_id" },
+        "description": { "type": "string", "minLength": 10 },
+        "source": {
+          "oneOf": [
+            { "$ref": "#/$defs/input_source" },
+            { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/input_source" } }
+          ]
+        },
+        "format": { "enum": ["scalar", "list", "table", "document"] },
+        "schema_ref": { "type": "string" },
+        "on_missing": {
+          "enum": [
+            "ask_user",
+            "estimate_with_assumption",
+            "use_proxy_metric",
+            "use_default_value",
+            "omit_criterion_and_reweight",
+            "halt_with_explanation"
+          ],
+          "description": "Closed enum. halt_with_explanation on an OPTIONAL input is a contradiction and is rejected by CI rule R6 — if absence stops the skill, the input is required."
+        },
+        "proxy": {
+          "type": "string",
+          "description": "The substitute used. Required when on_missing is use_proxy_metric."
+        },
+        "default_value": {
+          "description": "Required when on_missing is use_default_value."
+        },
+        "assumption_template": {
+          "type": "string",
+          "minLength": 20,
+          "description": "The sentence written into the assumptions register when this path is taken. Required for every estimating path — an unstated assumption is the failure this whole schema exists to prevent."
+        },
+        "confidence_penalty": {
+          "enum": ["none", "low", "medium", "high"],
+          "description": "How far the overall confidence rating drops when this input is absent. 'none' is allowed only where absence genuinely does not weaken the conclusion."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "on_missing": { "enum": ["estimate_with_assumption", "use_proxy_metric", "use_default_value", "omit_criterion_and_reweight"] }
+            },
+            "required": ["on_missing"]
+          },
+          "then": { "required": ["assumption_template"] }
+        },
+        {
+          "if": { "properties": { "on_missing": { "const": "use_proxy_metric" } }, "required": ["on_missing"] },
+          "then": { "required": ["proxy"] }
+        },
+        {
+          "if": { "properties": { "on_missing": { "const": "use_default_value" } }, "required": ["on_missing"] },
+          "then": { "required": ["default_value"] }
+        }
+      ]
+    },
+
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "weight", "description", "evidence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/snake_case_id" },
+        "display_name": { "type": "string", "maxLength": 60 },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Declared here so an overlay can address it. Never buried in prose."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 20,
+          "description": "What this criterion measures, in business language."
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/snake_case_id" },
+          "description": "gather input IDs and ask IDs that produce the score. A criterion with no evidence path is an opinion with a weight on it."
+        },
+        "direction": {
+          "enum": ["higher_is_better", "lower_is_better"],
+          "default": "higher_is_better"
+        },
+        "overridable": { "type": "boolean", "default": true },
+        "applies_to": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/snake_case_id" },
+          "description": "Restricts the criterion to a subset of options, where it is meaningless for the others."
+        }
+      }
+    },
+
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "formats", "content_schema", "always"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/snake_case_id",
+          "description": "Artifact filenames are derived, not declared: <skill-slug>--<id with underscores replaced by hyphens>.<ext>."
+        },
+        "display_name": { "type": "string", "maxLength": 60 },
+        "description": { "type": "string", "minLength": 15 },
+        "formats": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["md", "csv", "docx", "xlsx", "pptx", "json"] },
+          "contains": { "const": "md" },
+          "description": "Must include md. Hosts differ in whether they can write Office formats; markdown is the floor that makes the artifact real everywhere."
+        },
+        "preferred_format": {
+          "enum": ["md", "csv", "docx", "xlsx", "pptx", "json"],
+          "description": "Used where the host supports it. Defaults to md."
+        },
+        "template": {
+          "type": "string",
+          "description": "Path to the rich-format template, e.g. templates/scorecard."
+        },
+        "markdown_template": {
+          "type": "string",
+          "pattern": "^\\./assets/",
+          "description": "Path to the markdown form of this artifact, shipped with the skill."
+        },
+        "content_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "description": "The defined schema the phase-6 contract requires. Columns for tabular artifacts, sections for documents.",
+          "properties": {
+            "type": { "enum": ["table", "document"] },
+            "columns": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "type"],
+                "properties": {
+                  "id": { "$ref": "#/$defs/snake_case_id" },
+                  "type": { "enum": ["string", "number", "currency", "score", "enum", "boolean", "date"] },
+                  "description": { "type": "string" },
+                  "enum_values": { "type": "array", "items": { "$ref": "#/$defs/snake_case_id" } }
+                }
+              }
+            },
+            "sections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "required"],
+                "properties": {
+                  "id": { "$ref": "#/$defs/snake_case_id" },
+                  "heading": { "type": "string" },
+                  "required": { "type": "boolean" },
+                  "description": { "type": "string" }
+                }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "type": { "const": "table" } }, "required": ["type"] },
+              "then": { "required": ["columns"] }
+            },
+            {
+              "if": { "properties": { "type": { "const": "document" } }, "required": ["type"] },
+              "then": { "required": ["sections"] }
+            }
+          ]
+        },
+        "always": {
+          "type": "boolean",
+          "description": "Emitted on every run, even at low confidence. At least one artifact per skill must be always: true, or a run can end with nothing in the user's hands."
+        }
+      }
+    }
+  }
+}
