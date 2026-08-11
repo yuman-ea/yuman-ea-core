@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/yuman-ea/yuman-ea-core/main/spec/agent.schema.json",
+  "title": "Yuman EA agent contract",
+  "description": "Schema for agent.yaml. Agents are few and stable; skills are many and contributed. If a routine contribution requires editing a file validated by this schema, the design is wrong. Two agent layers exist and they are shaped differently: L0 routes and never runs methods, L1 owns a domain and delegates to skills.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": ["spec_version", "id", "name", "version", "layer", "role", "non_goals"],
+
+  "properties": {
+    "spec_version": { "const": "1.0" },
+
+    "id": {
+      "type": "string",
+      "pattern": "^(orchestrator|(business|technology|portfolio|risk|assurance|cross)-ea)$",
+      "description": "The router is 'orchestrator'. Every other agent is '<domain>-ea'. New agents require an ADR (CLAUDE.md anti-pattern 6)."
+    },
+
+    "name": { "type": "string", "minLength": 3, "maxLength": 60 },
+
+    "display_name": { "type": "string", "maxLength": 60 },
+
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+    },
+
+    "layer": {
+      "enum": ["l0", "l1"],
+      "description": "l0 = orchestration, exactly one agent. l1 = domain ownership. L2 subagents are not described by this schema."
+    },
+
+    "role": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 300,
+      "description": "One sentence. What this agent is responsible for, in functional language."
+    },
+
+    "domain": {
+      "enum": ["business", "technology", "portfolio", "risk", "assurance", "cross"],
+      "description": "Required for l1. Must agree with the id prefix."
+    },
+
+    "owns_questions": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 10, "maxLength": 200 },
+      "description": "Questions this agent answers, phrased as a practitioner would ask them. CI flags overlap across agents: the failure mode in multi-agent EA systems is never 'no agent answered', it is 'three agents answered differently'."
+    },
+
+    "refuses": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Declarative, machine-checkable boundaries. An agent that refuses nothing will eventually answer everything.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["question", "route_to"],
+        "properties": {
+          "question": { "type": "string", "minLength": 10 },
+          "route_to": {
+            "type": "string",
+            "pattern": "^(orchestrator|(business|technology|portfolio|risk|assurance|cross)-ea)$",
+            "description": "Where it goes instead. A route to an agent that does not exist yet is a CI error, not a placeholder."
+          },
+          "available": {
+            "type": "boolean",
+            "default": true,
+            "description": "False when the target agent is not yet shipped. The agent must then say so plainly rather than answering out of scope."
+          }
+        }
+      }
+    },
+
+    "skills": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^(yea|x\\.[a-z][a-z0-9]*(-[a-z0-9]+)*)\\.(business|technology|portfolio|risk|assurance|cross)\\.([a-z][a-z0-9]*(-[a-z0-9]+)*|\\*)$"
+      },
+      "description": "Skill IDs or domain globs this agent may invoke. L1 only — the orchestrator does not hold skills."
+    },
+
+    "subagents": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)+$" },
+      "description": "L2 workers available for fan-out and context isolation."
+    },
+
+    "escalates_to": {
+      "type": "string",
+      "pattern": "^orchestrator$",
+      "description": "L1 escalates to the orchestrator. Required for l1."
+    },
+
+    "responsibilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["classify_intent", "decompose", "assemble_context", "arbitrate", "synthesize"] },
+      "minItems": 5,
+      "description": "L0 only, and exactly these five. The list is closed because every addition is orchestrator bloat wearing a business case."
+    },
+
+    "routes_to": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^(business|technology|portfolio|risk|assurance|cross)-ea$" },
+      "description": "L0 only. The domain agents that actually exist in this release."
+    },
+
+    "on_unroutable": {
+      "enum": ["state_gap_and_stop", "ask_user_to_reframe", "answer_directly"],
+      "description": "L0 only. 'answer_directly' is present so it can be rejected: choosing it is the definition of orchestrator bloat and CI rejects it."
+    },
+
+    "non_goals": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "run_methods_itself",
+          "invent_data",
+          "average_away_conflict",
+          "name_vendor_systems",
+          "produce_artifacts_without_confidence_rating",
+          "answer_outside_owned_questions"
+        ]
+      },
+      "description": "Stated in the agent's own prompt, not just here. Closed enum: these are the observed failure modes, and an agent that wants a novel non-goal probably wants an ADR."
+    },
+
+    "context_slices": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^context\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$" },
+      "description": "The enterprise context this agent is permitted to read and pass down. Naming it narrows what ends up in a context window."
+    },
+
+    "evals": {
+      "type": "string",
+      "const": "./evals/",
+      "description": "Agent-level golden cases. The orchestrator's routing eval is mandatory — see lifecycle.md R16."
+    }
+  },
+
+  "allOf": [
+    {
+      "if": { "properties": { "layer": { "const": "l0" } }, "required": ["layer"] },
+      "then": {
+        "required": ["responsibilities", "routes_to", "on_unroutable", "evals"],
+        "properties": {
+          "on_unroutable": { "not": { "const": "answer_directly" } },
+          "non_goals": {
+            "allOf": [
+              { "contains": { "const": "run_methods_itself" } },
+              { "contains": { "const": "invent_data" } },
+              { "contains": { "const": "average_away_conflict" } }
+            ]
+          }
+        },
+        "not": { "anyOf": [{ "required": ["skills"] }, { "required": ["owns_questions"] }, { "required": ["domain"] }] }
+      }
+    },
+    {
+      "if": { "properties": { "layer": { "const": "l1" } }, "required": ["layer"] },
+      "then": {
+        "required": ["domain", "owns_questions", "refuses", "skills", "escalates_to"],
+        "not": { "anyOf": [{ "required": ["responsibilities"] }, { "required": ["routes_to"] }, { "required": ["on_unroutable"] }] }
+      }
+    },
+    {
+      "if": { "properties": { "id": { "const": "orchestrator" } }, "required": ["id"] },
+      "then": { "properties": { "layer": { "const": "l0" } } },
+      "else": { "properties": { "layer": { "const": "l1" } } }
+    }
+  ]
+}

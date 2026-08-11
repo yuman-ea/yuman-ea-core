@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/yuman-ea/yuman-ea-core/main/spec/overlay.schema.json",
+  "title": "Yuman EA overlay",
+  "description": "Schema for overlay.yaml. An overlay is how an organization changes weights, supplies policies, points at its own systems, and adds private skills WITHOUT forking core. Nothing in core is edited. This file is also the only place in the system where a vendor product name is legitimate — see the connectors block.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": ["spec_version", "extends", "profile"],
+
+  "properties": {
+    "spec_version": { "const": "1.0" },
+
+    "extends": {
+      "type": "string",
+      "pattern": "^yuman-ea-core@[0-9]+\\.[0-9]+\\.(x|[0-9]+)$",
+      "description": "The core release this overlay layers over, e.g. yuman-ea-core@0.4.x. Pin the minor; let the patch float.",
+      "examples": ["yuman-ea-core@0.4.x"]
+    },
+
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization"],
+      "description": "Organization facts every skill may read. Keep it to things that change a calculation, not a company description.",
+      "properties": {
+        "organization": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217. Artifacts state the currency; a scorecard of bare numbers is not defensible."
+        },
+        "fiscal_year_start": {
+          "type": "string",
+          "pattern": "^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
+          "description": "MM-DD."
+        },
+        "discount_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Used by any skill that discounts multi-year cost. Absent means the skill states its own assumed rate in the assumptions register."
+        },
+        "planning_horizon_years": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "risk_appetite": { "enum": ["low", "medium", "high"] }
+      }
+    },
+
+    "skill_overrides": {
+      "type": "object",
+      "description": "Keyed by skill ID. Only values a skill declared as addressable can be overridden — that is what 'no buried weights' buys.",
+      "propertyNames": {
+        "pattern": "^(yea|x\\.[a-z][a-z0-9]*(-[a-z0-9]+)*)\\.(business|technology|portfolio|risk|assurance|cross)\\.[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "weights": {
+            "type": "object",
+            "description": "criterion_id -> weight. Partial overrides are allowed; remaining criteria are renormalized proportionally and the artifact reports that it happened (lifecycle.md R8).",
+            "propertyNames": { "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "additional_criteria": {
+            "type": "array",
+            "description": "Organization-specific criteria, e.g. regulatory data residency. Same shape as a core criterion — an overlay criterion that cannot say what evidence scores it is no more defensible than a core one.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "weight", "description", "evidence"],
+              "properties": {
+                "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                "display_name": { "type": "string", "maxLength": 60 },
+                "weight": { "type": "number", "minimum": 0, "maximum": 1 },
+                "description": { "type": "string", "minLength": 20 },
+                "evidence": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+                },
+                "direction": { "enum": ["higher_is_better", "lower_is_better"] }
+              }
+            }
+          },
+          "removed_criteria": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "description": "Criteria this organization does not use. Removal is recorded in the artifact's method note, so a reader knows what was not considered."
+          },
+          "ask_defaults": {
+            "type": "object",
+            "description": "ask_id -> answer. Pre-answers questions whose answer is constant for this organization, shortening the interview without hiding it.",
+            "propertyNames": { "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+          },
+          "indifference_band": { "type": "number", "minimum": 0, "maximum": 0.5 },
+          "preferred_formats": {
+            "type": "object",
+            "description": "artifact_id -> format. Markdown remains available regardless; this only changes what is produced where the host can.",
+            "propertyNames": { "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "additionalProperties": { "enum": ["md", "csv", "docx", "xlsx", "pptx", "json"] }
+          },
+          "disabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Hide a core skill this organization does not want offered."
+          }
+        }
+      }
+    },
+
+    "policies": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "The constraints skills reference by ID in their bound phase. Core declares which policy IDs it consults; the overlay is what says what they mean.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$", "maxLength": 48 },
+          "statement": {
+            "type": "string",
+            "minLength": 10,
+            "description": "The policy in one sentence, as the organization would state it."
+          },
+          "source": {
+            "type": "string",
+            "description": "Path or connector reference for data-backed policies, e.g. ./data/approved-vendor-list.csv."
+          },
+          "kind": {
+            "enum": ["preference", "hard_constraint", "regulatory"],
+            "default": "preference",
+            "description": "hard_constraint and regulatory eliminate options rather than adjusting scores, and elimination is always reported."
+          },
+          "owner": { "type": "string", "description": "Who to argue with when a skill's output collides with this policy." }
+        },
+        "anyOf": [{ "required": ["statement"] }, { "required": ["source"] }]
+      }
+    },
+
+    "connectors": {
+      "type": "object",
+      "description": "capability -> adapter. The ONLY place a vendor product name may appear in the system. Skills name the capability (connector.cmdb); the overlay names the product behind it.",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string", "minLength": 2 },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["adapter"],
+            "properties": {
+              "adapter": { "type": "string", "minLength": 2 },
+              "config": { "type": "object", "description": "Adapter settings. Never credentials — those stay outside the repository." },
+              "read_only": { "type": "boolean", "default": true }
+            }
+          }
+        ]
+      }
+    },
+
+    "skills": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^x\\.[a-z][a-z0-9]*(-[a-z0-9]+)*\\.(business|technology|portfolio|risk|assurance|cross)\\.[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+      },
+      "description": "Private skills this overlay adds. The x.<org>. namespace is what makes collision with a future core skill impossible."
+    },
+
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Where this organization's own data lives. Paths are resolved inside the overlay repository — core never reads them, and real enterprise data never enters yuman-ea-core.",
+      "properties": {
+        "application_inventory": { "type": "string" },
+        "capability_model": { "type": "string" },
+        "cost_baseline": { "type": "string" },
+        "standards_catalogue": { "type": "string" }
+      }
+    },
+
+    "agent_overrides": {
+      "type": "object",
+      "description": "Deliberately narrow. Agents are stable; if you need to change how one behaves, you probably need a skill or an ADR.",
+      "propertyNames": { "pattern": "^(orchestrator|(business|technology|portfolio|risk|assurance|cross)-ea)$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "additional_context_slices": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^context\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$" }
+          },
+          "escalation_contact": { "type": "string" }
+        }
+      }
+    }
+  }
+}
