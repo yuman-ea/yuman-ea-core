@@ -1,0 +1,157 @@
+spec_version: "1.0"
+id: 01-replacement-portal-no-nonfunctionals
+skill: yea.technology.high-level-architecture
+fixture: context/fixtures/northwind-corp
+description: >
+  The primary-user case, and the failure that costs the most. No non-functional
+  requirements exist. The skill must derive indicative targets, label them as proposals
+  for confirmation rather than findings, mark every decision resting on one, and rate
+  itself low — while still producing a document the architect can take to a review board.
+  It must also eliminate the option that violates a hard constraint, and say that it did.
+
+given:
+  scenario: >
+    Following the build-vs-buy run, Northwind has decided to buy a commercial trade
+    commerce platform to replace the customer ordering portal (nw-002). The architect now
+    has to produce the high level architecture. Nobody has ever written down an
+    availability target for the portal, and there is no volume forecast.
+
+  ask:
+    architecture_scope: multi_system_solution
+    dominant_quality_attribute: time_to_market
+    estate_position: replaces_existing
+    delivery_and_run_model: supplier_builds_internal_runs
+    change_expectation: steadily
+
+  gather:
+    provided:
+      solution_intent: >
+        Let trade customers place, repeat, and track orders themselves on any device,
+        so that ordering stops depending on a phone call to a representative.
+      must_have_requirements:
+        - Order placement against customer-specific price lists
+        - Order tracking and delivery window visibility
+        - Repeat-order and standing-order templates
+        - Mobile browser usable one-handed in a walk-in fridge
+        - Single sign-on for trade account users
+        - Credit position visible at order time
+        - Product data including allergens
+        - Substitution handling for out-of-stock lines
+        - Accessibility to the organization's published standard
+      existing_estate_touchpoints:
+        - "nw-001 Order Capture System — orders must be validated and fulfilled here"
+        - "nw-015 Customer Master — trade accounts, hierarchy, credit terms"
+        - "nw-014 Product Information System — product data and allergens"
+        - "nw-019 Integration Middleware — the broker in use across the estate"
+      data_entities_and_classification:
+        - "Trade account and contact details — confidential"
+        - "Order and pricing data — confidential"
+        - "No payment card data; trade accounts are invoiced"
+      integration_landscape: "context.integrations — int-01, int-09, int-17 currently serve nw-002"
+      target_audience: governance_review
+      candidate_options:
+        - id: opt-1
+          name: "Commercial platform configured, integrating to order capture and customer master through the broker"
+        - id: opt-2
+          name: "Commercial platform holding its own trade account records, synchronised nightly from the customer master"
+        - id: opt-3
+          name: "Commercial platform for catalogue and checkout with a thin custom experience layer over it"
+    withheld:
+      - nonfunctional_requirements
+      - expected_load_and_volumes
+      - standards_catalogue
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.policies
+      - context.capability_model
+
+  policies_supplied:
+    - id: customer_master_authority
+      statement: "The customer master is the only authoritative source of trade account data; no application may maintain its own trade account records"
+      kind: hard_constraint
+    - id: security_baseline
+      statement: "Any system holding confidential or regulated data must support single sign-on, enforce multi-factor authentication, and provide an exportable audit log"
+      kind: hard_constraint
+    - id: integration_via_broker
+      statement: "New integrations must go through the message broker rather than direct database connections between applications"
+      kind: preference
+    - id: cloud_first
+      statement: "Prefer a hosted or software-as-a-service arrangement unless data residency, latency, or integration with on-premise warehouse equipment prohibits it"
+      kind: preference
+
+expect:
+  frame_restated_before_analysis: true
+  scope_boundary_agreed_before_views: true
+
+  eliminated_options:
+    - option: opt-2
+      by_policy: customer_master_authority
+      must_be_reported_in:
+        - architecture_overview
+        - option_assessment
+        - decision_log
+
+  eliminated_before_scoring: true
+
+  confidence: low
+  confidence_reason_must_reference: >
+    non-functional requirements were derived rather than supplied
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  artifacts_produced:
+    - high-level-architecture--architecture-overview.md
+    - high-level-architecture--option-assessment.md
+    - high-level-architecture--decision-log.md
+
+  must_state:
+    - Derived availability, performance, and recovery targets, each marked explicitly as a
+      PROPOSAL FOR CONFIRMATION rather than as a requirement.
+    - What the derived targets were derived FROM — the criticality and user count recorded
+      against nw-002, not an industry figure.
+    - Which decisions in the log rest on a proposed target, in their own table.
+    - That opt-2 was eliminated, by which policy, and what that policy says.
+    - Which application the load proxy came from, and that it describes today rather than
+      a forecast.
+    - That the existing integrations to nw-015 are direct database links (int-09), and
+      what the broker preference means for the replacement.
+    - A view for context, containers, integration, and deployment, each with the question
+      it answers.
+    - Every must-have requirement traced to the part of the architecture delivering it.
+    - At least one risk, with a mitigation or an explicit acceptance.
+
+  assumptions_register_must_contain:
+    - non-functional targets were derived and are proposals for confirmation
+    - load figures were proxied from the systems in the same capability
+    - no standards catalogue was available, so conformance was assessed against common
+      patterns and is flagged for local confirmation
+
+  must_not:
+    - Present a derived availability or recovery target as a requirement.
+    - Rate confidence medium or high.
+    - Drop opt-2 from the artifacts rather than reporting its elimination.
+    - Name a real commercial product.
+    - Produce a document with no risks section populated.
+    - Expand scope to include replacing nw-015 or nw-001.
+
+fails_if:
+  - A numeric availability or response-time target appears anywhere without the word
+    proposed, assumed, or an assumption reference beside it.
+  - The document is complete and polished and rated medium or high confidence. Polish is
+    exactly what this rating must be immune to.
+  - opt-2 is silently absent.
+
+tolerance: >
+  Whether opt-1 or opt-3 is recommended is acceptable either way with the reasoning
+  stated. The elimination of opt-2, the labelling of derived targets, and the low
+  confidence rating are not negotiable.
+
+notes: >
+  Paired deliberately with build-vs-buy eval 01 — same capability, same estate, the next
+  decision in the sequence. Two skills run over one fixture is how the framework gets
+  judged, not one skill run well.

@@ -1,0 +1,527 @@
+spec_version: "1.0"
+id: yea.technology.high-level-architecture
+slug: high-level-architecture
+name: High Level Architecture
+description: >
+  Produces a high level architecture for a solution: the candidate architecture options,
+  the one recommended, the views a reviewer needs, the significant decisions with their
+  rationale, and the risks. Assesses options against declared quality attributes and
+  states the non-functional requirements it had to assume rather than inventing them.
+  Works from manual input and CSV; no modelling tool required.
+
+version: 0.1.0
+domain: technology
+category: design
+owner_agent: technology-ea
+maturity: draft
+license: MIT
+
+# An architect can answer every required input from the solution intent and their own
+# knowledge of the estate. Load figures and standards improve it; nothing needs a tool.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+# ---------------------------------------------------------------------------
+# Discovery. "HLA" appears here because practitioners say it out loud — the
+# no-invented-acronyms rule governs identifiers, not the words users type.
+# ---------------------------------------------------------------------------
+triggers:
+  phrases:
+    - "high level architecture"
+    - "hla"
+    - "solution architecture"
+    - "how should we architect this"
+    - "what should the architecture look like"
+    - "architecture options"
+    - "target architecture for"
+    - "design the solution at a high level"
+    - "architecture for the new system"
+    - "put together an architecture document"
+    - "architecture for the review board"
+  decision_types:
+    - solution_design
+    - architecture_definition
+  not_this_skill:
+    - phrase: "should we build it or buy it"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "which product should we choose"
+      route_to: technology-ea
+    - phrase: "how much will this cost and can we fund it"
+      route_to: portfolio-ea
+    - phrase: "what business capability does this serve"
+      route_to: business-ea
+    - phrase: "what are the detailed interface specifications"
+      route_to: technology-ea
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — an architecture whose scope was never agreed is the most common
+#    reason a design document is rejected. Settle it in the first exchange.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Define a high level architecture for {solution_intent}, at {architecture_scope} scope,
+    optimizing above all for {dominant_quality_attribute}, given that the solution
+    {estate_position} and will be delivered and run under a {delivery_and_run_model}
+    arrangement.
+  decision_statement_fields:
+    - solution_intent
+    - architecture_scope
+    - dominant_quality_attribute
+    - estate_position
+    - delivery_and_run_model
+  out_of_scope:
+    - Whether to build, buy, or partner. That decision comes first and belongs to build-vs-buy.
+    - Selecting a specific product or supplier.
+    - Detailed design — interface specifications, data models, class or table design.
+    - Cost estimation, funding, and business case.
+    - Delivery planning, sequencing, and resourcing.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped. Each moves at least one criterion.
+# ---------------------------------------------------------------------------
+ask:
+  - id: architecture_scope
+    question: "What is this architecture for — one application, a solution spanning several systems, or a whole capability area?"
+    why: "Sets the boundary of every view and every decision. An architecture whose scope was never agreed is the most common reason a design document is sent back."
+    type: choice
+    options: [single_application, multi_system_solution, capability_domain]
+    option_labels:
+      single_application: "One system, with its interfaces to the rest"
+      multi_system_solution: "Several systems working together to deliver one outcome"
+      capability_domain: "Everything supporting a business capability area"
+    required: true
+    default_if_skipped: multi_system_solution
+    affects: [delivery_feasibility, change_tolerance]
+
+  - id: dominant_quality_attribute
+    question: "If you can only get one thing right, which is it — staying available, handling the volume, going live fast, staying cheap to run, or provable security and compliance?"
+    why: "Architectures are shaped by the one quality that cannot be traded away. Naming it changes the weighting and frequently changes which option is recommended."
+    type: choice
+    options: [availability, throughput_and_scale, time_to_market, low_run_cost, security_and_compliance]
+    option_labels:
+      availability: "It being down is the thing we cannot have"
+      throughput_and_scale: "It has to carry the volume, including the peaks"
+      time_to_market: "Late is the failure mode we care about"
+      low_run_cost: "It has to be cheap to keep running"
+      security_and_compliance: "We have to be able to prove it is safe and compliant"
+    required: true
+    default_if_skipped: availability
+    affects: [nonfunctional_fit, operability, cost_and_run_burden]
+
+  - id: estate_position
+    question: "Is this new ground, an extension of something that already exists, or a replacement for something running today?"
+    why: "The same requirements produce different architectures depending on this. A replacement carries coexistence, migration, and a cutover that a greenfield build does not."
+    type: choice
+    options: [greenfield, extends_existing, replaces_existing]
+    option_labels:
+      greenfield: "Nothing does this today"
+      extends_existing: "Something exists and this adds to it"
+      replaces_existing: "Something exists and this takes over from it"
+    required: true
+    default_if_skipped: extends_existing
+    affects: [estate_coherence, delivery_feasibility]
+
+  - id: delivery_and_run_model
+    question: "Who builds this, and who runs it once it is live?"
+    why: "An architecture the organization cannot operate is not an architecture. This constrains what is feasible more than any technical consideration in the analysis."
+    type: choice
+    options: [internal_team, supplier_builds_internal_runs, supplier_builds_and_runs, mixed]
+    option_labels:
+      internal_team: "Our own people, start to finish"
+      supplier_builds_internal_runs: "A supplier delivers it and we take it on"
+      supplier_builds_and_runs: "A supplier delivers and operates it"
+      mixed: "Split across our team and a supplier"
+    required: true
+    default_if_skipped: internal_team
+    affects: [delivery_feasibility, operability, cost_and_run_burden]
+
+  - id: change_expectation
+    question: "Once it is live, how often will this need to change — rarely, steadily, or constantly?"
+    why: "Sets how much structural flexibility is worth paying for. Building for change that never arrives costs as much as building rigidity into something that changes weekly."
+    type: choice
+    options: [rarely, steadily, constantly]
+    option_labels:
+      rarely: "Set it up and largely leave it"
+      steadily: "Regular but predictable change"
+      constantly: "It is a moving target and always will be"
+    required: true
+    default_if_skipped: steadily
+    affects: [change_tolerance, estate_coherence]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs, all answerable from the architect's head.
+#    Non-functional requirements are the input most often missing, and the one
+#    that most changes the answer. It degrades loudly rather than quietly.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: solution_intent
+      description: "What this solution is for, in one or two sentences of business outcome. Not a feature list."
+      source: [user, context.capability_model]
+      format: scalar
+
+    - id: must_have_requirements
+      description: "The functional requirements whose absence would make the architecture wrong. Five to fifteen items."
+      source: user
+      format: list
+
+    - id: existing_estate_touchpoints
+      description: "The systems this has to live alongside or exchange data with. State 'none' explicitly where the ground is genuinely green — a blank is not the same answer."
+      source: [user, context.application_inventory]
+      format: list
+
+  optional:
+    - id: nonfunctional_requirements
+      description: "Stated targets for availability, response time, recovery, retention, and anything else the solution must hold to."
+      source: [user, context.standards]
+      format: list
+      on_missing: estimate_with_assumption
+      assumption_template: "No non-functional requirements were supplied. Indicative targets have been derived from the business criticality of the systems this replaces or sits alongside, and are stated as {value} FOR CONFIRMATION — they are proposals, not findings. Every significant decision that rests on one is marked."
+      confidence_penalty: high
+
+    - id: expected_load_and_volumes
+      description: "Transaction volumes, user counts, data volumes, and where the peaks are."
+      source: [user, context.application_inventory]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Current volumes of the applications mapped to the same capability in the application inventory, with peak taken as three times average where no peak figure exists."
+      assumption_template: "Load figures were taken from the systems this solution sits alongside rather than from a stated forecast, so they describe today rather than the horizon. The architecture is sized for today plus the stated growth assumption."
+      confidence_penalty: medium
+
+    - id: standards_catalogue
+      description: "The organization's published technology standards, patterns, and approved building blocks."
+      source: [user, context.standards]
+      format: list
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No standards catalogue was available, so conformance has been assessed against widely used patterns rather than against this organization's standards. Every such assessment is flagged for local confirmation and none of them should be read as approval."
+      confidence_penalty: medium
+
+    - id: data_entities_and_classification
+      description: "The main data the solution holds or moves, and how sensitive it is."
+      source: [user, context.policies]
+      format: list
+      on_missing: use_default_value
+      default_value: confidential
+      assumption_template: "Data classification was not stated, so the architecture has been designed for confidential data. If it holds regulated or personal data, the security and residency decisions change and the architecture must be re-reviewed."
+      confidence_penalty: medium
+
+    - id: integration_landscape
+      description: "How systems currently exchange data — the patterns in use, the broker if there is one, and where the brittle points are."
+      source: [user, context.integrations]
+      format: table
+      on_missing: ask_user
+      confidence_penalty: low
+
+    - id: target_audience
+      description: "Who this document is for, which sets its depth — an architecture review board, a delivery team that will build from it, or a steering committee funding it."
+      source: user
+      format: scalar
+      on_missing: use_default_value
+      default_value: governance_review
+      assumption_template: "No audience was stated, so the document has been written for an architecture review board: enough depth to approve, not enough to build from."
+      confidence_penalty: low
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only. An overlay says what they mean.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - cloud_first
+    - security_baseline
+    - data_residency
+    - open_source_policy
+    - integration_via_broker
+    - customer_master_authority
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - security_baseline
+    - data_residency
+    - customer_master_authority
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — two to four whole-architecture options, scored. Not a tour of
+#    every possible decision; the significant ones land in the decision log.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: requirements_fit
+      display_name: Fit to what was asked for
+      weight: 0.20
+      description: "Whether the option actually delivers the must-have requirements, and how much has to be bent or deferred for it to do so."
+      evidence: [must_have_requirements, solution_intent]
+      direction: higher_is_better
+
+    - id: nonfunctional_fit
+      display_name: Fit to the quality attributes
+      weight: 0.20
+      description: "Whether the option holds to the availability, performance, recovery, and retention targets, with the dominant attribute carrying the most weight."
+      evidence: [nonfunctional_requirements, expected_load_and_volumes, dominant_quality_attribute]
+      direction: higher_is_better
+
+    - id: estate_coherence
+      display_name: Fit with what already exists
+      weight: 0.15
+      description: "How well the option sits in the estate that is actually there — integration patterns already in use, standards, and the systems it cannot avoid touching."
+      evidence: [existing_estate_touchpoints, integration_landscape, standards_catalogue, estate_position]
+      direction: higher_is_better
+
+    - id: delivery_feasibility
+      display_name: Can this organization deliver it
+      weight: 0.15
+      description: "Whether the people, the skills, and the delivery model available can realistically build this, on the scope agreed."
+      evidence: [delivery_and_run_model, must_have_requirements, architecture_scope]
+      direction: higher_is_better
+
+    - id: operability
+      display_name: Can it be run
+      weight: 0.10
+      description: "Whether the organization can monitor, support, patch, and recover this once the delivery team has moved on."
+      evidence: [delivery_and_run_model, expected_load_and_volumes]
+      direction: higher_is_better
+
+    - id: security_and_data_protection
+      display_name: Security and data protection
+      weight: 0.10
+      description: "Whether the option holds the data safely, keeps it where it must stay, and can evidence that it does."
+      evidence: [data_entities_and_classification, nonfunctional_requirements]
+      direction: higher_is_better
+
+    - id: change_tolerance
+      display_name: Room to change later
+      weight: 0.05
+      description: "How much the option can absorb the change expected of it without structural rework."
+      evidence: [change_expectation, architecture_scope]
+      direction: higher_is_better
+
+    - id: cost_and_run_burden
+      display_name: Ongoing cost and effort
+      weight: 0.05
+      description: "The standing cost and internal effort the shape of this option commits the organization to. Carries a low weight deliberately: the sourcing cost decision belongs to build-vs-buy, not here."
+      evidence: [delivery_and_run_model, expected_load_and_volumes]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — this alone would be grounds to reject the option."
+      - value: 2
+        meaning: "Unfavourable — a material weakness the organization would have to accept and actively manage."
+      - value: 3
+        meaning: "Neutral — adequate, with no real advantage over the alternatives."
+      - value: 4
+        meaning: "Favourable — a clear advantage a reviewer would recognize without needing it explained."
+      - value: 5
+        meaning: "Strongly favourable — the best outcome realistically available on this criterion."
+
+  steps:
+    - "Restate the decision using the frame template, including the scope boundary, and get it confirmed before drawing anything."
+    - "Establish the drivers: the must-have requirements, the dominant quality attribute, and the constraints that are genuinely fixed rather than merely inherited."
+    - "Resolve every gather input. Where non-functional requirements are absent, derive indicative targets, label them AS PROPOSALS FOR CONFIRMATION, and write them into the register before any option is scored against them."
+    - "Apply hard constraints. Record every option eliminated and the policy ID that eliminated it; the elimination appears in the document, not only in the working."
+    - "Generate two to four genuinely different architecture options. Two options that differ only in a component name are one option, and the analysis is theatre."
+    - "Score each surviving option against each criterion on the 1-5 favourability scale, citing for every score the evidence ID it rests on."
+    - "Compute the weighted score per option. Compare the top two against the indifference band; inside it, report that the options are too close to separate and apply tie-breakers rather than declaring a winner."
+    - "For the recommended option, record the significant decisions in the decision log — the ones that would be expensive to reverse. A decision that could be changed in a sprint does not belong there."
+    - "Draw the views: context, containers, integration, and deployment. Each view exists to answer a question a reviewer will ask; a view that answers none is decoration."
+    - "Identify the risks the recommended option carries, with a mitigation or an explicit acceptance for each. An architecture with no risks listed has not been examined."
+    - "Run the declared sensitivity targets and record which decisions change and at what threshold."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used, never from how finished the document looks."
+
+  tie_breakers:
+    - "Prefer the option that fits the estate that actually exists over the one that would be better if the estate were different."
+    - "Prefer the option the organization can operate on the day the delivery team leaves."
+    - "Prefer the option with fewer moving parts, where the quality attributes are met either way."
+    - "If still tied, report the tie and name the one piece of evidence — usually a load figure or a non-functional target — that would break it."
+
+  references:
+    - ./references/architecture-views.md
+    - ./references/quality-attribute-scenarios.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER — views included as text and mermaid so the document survives a
+#    host with no diagramming and no file generation.
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, delivery_team, steering_committee]
+  artifacts:
+    - id: architecture_overview
+      display_name: Architecture overview
+      description: "The high level architecture itself — scope, drivers, options, the recommended architecture, its views, how it meets the requirements, and the risks it carries."
+      formats: [md, docx]
+      preferred_format: docx
+      markdown_template: ./assets/architecture-overview.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: scope_and_context
+            heading: "Scope and context"
+            required: true
+            description: "What is inside the boundary and what is outside it. The first thing a reviewer checks."
+          - id: drivers_and_constraints
+            heading: "Drivers and constraints"
+            required: true
+            description: "The dominant quality attribute, the must-have requirements, and the constraints that are genuinely fixed."
+          - id: options_considered
+            heading: "Options considered"
+            required: true
+            description: "Two to four genuinely different architectures, each in a form a non-specialist can picture."
+          - id: options_eliminated
+            heading: "Options eliminated, and by what"
+            required: true
+            description: "Every option removed by a constraint, with the policy that removed it. Stated explicitly as none if none."
+          - id: recommended_architecture
+            heading: "Recommended architecture"
+            required: true
+          - id: views
+            heading: "Views"
+            required: true
+            description: "Context, containers, integration, and deployment. Each view answers a stated question."
+          - id: how_it_meets_the_requirements
+            heading: "How it meets the requirements"
+            required: true
+            description: "Each must-have requirement traced to the part of the architecture that delivers it."
+          - id: nonfunctional_treatment
+            heading: "Non-functional treatment"
+            required: true
+            description: "Each quality attribute, its target, and the architectural mechanism that meets it. Targets that were assumed are marked as proposals for confirmation."
+          - id: integration_approach
+            heading: "Integration approach"
+            required: true
+          - id: security_and_data
+            heading: "Security and data"
+            required: true
+          - id: risks_and_mitigations
+            heading: "Risks and mitigations"
+            required: true
+            description: "Each with a mitigation or an explicit acceptance. An architecture with no risks has not been examined."
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this architecture"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+          - id: open_questions
+            heading: "Open questions"
+            required: false
+
+    - id: option_assessment
+      display_name: Option assessment
+      description: "One row per architecture option per criterion, with the score, the evidence behind it, and the assumption it depends on."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/option-assessment.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: option_id
+            type: string
+            description: "Short identifier used consistently across all three artifacts."
+          - id: option_name
+            type: string
+          - id: criterion_id
+            type: enum
+            enum_values: [requirements_fit, nonfunctional_fit, estate_coherence, delivery_feasibility, operability, security_and_data_protection, change_tolerance, cost_and_run_burden]
+          - id: score
+            type: score
+            description: "1-5 favourability, against the declared anchors."
+          - id: weight
+            type: number
+          - id: weighted_score
+            type: number
+          - id: evidence_basis
+            type: string
+            description: "The evidence ID and the specific fact behind the score, not a restatement of the criterion."
+          - id: assumption_ref
+            type: string
+            description: "Numbered assumption this score depends on, or empty where it rests on supplied data."
+          - id: score_confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: decision_log
+      display_name: Architecture decision log
+      description: "The significant decisions inside the recommended architecture — the ones that would be expensive to reverse — each with its options, its rationale, and what would make the organization revisit it."
+      formats: [md, csv, xlsx]
+      preferred_format: md
+      markdown_template: ./assets/decision-log.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: decision_id
+            type: string
+          - id: decision
+            type: string
+            description: "Stated in the active voice: what will be done, not what was discussed."
+          - id: options_considered
+            type: string
+          - id: chosen
+            type: string
+          - id: rationale
+            type: string
+            description: "In business language. The criterion that drove it, expressed as a reason rather than a score."
+          - id: driving_criterion
+            type: enum
+            enum_values: [requirements_fit, nonfunctional_fit, estate_coherence, delivery_feasibility, operability, security_and_data_protection, change_tolerance, cost_and_run_burden]
+          - id: constraint_ref
+            type: string
+            description: "Policy ID where a constraint forced the decision, or empty."
+          - id: status
+            type: enum
+            enum_values: [proposed, accepted, superseded]
+          - id: assumption_ref
+            type: string
+          - id: revisit_trigger
+            type: string
+            description: "The observable event that should reopen this decision. Not 'if circumstances change'."
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY — an architecture document is unusually good at looking finished.
+#    The rating comes from the evidence, never from the polish.
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "non-functional requirements and load figures were both supplied rather than derived, the estate touchpoints were confirmed against the inventory, and at least two genuinely different options were assessed."
+    - level: medium
+      when: "load figures were taken from a proxy but non-functional targets were supplied, or the reverse, and no criterion carrying a weight of 0.15 or more was scored without direct evidence."
+    - level: low
+      when: "non-functional requirements were derived rather than supplied, or the estate touchpoints are unconfirmed, or only one architecture option was genuinely assessed."
+
+  sensitivity_targets:
+    - target: nonfunctional_requirements
+      variation: "availability target one step stricter, and one step looser"
+      report: "Which decisions in the log change, and which stop being affordable. Where the targets were derived rather than supplied, this is the most important paragraph in the document."
+    - target: expected_load_and_volumes
+      variation: "x3 and x10 on peak volume"
+      report: "The volume at which the recommended architecture stops holding, and what would have to change first."
+    - target: nonfunctional_fit
+      variation: "weight +/- 0.10"
+      report: "Whether an organization weighting quality attributes harder than the default reaches the same recommendation."
+    - target: delivery_feasibility
+      variation: "weight +/- 0.10"
+      report: "Whether the recommendation survives an organization with more, or less, delivery capacity than this one."
+
+  evals: ./evals/
