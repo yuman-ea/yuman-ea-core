@@ -44,6 +44,8 @@ Corollary for prioritization: **success is a real decision improved, not a star 
 |---|---|---|
 | Directories | kebab-case, plural for collections | `skills/`, `agents/`, `connectors/` |
 | Skill ID | `yea.<domain>.<slug>` | `yea.technology.build-vs-buy` |
+| Skill `name` | the slug, kebab-case — equals the directory name. **Host tools use it as the invocation name**, so never a prose title | `build-vs-buy` |
+| Skill `display_name` | the human title, optional, never in `SKILL.md` frontmatter | `Build vs Buy Evaluation` |
 | Agent ID | `<domain>-ea`; the router is `orchestrator` | `technology-ea` |
 | Subagent ID | `<verb>-<noun>` | `app-profiler`, `cost-modeler` |
 | Third-party / org skill | `x.<org>.<domain>.<slug>` | `x.acme.technology.mainframe-exit` |

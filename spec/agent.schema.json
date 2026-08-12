@@ -6,7 +6,7 @@
   "type": "object",
   "additionalProperties": false,
 
-  "required": ["spec_version", "id", "name", "version", "layer", "role", "non_goals"],
+  "required": ["spec_version", "id", "name", "description", "version", "layer", "role", "non_goals"],
 
   "properties": {
     "spec_version": { "const": "1.0" },
@@ -20,6 +20,13 @@
     "name": { "type": "string", "minLength": 3, "maxLength": 60 },
 
     "display_name": { "type": "string", "maxLength": 60 },
+
+    "description": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 1024,
+      "description": "WHEN to reach for this agent — the delegation trigger, in the words a user would use. Distinct from role, which says what the agent is responsible for: a host routes on this string and knows nothing else about the agent. Mirrored into AGENT.md frontmatter; see spec/standard-mapping.md."
+    },
 
     "version": {
       "type": "string",

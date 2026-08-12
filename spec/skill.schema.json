@@ -40,22 +40,15 @@
       "examples": ["yea.technology.build-vs-buy", "x.acme.technology.mainframe-exit"]
     },
 
-    "slug": {
-      "$ref": "#/$defs/skill_slug",
-      "description": "Directory name of the skill. Must equal the last segment of id. Redundant on purpose: it is what artifact filenames are derived from."
-    },
-
     "name": {
-      "type": "string",
-      "minLength": 3,
-      "maxLength": 80,
-      "description": "Canonical human-readable name. One name per concept — no aliases."
+      "$ref": "#/$defs/skill_slug",
+      "description": "The canonical name. Slug form, equal to the directory name and to the last segment of id, because host tools use this value as the skill's invocation name — a name with spaces in it produces a command nobody can type. Artifact filenames derive from it. This is the one canonical name per concept; the human title goes in display_name."
     },
 
     "display_name": {
       "type": "string",
       "maxLength": 80,
-      "description": "Optional friendlier label for docs and UI. The ONLY place a second label for this skill may exist."
+      "description": "The human title, used in artifact headings and skill indexes — 'Build vs Buy Evaluation'. Optional; falls back to name. The ONLY place a second label for this skill may exist, and it has no home in the Agent Skills standard, so it never appears in SKILL.md frontmatter."
     },
 
     "description": {
@@ -417,7 +410,7 @@
           { "pattern": "[-_]?v?[0-9]+$" }
         ]
       },
-      "description": "Noun phrase naming the decision or the deliverable. Banned suffixes and version numbers are rejected here rather than in review. The no-gerunds rule is a lint warning, not a schema constraint — regex cannot separate 'evaluating-sourcing-options' from 'pricing-model'. See lifecycle.md R2."
+      "description": "Noun phrase naming the decision or the deliverable, in kebab-case. Banned suffixes and version numbers are rejected here rather than in review. The no-gerunds rule is a lint warning, not a schema constraint — regex cannot separate 'evaluating-sourcing-options' from 'pricing-model'. See lifecycle.md R2."
     },
 
     "domain": {
@@ -643,7 +636,7 @@
       "properties": {
         "id": {
           "$ref": "#/$defs/snake_case_id",
-          "description": "Artifact filenames are derived, not declared: <skill-slug>--<id with underscores replaced by hyphens>.<ext>."
+          "description": "Artifact filenames are derived, not declared: <skill name>--<id with underscores replaced by hyphens>.<ext>."
         },
         "display_name": { "type": "string", "maxLength": 60 },
         "description": { "type": "string", "minLength": 15 },

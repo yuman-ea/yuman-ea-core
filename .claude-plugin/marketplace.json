@@ -1,0 +1,14 @@
+{
+  "name": "yuman-ea",
+  "owner": {
+    "name": "Yuman EA maintainers",
+    "url": "https://github.com/yuman-ea"
+  },
+  "plugins": [
+    {
+      "name": "yuman-ea",
+      "source": "./",
+      "description": "Enterprise architecture methods as executable skills. Each skill declares its criteria and weights, states what it assumed when data was missing, and rates its own confidence. Works from manual input and CSV; no EA platform required."
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 spec_version: "1.0"
 id: yea.technology.high-level-architecture
-slug: high-level-architecture
-name: High Level Architecture
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: high-level-architecture
+display_name: High Level Architecture
 description: >
   Produces a high level architecture for a solution: the candidate architecture options,
   the one recommended, the views a reviewer needs, the significant decisions with their

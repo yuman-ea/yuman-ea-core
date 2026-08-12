@@ -1,0 +1,32 @@
+{
+  "name": "yuman-ea",
+  "displayName": "Yuman EA",
+  "version": "0.1.0",
+  "description": "Enterprise architecture methods as executable skills — build-vs-buy and high level architecture, each stating its criteria, its assumptions, and its confidence.",
+  "author": {
+    "name": "Yuman EA maintainers",
+    "url": "https://github.com/yuman-ea"
+  },
+  "homepage": "https://github.com/yuman-ea/yuman-ea-core",
+  "repository": "https://github.com/yuman-ea/yuman-ea-core",
+  "license": "MIT",
+  "keywords": [
+    "enterprise-architecture",
+    "architecture-governance",
+    "application-portfolio-management",
+    "togaf",
+    "build-vs-buy",
+    "solution-architecture"
+  ],
+  "skills": [
+    "./skills/technology/build-vs-buy",
+    "./skills/technology/high-level-architecture"
+  ],
+  "agents": [
+    "./agents/orchestrator/AGENT.md",
+    "./agents/technology-ea/AGENT.md"
+  ],
+  "settings": {
+    "agent": "orchestrator"
+  }
+}
