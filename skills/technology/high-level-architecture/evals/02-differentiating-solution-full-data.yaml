@@ -1,0 +1,143 @@
+spec_version: "1.0"
+id: 02-differentiating-solution-full-data
+skill: yea.technology.high-level-architecture
+fixture: context/fixtures/northwind-corp
+description: >
+  Every input supplied, and the option with the fewest moving parts is the wrong one.
+  This case checks that simplicity is a tie-breaker rather than a criterion, that
+  operability is scored against the team who will hold it, and that a high confidence
+  rating is earned by evidence.
+
+given:
+  scenario: >
+    Following the build-vs-buy run, Northwind has decided to build temperature-aware route
+    planning in house, replacing nw-007 before its contract ends on 2026-12-31. The daily
+    plan has to be ready before drivers arrive at 05:00, and the internal team will both
+    build and run it.
+
+  ask:
+    architecture_scope: multi_system_solution
+    dominant_quality_attribute: availability
+    estate_position: replaces_existing
+    delivery_and_run_model: internal_team
+    change_expectation: steadily
+
+  gather:
+    provided:
+      solution_intent: >
+        Plan delivery routes that respect vehicle temperature compartments as well as time
+        windows, so that planners stop overriding a third of routes by hand.
+      must_have_requirements:
+        - Route optimisation against delivery time windows
+        - Vehicle temperature compartment constraints modelled in the optimisation
+        - Driver hours and break rules
+        - Same-day replanning when a vehicle fails
+        - Manifest handover to the warehouse system
+        - Route registration with cold chain monitoring
+        - Planner override with a recorded reason
+      existing_estate_touchpoints:
+        - "nw-006 Warehouse Management System — dispatch manifests, daily batch (int-05)"
+        - "nw-008 Cold Chain Monitoring — route registration, daily batch (int-06)"
+        - "nw-019 Integration Middleware — both existing interfaces are already brokered"
+      nonfunctional_requirements:
+        - "The overnight plan completes and is available by 05:00 every day, including after a failed run"
+        - "Availability 99.5% between 03:00 and 20:00; outside that window a four-hour outage is tolerable"
+        - "Replanning a single route returns within 60 seconds at peak"
+        - "Recovery point 24 hours, recovery time 4 hours; a lost plan can be regenerated from source data"
+        - "Route and temperature records retained for 7 years to support cold chain audits"
+      expected_load_and_volumes:
+        - "4 distribution centres, 62 vehicles, roughly 900 drops a day"
+        - "Peak is the Monday plan at about 1,400 drops"
+        - "Replanning events: 5 to 15 a day, clustered in the morning"
+      standards_catalogue: "context.standards — integration through the broker, single sign-on required for confidential systems"
+      data_entities_and_classification:
+        - "Route, vehicle, and driver assignment — internal"
+        - "Temperature evidence linked to routes — regulated, 7 year retention"
+      integration_landscape: "context.integrations — int-05 and int-06 are daily batch and already brokered"
+      target_audience: delivery_team
+      candidate_options:
+        - id: opt-1
+          name: "Routing service alongside the estate, brokered to the warehouse system and cold chain monitoring"
+        - id: opt-2
+          name: "Routing built as an extension inside the warehouse management system"
+        - id: opt-3
+          name: "Routing service plus a separate constraint service holding the temperature and vehicle rules"
+    withheld: []
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.standards
+      - context.policies
+
+  policies_supplied:
+    - id: integration_via_broker
+      statement: "New integrations must go through the message broker rather than direct database connections between applications"
+      kind: preference
+    - id: security_baseline
+      statement: "Any system holding confidential or regulated data must support single sign-on, enforce multi-factor authentication, and provide an exportable audit log"
+      kind: hard_constraint
+    - id: temperature_data_retention
+      statement: "Temperature records evidencing cold chain integrity must be retained and be retrievable for seven years"
+      kind: regulatory
+
+expect:
+  frame_restated_before_analysis: true
+
+  recommendation_in: [opt-1, opt-3]
+  fewest_components_option_is_not_recommended: true
+
+  confidence: high
+  confidence_reason_must_reference: >
+    non-functional targets and load figures were both supplied and the touchpoints were confirmed against the inventory
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+
+  must_state:
+    - Why opt-2 is not recommended despite having the fewest moving parts — specifically
+      that the warehouse system is a bought product two major versions behind, so building
+      into it couples the routing roadmap to a supplier upgrade the organization does not control.
+    - That the internal team both builds and runs this, and what that means for the
+      operability of the recommended option.
+    - The 05:00 deadline as the availability requirement that actually shapes the
+      architecture, not the 99.5% figure.
+    - What happens when the overnight run fails — the recovery path, in the integration
+      table's failure column.
+    - That seven-year retention of temperature-linked route records is a regulatory
+      constraint on the data design, not a storage preference.
+    - That both existing interfaces are already brokered, so the broker policy costs
+      nothing here rather than being a new imposition.
+    - A risk entry covering the warehouse system's version position.
+
+  sensitivity_must_report:
+    - target: expected_load_and_volumes
+      finding: "The volume at which the overnight optimisation stops completing before 05:00, and what changes first."
+    - target: nonfunctional_requirements
+      finding: "What changes if the plan deadline moves earlier, and what stops being necessary if it moves later."
+
+  must_not:
+    - Recommend the option with the fewest components on the grounds that it is simplest.
+    - Score operability without reference to the team that will run it.
+    - Treat the 99.5% figure as the binding constraint when the 05:00 deadline is stricter.
+    - Rate confidence below high, given every input was supplied.
+    - Name a real commercial product.
+    - Produce a decision log entry with a revisit trigger phrased as "if circumstances change".
+
+fails_if:
+  - opt-2 is recommended, or dismissed without naming the supplier-upgrade coupling.
+  - The document treats the two availability statements as interchangeable. The deadline
+    and the percentage constrain different things, and conflating them is how an
+    architecture meets its stated target and misses its real one.
+  - Simplicity is used as a criterion rather than as the third tie-breaker.
+
+tolerance: >
+  opt-1 and opt-3 are both defensible; opt-3 costs a component and buys change tolerance,
+  and either is acceptable with the reasoning stated. The high confidence rating and the
+  rejection of opt-2 for the stated reason are not negotiable.
+
+notes: >
+  Paired with build-vs-buy eval 02 — same capability, the next decision. Designed so that
+  the intuitively tidy answer is the wrong one, because "fewest boxes" is the heuristic an
+  architecture skill is most likely to reach for when it has nothing better.

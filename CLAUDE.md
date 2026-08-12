@@ -2,7 +2,7 @@
 
 Read this before changing anything in this repository. It is not a summary of the docs; it is the set of rules that keep contributions — human and agent — consistent. When this file and a generated suggestion disagree, this file wins.
 
-Full reasoning, including options that were considered and rejected, is in `docs/adr/0000-initial-architecture.md`. That file is a frozen decision record — **never edit it.** If a decision changes, add a new ADR.
+Full reasoning, including options that were considered and rejected, is in `docs/adr/0000-initial-architecture.md`, amended by `0001-invocation-and-distribution.md` and `0002-skills-open-from-day-one.md`. Those files are frozen decision records — **never edit one.** If a decision changes, add a new ADR that supersedes the relevant section.
 
 ---
 
@@ -154,15 +154,17 @@ Classify intent · decompose · assemble context · arbitrate conflicts between 
 
 ---
 
-## Scope guard — we are in phase 1
+## Scope guard
 
-**Phase 1 ships:** `spec/`, the four root docs, `orchestrator` + `technology-ea`, **one** complete skill (`build-vs-buy`), the `northwind-corp` synthetic fixture, and ADR-0000.
+**Skills are open. Everything else is gated.** ADR-0002 lifted the phase-1 freeze on additional skills; the rest of ADR-0000 §17 stands.
 
-**Phase 1 does not ship:** additional skills, `business-ea`, `portfolio-ea`, the CLI, connectors beyond CSV, or the artifact renderer. Do not add these because they seem obviously needed — each is justified only by evidence phase 1 hasn't produced yet.
+**Add a skill whenever you have one.** No ADR, no RFC, no demand evidence. It enters at `maturity: draft` and may not self-declare higher. Every quality rule still binds — seven phases, schema-valid, three evals, `verify` emitting all three items, `on_missing` on every optional input, no real data, no vendor names, triggers strong enough to be found conversationally. **Removing the scarcity did not remove the bar; it moved it from how many skills exist to what each one may claim about itself.**
 
-**The gate to phase 2** is a demand signal, not completion: ten practising EAs run build-vs-buy on a real decision, and at least two return unprompted. If that doesn't happen, fix the skill or change the target user. Breadth cannot rescue a method nobody wanted.
+**Still gated, still deferred:** `business-ea`, `portfolio-ea`, `risk-ea` (new agents require an ADR), the CLI, connectors beyond CSV, the artifact renderer, and `registry.json`. Do not add these because they seem obviously needed — each is justified only by evidence the project hasn't produced yet. Agent proliferation is a worse failure than skill proliferation, because an agent that answers badly poisons the routing for everything beneath it.
 
-If asked to scaffold "the whole framework," build phase 1 and say why the rest is deferred.
+**How this is judged:** promotion rate, not skill count. `proven` still requires a real decision reported by someone outside the maintainer group — ten practising EAs run a skill on a real decision and at least two return unprompted. Four `proven` skills and six `draft` is healthy. Thirty `draft` and none promoted is a directory, not a product.
+
+If asked to scaffold "the whole framework," build the skills and say why the agents, CLI, and connectors are deferred.
 
 ---
 

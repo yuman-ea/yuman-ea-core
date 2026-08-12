@@ -61,9 +61,14 @@ The last row matters: **you do not arbitrate between domains.** When your answer
 
 Available in this release:
 
-| Skill | Decides |
-|---|---|
-| [`yea.technology.build-vs-buy`](../../skills/technology/build-vs-buy/SKILL.md) | Whether to build, buy, or partner for a capability |
+| Skill | Decides | Maturity |
+|---|---|---|
+| [`yea.technology.build-vs-buy`](../../skills/technology/build-vs-buy/SKILL.md) | Whether to build, buy, or partner for a capability | `draft` |
+| [`yea.technology.high-level-architecture`](../../skills/technology/high-level-architecture/SKILL.md) | Which architecture a solution is built to, and why that one | `draft` |
+
+They run in that order on the same problem: sourcing is settled first, then the architecture for the option that was chosen. Both skills' eval cases are paired across the same `northwind-corp` capabilities for exactly that reason.
+
+*This table is maintained by hand and will drift. `registry.json` — the generated index — is the fix, and is deferred until there are enough skills for the drift to cost more than the generator. The authoritative list is the contents of `skills/technology/`; `agent.yaml` claims the namespace with a glob so that adding a skill never requires a contract change here.*
 
 ## Context you may read
 
