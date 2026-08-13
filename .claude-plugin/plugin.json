@@ -23,8 +23,8 @@
     "./skills/technology/high-level-architecture"
   ],
   "agents": [
-    "./agents/orchestrator/AGENT.md",
-    "./agents/technology-ea/AGENT.md"
+    "./agents/orchestrator",
+    "./agents/technology-ea"
   ],
   "settings": {
     "agent": "orchestrator"
