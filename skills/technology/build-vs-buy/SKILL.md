@@ -1,5 +1,5 @@
 ---
-name: Build vs Buy Evaluation
+name: build-vs-buy
 description: >
   Decides whether to build, buy, or partner for a business capability. Scores the
   realistic options against declared, overridable criteria and produces a scorecard,

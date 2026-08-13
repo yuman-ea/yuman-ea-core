@@ -91,10 +91,12 @@ At least one artifact is `always: true`. A run must not be able to end with noth
 **Artifact filenames are derived, never declared:**
 
 ```
-<skill-slug>--<artifact-id with _ replaced by ->.<ext>
+<skill name>--<artifact-id with _ replaced by ->.<ext>
 ```
 
-`yea.technology.build-vs-buy` + artifact `option_scorecard` + `xlsx` → `build-vs-buy--option-scorecard.xlsx`.
+`name: build-vs-buy` + artifact `option_scorecard` + `xlsx` → `build-vs-buy--option-scorecard.xlsx`.
+
+Headings *inside* an artifact use `display_name` where it is set — `build-vs-buy--recommendation-memo.md` opens with "Build vs Buy Evaluation", not with the slug.
 
 Deliverables explain their reasoning **in business language**. The user takes this to a CFO. Nobody should need to have read a framework to defend the result.
 
@@ -116,8 +118,8 @@ CI enforces these. Severity `error` blocks merge; `warn` is raised on the pull r
 
 | # | Rule | Severity |
 |---|---|---|
-| R1 | `id`, `slug`, `domain`, and the directory path `skills/<domain>/<slug>/` all agree | error |
-| R2 | Name is a noun phrase for the decision or deliverable. Banned suffixes and version numbers are rejected by the schema; gerunds, invented abbreviations, and acronyms outside the allowed list are flagged here | warn |
+| R1 | `name`, the last segment of `id`, `domain`, and the directory path `skills/<domain>/<name>/` all agree | error |
+| R2 | `name` is a kebab-case noun phrase for the decision or deliverable. Banned suffixes and version numbers are rejected by the schema; gerunds, invented abbreviations, and acronyms outside the allowed list are flagged here | warn |
 | R3 | `SKILL.md` frontmatter agrees with `skill.yaml` on name, description, and licence — see [standard-mapping.md](./standard-mapping.md) | error |
 | R4 | `ask` has at most five items, each with a `why`; every required item has `default_if_skipped` | error |
 | R5 | Every `gather.optional` input declares `on_missing` and `confidence_penalty` | error |
@@ -139,6 +141,7 @@ CI enforces these. Severity `error` blocks merge; `warn` is raised on the pull r
 | R21 | A skill removed from a release was `deprecated: true` with a `superseded_by` pointer for at least two prior releases | error |
 | R22 | Promotion past `draft` requires `hosts_verified` to name at least two standard-compliant hosts, one of which is the reference host | error |
 | R23 | Every skill declares at least four `triggers.phrases` in practitioner language. Weak triggers make a skill invisible and fail review on that basis alone | error |
+| R24 | `AGENT.md` frontmatter agrees with `agent.yaml` on `name` (which equals `id`) and `description`. Both agents' files share the basename `AGENT.md`, so `name` must be explicit — a host that falls back to the filename would collide them | error |
 
 R9 and R15 are the two that create legal and trust problems simultaneously if they leak. They run on every file in every pull request, not just changed skills.
 
@@ -147,7 +150,7 @@ R9 and R15 are the two that create legal and trust problems simultaneously if th
 ## Skill directory layout
 
 ```
-skills/<domain>/<slug>/
+skills/<domain>/<name>/
 ├── SKILL.md        # the method, prose, for humans and for the host tool
 ├── skill.yaml      # the contract, structured, for machines
 ├── assets/         # templates shipped with the skill, incl. markdown artifact forms

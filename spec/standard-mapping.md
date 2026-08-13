@@ -35,11 +35,20 @@ A host that knows nothing about Yuman EA reads `SKILL.md` and runs a usable skil
 
 | `SKILL.md` frontmatter | `skill.yaml` | Rule |
 |---|---|---|
-| `name` | `name` | Must match exactly (R3) |
+| `name` | `name` | Must match exactly (R3). **Slug form** — see below |
 | `description` | `description` | Must match exactly (R3). Written to carry trigger vocabulary — see below |
 | `license` | `license` | Must match exactly (R3). SPDX identifier |
 | `allowed-tools` | — | Declared in `SKILL.md` only; see the tools section below |
 | `metadata` | mirrors identity fields | Advisory copy, see next table |
+| — | `display_name` | Stays in `skill.yaml`. The standard has no home for it, and putting a human title in `name` breaks invocation |
+
+### Why `name` is a slug and not a title
+
+Hosts use frontmatter `name` as the skill's **invocation name**. In a plugin it becomes the last segment of the command (`/yuman-ea:build-vs-buy`); at personal and project scope it is the display label while the directory supplies the command. A value like `Build vs Buy Evaluation` therefore produces a command nobody can type.
+
+So `name` carries the canonical slug — identical to the directory name and to the last segment of `id` — and `display_name` carries the human title used in artifact headings and skill indexes. This is not a concession to one host: it is ADR-0000 §2.4's two-name rule landing exactly where it was always pointed. One canonical name, one optional friendlier label, no third.
+
+`display_name` is deliberately **not** mirrored into frontmatter. The standard has nowhere to put it, and a private key would be tolerated rather than supported.
 
 ### `metadata` block convention
 
@@ -98,6 +107,41 @@ Phase-1 skills need to read files the architect provides and write artifacts. **
 Enterprise adopters reach their CMDB or EA repository through MCP servers configured in *their host and their overlay* — never through a tool the skill demands. MCP is what the agent can reach; Skills are how it should work. Yuman EA sits in the second layer and does not reach into the first.
 
 ---
+
+## Agents
+
+The same two-file pattern, for the same reason: `agent.yaml` is authoritative, `AGENT.md` frontmatter is the host-facing projection, and CI checks they agree (R24).
+
+| `AGENT.md` frontmatter | `agent.yaml` | Rule |
+|---|---|---|
+| `name` | `id` | Must match exactly (R24) |
+| `description` | `description` | Must match exactly (R24). The delegation trigger — when to reach for this agent |
+| `tools` | — | Declared in `AGENT.md` only, and currently left unset. See below |
+| — | `role`, `owns_questions`, `refuses`, `skills`, `non_goals`, `layer`, `responsibilities` | No home in any host's agent format. Stays in `agent.yaml` |
+
+**`name` must be explicit.** Both agents' files are called `AGENT.md`. A host that falls back to the filename would load one agent twice and drop the other, and it would do so silently.
+
+**`description` is not `role`.** `role` says what the agent is responsible for and is read by people. `description` says *when to delegate to it* and is read by a router that knows nothing else about the agent. Keeping them separate is not alias creep — they answer different questions, and collapsing them makes the routing worse.
+
+### The layer distinction does not survive the crossing
+
+This is the part worth understanding before packaging.
+
+Yuman EA's `orchestrator` is **L0** — the top of the stack, the thing that receives the question first. Most hosts' agent construct is a *subagent*: a delegate invoked by the main thread, running in its own context, returning a summary. Mapping the orchestrator onto that construct **inverts the architecture** — the router becomes something the router routes to.
+
+Where a host can promote an agent to the main thread, use that instead. In Claude Code it is a `settings.json` key at the plugin root, or the `settings` field in `plugin.json`:
+
+```json
+"settings": { "agent": "orchestrator" }
+```
+
+L1 domain agents map onto the subagent construct cleanly and need no special handling.
+
+Where a host has no main-thread mechanism, **do not ship the orchestrator as a subagent as a workaround.** Ship the domain agents and let the host's own top-level model route, which at least fails honestly. A router installed one level below where it belongs will quietly answer questions instead of routing them, which is the failure ADR-0000 §3 names as the most common in multi-agent systems.
+
+### `tools` is deliberately unset
+
+Neither agent restricts tools today. Skills already declare `allowed-tools`, which is the narrower and more portable control, and restricting an agent's tools risks blocking skill invocation in ways that vary by host. Tighten this once the behaviour has been verified on both conformance hosts — and record what was verified, rather than assuming it transfers.
 
 ## Extra files in the skill directory
 

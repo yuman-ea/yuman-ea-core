@@ -1,5 +1,5 @@
 ---
-name: High Level Architecture
+name: high-level-architecture
 description: >
   Produces a high level architecture for a solution: the candidate architecture options,
   the one recommended, the views a reviewer needs, the significant decisions with their

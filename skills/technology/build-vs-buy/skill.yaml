@@ -1,8 +1,8 @@
 spec_version: "1.0"
 id: yea.technology.build-vs-buy
-slug: build-vs-buy
-name: Build vs Buy Evaluation
-display_name: Build, buy, or partner
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: build-vs-buy
+display_name: Build vs Buy Evaluation
 description: >
   Decides whether to build, buy, or partner for a business capability. Scores the
   realistic options against declared, overridable criteria and produces a scorecard,
