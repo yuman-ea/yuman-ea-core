@@ -6,7 +6,7 @@ description: >
   a recommendation memo a non-specialist can defend, and a decision record — each
   stating its assumptions, its confidence, and what would change the answer. Works
   from manual input and CSV; no portfolio tooling required.
-license: MIT
+license: Apache-2.0
 allowed-tools: Read, Write
 metadata:
   yuman_ea_id: yea.technology.build-vs-buy

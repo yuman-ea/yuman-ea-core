@@ -9,7 +9,7 @@
   },
   "homepage": "https://github.com/yuman-ea/yuman-ea-core",
   "repository": "https://github.com/yuman-ea/yuman-ea-core",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "enterprise-architecture",
     "architecture-governance",

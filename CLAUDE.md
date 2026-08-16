@@ -182,6 +182,17 @@ If asked to scaffold "the whole framework," build the skills and say why the age
 
 ---
 
+## Licensing
+
+**Apache-2.0.** Settled in ADR-0003, which supersedes the open question in ADR-0000 §16.4. `LICENSE` is the verbatim text; `NOTICE` carries the copyright line and must ship with any redistribution.
+
+Two rules follow:
+
+- **Every core skill declares `license: Apache-2.0`**, in `skill.yaml` *and* in `SKILL.md` frontmatter — R3 rejects a mismatch. Third-party `x.<org>.*` skills carry their own.
+- **Cite frameworks, never reproduce proprietary content.** TOGAF, BIZBOK, and analyst frameworks have licensing considerations of their own, and a permissive repository licence does not launder incompatible material into the repo.
+
+No CLA. Apache-2.0 §5 covers inbound contributions; DCO sign-off is the recommendation for provenance.
+
 ## Open decisions
 
-- **License.** Repo currently ships MIT. Apache-2.0 was recommended for its explicit patent grant, which matters to the enterprise legal reviews this project's users will face. Relicensing needs every contributor's agreement, so the cost rises with each merged PR. Unresolved — see ADR-0000 §16.4.
+*None currently recorded.*

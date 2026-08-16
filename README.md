@@ -53,7 +53,9 @@ Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for how t
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+Apache-2.0 was chosen for its explicit patent grant, which is the question enterprise legal review asks first. Contributions are covered automatically under §5, so there is no CLA to sign. Reasoning in [ADR-0003](./docs/adr/0003-license-apache-2.md).
 
 ## Maintainers
 
