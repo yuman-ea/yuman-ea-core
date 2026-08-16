@@ -1,0 +1,106 @@
+spec_version: "1.0"
+id: 02-single-option-is-not-a-decision
+skill: yea.technology.architecture-decision-record
+fixture: context/fixtures/northwind-corp
+description: >
+  The retrofit. Someone asks for an ADR covering a choice already made, where no
+  alternative was ever seriously considered. The pull toward inventing two plausible
+  alternatives is strong, because a single-option record feels weak and a three-option
+  comparison feels rigorous. The reverse is true, and this case exists to catch it.
+
+given:
+  scenario: >
+    Northwind has already agreed that the replacement customer portal's session store will
+    run in the existing private cloud alongside nw-003 and nw-014. Nothing else was
+    considered — it is where the organization's own hosted components run and there is no
+    second platform. The architect has been asked to "write the ADR" before the review board
+    meets.
+
+  ask:
+    decision_reversibility: easily_reversible
+    decision_driver: align_to_standard
+    decision_scope: single_product
+    urgency: decide_now
+    existing_precedent: follow_existing_standard
+
+  gather:
+    provided:
+      decision_subject: "Where the replacement customer portal's session store runs"
+      problem_context: >
+        The portal replacement needs somewhere to hold session state. Northwind runs its own
+        hosted components in a single private cloud environment; nw-003 and nw-014 already sit
+        there. No second platform exists and none is being procured.
+      options_considered:
+        - id: opt-1
+          name: "Run the session store in the existing private cloud environment"
+      requirements_or_constraints:
+        - Must sit behind the same access controls as the other hosted components
+        - Must be supportable by the existing team without new skills
+      evidence_available:
+        - "Two comparable components already run in this environment without incident"
+      estate_touchpoints:
+        - "nw-003 Pricing Engine and nw-014 Product Information System — same environment"
+    withheld:
+      - standards_catalogue
+      - prior_decisions
+      - decision_audience
+    available_context:
+      - context.application_inventory
+      - context.policies
+
+  overlay: none
+
+expect:
+  frame_restated_before_analysis: true
+
+  options_assessed: 1
+  treated_as: rationale_record
+  scoring_performed: false
+  alternatives_invented: false
+
+  confidence: low
+  confidence_reason_must_reference: >
+    only one option was assessed
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - Plainly, that this is a rationale record rather than a decision, because no
+      alternative was assessed.
+    - Why the alternatives were not viable — that no second platform exists and none is being
+      procured. This list is the most valuable content in a single-option record, because it
+      is exactly what a future reader wants when the constraint lifts.
+    - That the record should not be cited as evidence that alternatives were weighed.
+    - That the choice is easily reversible, which is a legitimate reason the decision did not
+      warrant more analysis. Low confidence is not the same as high risk.
+    - A revisit trigger — most usefully, the arrival of a second platform.
+
+  must_not:
+    - Invent one or more alternatives so the options table has more than one row.
+    - Produce a weighted comparison of a single option.
+    - Rate confidence medium or high.
+    - Present the record as a decision that considered alternatives.
+    - Refuse to produce anything. A rationale record is a legitimate and useful artifact.
+
+fails_if:
+  - Two plausible-looking alternatives appear that nobody could argue for. Every experienced
+    reviewer recognises a retrofitted straw man on sight, and it damages the credibility of
+    the very decision it was meant to protect.
+  - The skill declines to produce a record because there is only one option.
+  - The word "decision" is used without qualification anywhere it would mislead a reader
+    into thinking alternatives were weighed.
+
+tolerance: >
+  Wording varies. What does not: exactly one option in the table, the record labelled as a
+  rationale record, and a low confidence rating.
+
+notes: >
+  Worth stating why low confidence is right here even though the choice is obviously
+  correct. The rating describes how well the record evidences a comparison, not how good
+  the outcome is. A trivially correct choice with no alternatives is exactly what a low
+  rating should look like, and conflating the two is how confidence ratings stop meaning
+  anything.

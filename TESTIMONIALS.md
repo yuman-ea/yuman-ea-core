@@ -12,6 +12,7 @@ This file also decides something: a skill cannot reach `proven` maturity without
 |---|---|---|
 | [build-vs-buy](skills/technology/build-vs-buy/SKILL.md) | `draft` | 0 |
 | [high-level-architecture](skills/technology/high-level-architecture/SKILL.md) | `draft` | 0 |
+| [architecture-decision-record](skills/technology/architecture-decision-record/SKILL.md) | `draft` | 0 |
 
 ## Before you write one
 

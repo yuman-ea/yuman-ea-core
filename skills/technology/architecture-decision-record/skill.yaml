@@ -1,0 +1,464 @@
+spec_version: "1.0"
+id: yea.technology.architecture-decision-record
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: architecture-decision-record
+display_name: Architecture Decision Record
+description: >
+  Decides between two or more technology options and records why — the context that forced
+  the decision, the alternatives considered, the reasoning, the consequences accepted, and
+  what would make the organization revisit it. Scores the options against declared criteria
+  and rates its own confidence lower when only two options existed, or when the reasoning
+  rests on judgement rather than evidence. Works from manual input; no tooling required.
+
+version: 0.1.0
+domain: technology
+category: assess
+owner_agent: technology-ea
+maturity: draft
+license: Apache-2.0
+
+# Every required input is something the person making the decision already knows.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+# ---------------------------------------------------------------------------
+# Discovery. "adr" is on the allowed-acronym list and is what practitioners say.
+# ---------------------------------------------------------------------------
+triggers:
+  phrases:
+    - "architecture decision record"
+    - "adr"
+    - "write an adr"
+    - "record this decision"
+    - "document why we chose"
+    - "why did we choose this"
+    - "capture the rationale"
+    - "we need to decide between"
+    - "which option should we pick"
+    - "add a decision log entry"
+  decision_types:
+    - technology_choice
+    - decision_recording
+  not_this_skill:
+    - phrase: "should we build it or buy it"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "what should the whole architecture look like"
+      route_to: yea.technology.high-level-architecture
+    - phrase: "which applications should we retire"
+      route_to: portfolio-ea
+    - phrase: "what business capability does this serve"
+      route_to: business-ea
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — a decision recorded against the wrong question is worse than none,
+#    because it will be cited.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Decide between {options_considered} for {decision_subject}, at {decision_scope} scope,
+    given that the choice is {decision_reversibility}, and record the reasoning so that
+    someone who was not present can follow it.
+  decision_statement_fields:
+    - options_considered
+    - decision_subject
+    - decision_scope
+    - decision_reversibility
+  out_of_scope:
+    - Sourcing — whether to build, buy, or partner. That is its own method.
+    - The shape of a whole solution. That is high level architecture.
+    - Selecting a specific product from a shortlist.
+    - Funding, sequencing, and business case.
+    - Detailed design of whatever is chosen.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: decision_reversibility
+    question: "If this turns out to be wrong in a year, how hard is it to undo?"
+    why: "Sets how much rigour the decision deserves. An easily reversed choice does not warrant the analysis an irreversible one does, and treating them the same wastes effort in one direction or accepts real risk in the other."
+    type: choice
+    options: [easily_reversible, costly_to_reverse, effectively_irreversible]
+    option_labels:
+      easily_reversible: "We could change our minds in a sprint or two"
+      costly_to_reverse: "Painful and expensive, but possible"
+      effectively_irreversible: "Data, contracts, or process would hold us there"
+    required: true
+    default_if_skipped: costly_to_reverse
+    affects: [reversal_cost, risk_exposure]
+
+  - id: decision_driver
+    question: "What is this decision actually optimizing for?"
+    why: "Tilts the weighting toward the thing the organization will be judged on. Choosing balanced applies the published weights unchanged."
+    type: choice
+    options: [meet_a_requirement, reduce_risk, reduce_cost, increase_speed, align_to_standard, balanced]
+    option_labels:
+      meet_a_requirement: "Something must work that does not work today"
+      reduce_risk: "Predictability matters more than upside"
+      reduce_cost: "The number on the page is what this turns on"
+      increase_speed: "Late is the failure mode we care about"
+      align_to_standard: "Consistency with the rest of the estate is the point"
+      balanced: "No single driver dominates"
+    required: true
+    default_if_skipped: balanced
+    affects: [fit_to_requirement, risk_exposure, run_burden]
+
+  - id: decision_scope
+    question: "Who does this decision bind — one team, one product, or the whole estate?"
+    why: "An estate-wide decision has to hold for cases nobody in the room is thinking about, and it raises the bar on standards alignment and on the cost of being wrong."
+    type: choice
+    options: [single_team, single_product, whole_estate]
+    option_labels:
+      single_team: "One team's own working choice"
+      single_product: "Everyone working on this product"
+      whole_estate: "A precedent everyone else will be held to"
+    required: true
+    default_if_skipped: single_product
+    affects: [standards_alignment, estate_fit, run_burden]
+
+  - id: urgency
+    question: "Does this have to be decided now, or could it responsibly wait?"
+    why: "Deferring is a legitimate architectural act and is frequently the right answer. Naming the pressure separates a decision that is genuinely due from one being rushed because a meeting is scheduled."
+    type: choice
+    options: [decide_now, decide_this_quarter, could_defer]
+    option_labels:
+      decide_now: "Something is blocked until we choose"
+      decide_this_quarter: "There is a real date, but not today"
+      could_defer: "We could keep our options open longer"
+    required: true
+    default_if_skipped: decide_this_quarter
+    affects: [reversal_cost, effort_to_adopt]
+
+  - id: existing_precedent
+    question: "Is there an existing standard or an earlier decision covering this?"
+    why: "Deviating from a standard is the most common reason an ADR is written at all, and a deviation needs a stated argument rather than a silent departure."
+    type: choice
+    options: [follow_existing_standard, deviate_from_standard, no_precedent]
+    option_labels:
+      follow_existing_standard: "There is one and we intend to follow it"
+      deviate_from_standard: "There is one and we have reason to depart from it"
+      no_precedent: "Nothing covers this yet"
+    required: true
+    default_if_skipped: no_precedent
+    affects: [standards_alignment, estate_fit]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs, all held by whoever is making the decision.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: decision_subject
+      description: "What is being decided, in one sentence. Narrow enough that a reader can tell whether a later decision is the same question or a different one."
+      source: user
+      format: scalar
+
+    - id: options_considered
+      description: "The options on the table. THREE is the working practice and two is acceptable; below two this is not a decision and the skill says so rather than manufacturing an alternative. Options must be genuinely different — two that differ only in a component name are one option."
+      source: user
+      format: list
+
+    - id: problem_context
+      description: "What forces this decision now. What is true today, what is changing, and what happens if nothing is chosen."
+      source: user
+      format: scalar
+
+  optional:
+    - id: requirements_or_constraints
+      description: "What the chosen option has to satisfy — the things whose absence would make the decision wrong."
+      source: user
+      format: list
+      on_missing: ask_user
+      confidence_penalty: medium
+
+    - id: evidence_available
+      description: "What was actually tried or measured — a spike, a benchmark, a proof of concept, direct prior experience with one of the options."
+      source: user
+      format: list
+      on_missing: estimate_with_assumption
+      assumption_template: "No evidence beyond judgement was available. The decision rests on stated reasoning rather than measurement, and every score derived this way is marked. This is the single largest weakness in the record and the cheapest one to fix — one spike would change it."
+      confidence_penalty: high
+
+    - id: estate_touchpoints
+      description: "What this decision touches or constrains in the systems that already exist."
+      source: [user, context.application_inventory, context.integrations]
+      format: list
+      on_missing: use_proxy_metric
+      proxy: "Applications and interfaces recorded against the same capability in the application inventory, treated as the affected set."
+      assumption_template: "The affected systems were taken from the inventory rather than confirmed with their owners, so the list describes what is recorded rather than what is true."
+      confidence_penalty: low
+
+    - id: standards_catalogue
+      description: "The organization's published standards, patterns, and approved building blocks."
+      source: [user, context.standards]
+      format: list
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No standards catalogue was available, so conformance was assessed against common practice rather than against this organization's standards. Nothing here should be read as approval by an architecture authority."
+      confidence_penalty: medium
+
+    - id: prior_decisions
+      description: "Earlier decisions this one supersedes, depends on, or contradicts."
+      source: user
+      format: list
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No prior decisions were supplied, so this record does not claim to supersede anything. If an earlier decision covered this ground, the two now conflict silently, which is the failure a decision log exists to prevent."
+      confidence_penalty: low
+
+    - id: decision_audience
+      description: "Who has to accept this — the team, an architecture review body, or a steering committee. Sets the depth of the record."
+      source: user
+      format: scalar
+      on_missing: use_default_value
+      default_value: architecture_review
+      assumption_template: "No audience was stated, so the record was written for an architecture review body: enough reasoning to challenge, without the detail a delivery team would need."
+      confidence_penalty: low
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - cloud_first
+    - security_baseline
+    - data_residency
+    - open_source_policy
+    - integration_via_broker
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - security_baseline
+    - data_residency
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: fit_to_requirement
+      display_name: Solves the actual problem
+      weight: 0.25
+      description: "Whether the option resolves what forced the decision, and how much has to be bent or deferred for it to do so."
+      evidence: [requirements_or_constraints, decision_subject, problem_context, decision_driver]
+      direction: higher_is_better
+
+    - id: estate_fit
+      display_name: Fits what already exists
+      weight: 0.20
+      description: "How well the option sits with the systems, patterns, and interfaces already in place, rather than with the estate the organization would prefer to have."
+      evidence: [estate_touchpoints, problem_context, existing_precedent, decision_scope]
+      direction: higher_is_better
+
+    - id: reversal_cost
+      display_name: Cost of being wrong
+      weight: 0.15
+      description: "What it takes to undo this if it proves mistaken, including data, process, and anything built on top of it in the meantime."
+      evidence: [decision_reversibility, options_considered, urgency]
+      direction: higher_is_better
+
+    - id: risk_exposure
+      display_name: Risk carried
+      weight: 0.15
+      description: "Security, compliance, supplier, and operational exposure the option introduces or leaves unaddressed."
+      evidence: [decision_reversibility, decision_driver, options_considered, evidence_available]
+      direction: higher_is_better
+
+    - id: standards_alignment
+      display_name: Alignment with standards
+      weight: 0.10
+      description: "Whether the option conforms to declared standards, or departs from them with an argument a reviewer would accept."
+      evidence: [existing_precedent, standards_catalogue, decision_scope]
+      direction: higher_is_better
+
+    - id: effort_to_adopt
+      display_name: Effort to adopt
+      weight: 0.10
+      description: "What it takes to get from here to the option working, including migration and anything that has to change around it."
+      evidence: [options_considered, evidence_available, estate_touchpoints, urgency]
+      direction: higher_is_better
+
+    - id: run_burden
+      display_name: Ongoing burden
+      weight: 0.05
+      description: "What the organization carries afterwards — operating it, patching it, and holding the skills to support it."
+      evidence: [estate_touchpoints, decision_scope, decision_driver]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — this alone would be grounds to reject the option."
+      - value: 2
+        meaning: "Unfavourable — a material weakness the organization would have to accept and actively manage."
+      - value: 3
+        meaning: "Neutral — adequate, with no real advantage over the alternatives."
+      - value: 4
+        meaning: "Favourable — a clear advantage a reviewer would recognize without needing it explained."
+      - value: 5
+        meaning: "Strongly favourable — the best outcome realistically available on this criterion."
+
+  steps:
+    - "Restate the decision using the frame template and confirm the subject is narrow enough that a later reader can tell whether a future decision is the same question."
+    - "Establish the option set. Three genuinely different options is the working practice; two is acceptable and the reason a third was unavailable is recorded. Options differing only in a component name are one option."
+    - "Where only one option exists, STOP scoring. Say plainly that this is a rationale record rather than a decision, record why the alternatives were not viable, and rate the run low. Do not manufacture alternatives to make the analysis look rigorous — a retrofitted straw man is the most common defect in a written decision record."
+    - "Consider deferring as an option in its own right wherever the urgency answer allows it. Keeping a choice open is a legitimate architectural act and belongs in the record when it was available."
+    - "Apply hard constraints. Record every option eliminated and the policy ID that eliminated it; the elimination appears in the record, not only in the working."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any score depends on it."
+    - "Score each surviving option against each criterion on the 1-5 favourability scale, citing for every score the evidence ID it rests on. Mark any score resting on judgement rather than measurement."
+    - "Compute the weighted score per option. Compare the top two against the indifference band; inside it, report the options as too close to separate and apply tie-breakers rather than declaring a winner."
+    - "Record the consequences the chosen option commits the organization to, including what it closes off. The closing-off half is what a future reader will care about most."
+    - "Where an earlier decision is superseded, link it and mark it superseded. NEVER edit an earlier record — the reasoning trail is what stops a settled argument being reopened from scratch."
+    - "Write a revisit trigger that names an observable event, not a sentiment."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used, never from how complete the record looks."
+
+  tie_breakers:
+    - "Prefer the option that is cheaper to reverse. A decision you can walk back is worth more than a marginally better one you cannot."
+    - "Prefer the option that follows the existing standard, where the scores are otherwise comparable — consistency is a real benefit and a deviation should have to earn its place."
+    - "Prefer the option with fewer moving parts to operate afterwards."
+    - "If still tied, report the tie and name the one piece of evidence that would break it. A recorded tie is more useful than an invented winner."
+
+  references:
+    - ./references/finding-real-options.md
+    - ./references/status-and-supersession.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER — the record is the point; the comparison is how it is checked.
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, delivery_team, steering_committee]
+  artifacts:
+    - id: decision_record
+      display_name: Decision record
+      description: "The record itself — context, options, the decision, the reasoning, the consequences accepted, and what would make the organization revisit it."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/decision-record.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: title_and_status
+            heading: "Title, status, and date"
+            required: true
+            description: "Status is proposed, accepted, or superseded. A record with no status is not usable."
+          - id: context
+            heading: "Context"
+            required: true
+            description: "What forced the decision. Enough that it reads as reasonable to someone who was not there, without requiring them to agree."
+          - id: decision_drivers
+            heading: "Decision drivers"
+            required: true
+          - id: options_considered
+            heading: "Options considered"
+            required: true
+            description: "Each in a form a non-specialist can picture. Where only two existed, the reason a third did not is stated here."
+          - id: options_eliminated
+            heading: "Options eliminated by constraint"
+            required: true
+            description: "Every option removed before scoring, with the policy that removed it. Stated explicitly as none if none."
+          - id: decision
+            heading: "Decision"
+            required: true
+            description: "One sentence, active voice: what will be done."
+          - id: rationale
+            heading: "Why"
+            required: true
+            description: "The two or three things that decided it, as reasons rather than scores."
+          - id: consequences
+            heading: "Consequences"
+            required: true
+            description: "What this commits us to, what it closes off, and what downside is being accepted."
+          - id: standards_position
+            heading: "Standards position"
+            required: true
+            description: "Follows, deviates with an argument, or sets a new precedent."
+          - id: assumptions
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: revisit_trigger
+            heading: "What would make us revisit this"
+            required: true
+          - id: related_decisions
+            heading: "Related and superseded decisions"
+            required: false
+
+    - id: option_comparison
+      display_name: Option comparison
+      description: "One row per option per criterion, with the score, the evidence it rests on, and whether it was measured or judged."
+      formats: [md, csv, xlsx]
+      preferred_format: md
+      markdown_template: ./assets/option-comparison.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: option_id
+            type: string
+          - id: option_name
+            type: string
+          - id: criterion_id
+            type: enum
+            enum_values: [fit_to_requirement, estate_fit, reversal_cost, risk_exposure, standards_alignment, effort_to_adopt, run_burden]
+          - id: score
+            type: score
+            description: "1-5 favourability, against the declared anchors."
+          - id: weight
+            type: number
+          - id: weighted_score
+            type: number
+          - id: evidence_basis
+            type: string
+            description: "The evidence ID and the specific fact behind the score, not a restatement of the criterion."
+          - id: measured_or_judged
+            type: enum
+            enum_values: [measured, judged]
+            description: "Whether anything was actually tried. This column is what separates a record with evidence from a well-argued opinion."
+          - id: assumption_ref
+            type: string
+          - id: score_confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY — this is where the two-versus-three-options rule becomes operative
+#    rather than advisory.
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "three or more genuinely different options were assessed, requirements were supplied, and every criterion carrying a weight of 0.15 or more was scored against evidence rather than judgement alone."
+    - level: medium
+      when: "two options were assessed and the reason a third was unavailable is recorded, or one criterion carrying a weight of 0.15 or more rests on judgement rather than evidence."
+    - level: low
+      when: "only one option was assessed, or no requirements were supplied, or every score rests on judgement with nothing measured or tried."
+
+  sensitivity_targets:
+    - target: options_considered
+      variation: "remove the recommended option entirely"
+      report: "Which option the decision falls to, and whether the consequences change materially. If the runner-up is nearly as good, the decision matters less than it appears; if it is far worse, the record should say the choice is load-bearing."
+    - target: evidence_available
+      variation: "treat every judgement-based score as one point worse"
+      report: "Whether the recommendation survives when unmeasured optimism is removed. Where the run had no evidence at all, this is the most important paragraph in the record."
+    - target: reversal_cost
+      variation: "weight +/- 0.10"
+      report: "Whether an organization more or less tolerant of being wrong reaches the same conclusion."
+    - target: fit_to_requirement
+      variation: "weight +/- 0.10"
+      report: "Whether the recommendation depends on the relative importance placed on solving the problem versus fitting the estate."
+
+  evals: ./evals/
