@@ -7,7 +7,7 @@ description: >
   works from manual input or CSV, degrades honestly when evidence is incomplete,
   and produces a scorecard, executive decision memo, roadmap, and decision record
   with assumptions, confidence, and sensitivity analysis.
-license: MIT
+license: Apache-2.0
 allowed-tools: Read, Write
 metadata:
   yuman_ea_id: yea.portfolio.application-rationalization

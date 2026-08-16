@@ -21,11 +21,13 @@
   "skills": [
     "./skills/technology/build-vs-buy",
     "./skills/technology/high-level-architecture",
-    "./skills/technology/architecture-decision-record"
+    "./skills/technology/architecture-decision-record",
+    "./skills/portfolio/application-rationalization"
   ],
   "agents": [
     "./agents/orchestrator",
-    "./agents/technology-ea"
+    "./agents/technology-ea",
+    "./agents/portfolio-ea"
   ],
   "settings": {
     "agent": "orchestrator"

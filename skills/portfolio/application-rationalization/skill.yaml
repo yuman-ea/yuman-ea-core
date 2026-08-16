@@ -14,7 +14,7 @@ domain: portfolio
 category: simplify
 owner_agent: portfolio-ea
 maturity: draft
-license: MIT
+license: Apache-2.0
 data_intensity: low
 
 triggers:

@@ -162,7 +162,11 @@ Classify intent · decompose · assemble context · arbitrate conflicts between 
 
 **Add a skill whenever you have one.** No ADR, no RFC, no demand evidence. It enters at `maturity: draft` and may not self-declare higher. Every quality rule still binds — seven phases, schema-valid, three evals, `verify` emitting all three items, `on_missing` on every optional input, no real data, no vendor names, triggers strong enough to be found conversationally. **Removing the scarcity did not remove the bar; it moved it from how many skills exist to what each one may claim about itself.**
 
-**Still gated, still deferred:** `business-ea`, `portfolio-ea`, `risk-ea` (new agents require an ADR), the CLI, connectors beyond CSV, the artifact renderer, and `registry.json`. Do not add these because they seem obviously needed — each is justified only by evidence the project hasn't produced yet. Agent proliferation is a worse failure than skill proliferation, because an agent that answers badly poisons the routing for everything beneath it.
+**Shipped agents:** `orchestrator`, `technology-ea`, `portfolio-ea` (ADR-0004).
+
+**Still gated, still deferred:** `business-ea`, `risk-ea`, `assurance-ea` (new agents require an ADR each), the CLI, connectors beyond CSV, the artifact renderer, and `registry.json`. Do not add these because they seem obviously needed — each is justified only by evidence the project hasn't produced yet. Agent proliferation is a worse failure than skill proliferation, because an agent that answers badly poisons the routing for everything beneath it.
+
+**A skill does not entitle its domain to an agent.** ADR-0004 shipped `portfolio-ea` because a merged skill was unreachable without it, not because the domain existed. A domain with no skills has no equivalent argument — nothing is broken by its absence.
 
 **How this is judged:** promotion rate, not skill count. `proven` still requires a real decision reported by someone outside the maintainer group — ten practising EAs run a skill on a real decision and at least two return unprompted. Four `proven` skills and six `draft` is healthy. Thirty `draft` and none promoted is a directory, not a product.
 

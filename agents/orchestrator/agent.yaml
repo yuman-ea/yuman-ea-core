@@ -28,6 +28,7 @@ responsibilities:
 # Only agents that actually exist in this release.
 routes_to:
   - technology-ea
+  - portfolio-ea
 
 # 'answer_directly' exists in the enum so the schema can reject it.
 on_unroutable: state_gap_and_stop
@@ -39,12 +40,10 @@ non_goals:
   - name_vendor_systems
   - produce_artifacts_without_confidence_rating
 
-# Phase-1 boundaries. available:false says the gap is known, not that the
-# question is unimportant — see lifecycle.md R17.
+# Known gaps. available:false says the gap is declared, not that the question
+# is unimportant — see lifecycle.md R17. Portfolio questions left this block
+# when portfolio-ea shipped (ADR-0004); they are routed now, not refused.
 refuses:
-  - question: "Which applications should we fund, retire, or consolidate?"
-    route_to: portfolio-ea
-    available: false
   - question: "What business capability does this serve, and where is the value-stream gap?"
     route_to: business-ea
     available: false

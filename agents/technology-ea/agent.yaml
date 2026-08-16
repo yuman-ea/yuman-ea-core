@@ -38,10 +38,8 @@ escalates_to: orchestrator
 refuses:
   - question: "Which applications get funded, retired, or consolidated, and in what sequence?"
     route_to: portfolio-ea
-    available: false
   - question: "What is the total run cost of the application estate?"
     route_to: portfolio-ea
-    available: false
   - question: "What business capability is this, and what value stream does it serve?"
     route_to: business-ea
     available: false
