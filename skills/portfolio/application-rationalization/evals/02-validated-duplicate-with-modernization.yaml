@@ -1,0 +1,52 @@
+id: 02-validated-duplicate-with-modernization
+skill: yea.portfolio.application-rationalization
+fixture: synthetic_full_portfolio
+description: "Checks that the method distinguishes consolidation from modernization when the portfolio contains both validated duplication and a high-value unhealthy application."
+given:
+  scenario: >
+    A business unit has two customer-service applications with validated overlapping
+    functionality and one mission-critical planning application that is strategically
+    important but technically unhealthy.
+  ask:
+    decision_horizon: medium_1_3y
+    primary_objective: balanced
+    change_appetite: high
+    evidence_posture: decision_ready
+  gather:
+    provided:
+      portfolio_scope: "Customer operations"
+      application_inventory:
+        - {application_id: APP-201, application_name: "Customer Service Legacy", business_purpose: "Legacy case management"}
+        - {application_id: APP-202, application_name: "Customer Service Hub", business_purpose: "Primary case management and customer workflow"}
+        - {application_id: APP-203, application_name: "Demand Planning Core", business_purpose: "Mission-critical demand planning"}
+      business_profile: "Current owner-validated criticality and strategy mapping supplied for all three applications."
+      technical_profile: "APP-201 is out of support; APP-202 is healthy; APP-203 is business critical but has material maintainability and lifecycle concerns."
+      risk_profile: "APP-201 has unresolved lifecycle risk; APP-202 is within baseline; APP-203 has an accepted temporary exception requiring remediation."
+      cost_profile: "Comparable actual annual run cost supplied for all three applications."
+      dependency_map: "Dependencies are documented; APP-201 consumers can move to APP-202; APP-203 has critical integrations that must remain available."
+      overlap_map: "Business owners confirm APP-201 and APP-202 cover the same case-management capability and APP-202 is the preferred target."
+      owner_attestation: "Owners confirm APP-201 can consolidate to APP-202 after migration and APP-203 remains required."
+      contract_profile: "No contract blocker prevents APP-201 consolidation; APP-203 has no exit decision in scope."
+  policies_supplied: [critical_service_continuity, security_baseline]
+expect:
+  outcome:
+    - "APP-201 is consolidate, with APP-202 named as the target."
+    - "APP-202 is invest or maintain depending on exact scoring, but is not retire or modernize without evidence."
+    - "APP-203 is modernize, not retire, because business value is high while technical/risk fitness is weak."
+  confidence: high
+  must_state:
+    - "The consolidation is supported by validated overlap, dependency coverage, and owner confirmation."
+    - "The planning application requires modernization because the business need remains critical."
+  must_emit:
+    - application_scorecard
+    - decision_memo
+    - rationalization_roadmap
+    - decision_record
+must_not:
+  - "Convert APP-203 to retire simply because technical health is poor."
+  - "Recommend APP-201 consolidate without naming APP-202 as the target."
+fails_if: "The method treats all technically weak applications the same regardless of business value or validated overlap."
+tolerance:
+  allowed: "APP-202 may be maintain or invest depending on the exact strategic-fit score."
+  not_allowed: "APP-201 retire without consolidation path, or APP-203 retire."
+notes: "Tests the core disposition pattern rather than overall score ranking."
