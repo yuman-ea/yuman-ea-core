@@ -1,0 +1,115 @@
+spec_version: "1.0"
+id: 01-two-options-no-third-available
+skill: yea.technology.architecture-decision-record
+fixture: context/fixtures/northwind-corp
+description: >
+  Two options, honestly. This case checks that the skill does not pad the option set to
+  look rigorous, that it records WHY a third was unavailable, and that it caps itself at
+  medium confidence rather than rating a clean-looking comparison high.
+
+given:
+  scenario: >
+    Northwind's integration middleware (nw-019) is running a version in extended support
+    with a surcharge, and its contract ends 2026-09-30. An upgrade to the supplier's current
+    major version is planned but not scheduled. Several new integrations are due in the next
+    twelve months and the team has to decide what they build against. The supplier does not
+    permit both versions to run side by side, which removes the obvious third answer.
+
+  ask:
+    decision_reversibility: costly_to_reverse
+    decision_driver: reduce_risk
+    decision_scope: whole_estate
+    urgency: decide_this_quarter
+    existing_precedent: follow_existing_standard
+
+  gather:
+    provided:
+      decision_subject: "What new integrations built in the next twelve months target — the current middleware version or the upgraded one"
+      problem_context: >
+        The current version is in extended support and carries a surcharge; the contract ends
+        2026-09-30. An upgrade is agreed in principle but unscheduled. Four new integrations
+        are expected in the period, and rework after an upgrade is the risk being managed.
+      options_considered:
+        - id: opt-1
+          name: "Build new integrations against the current version now, and migrate them with everything else at upgrade"
+        - id: opt-2
+          name: "Hold new integrations until the upgrade completes, using temporary point-to-point interfaces in the meantime"
+      requirements_or_constraints:
+        - New integrations must be in production before the 2026-09-30 contract date
+        - No integration may be built in a way that blocks the upgrade
+        - Interfaces must remain supportable by a team of 2.1 FTE
+      evidence_available:
+        - "The team has upgraded this product once before, in 2021, and has the migration notes"
+        - "Supplier documentation confirms the two versions cannot run side by side"
+      estate_touchpoints:
+        - "nw-019 Integration Middleware — the subject"
+        - "16 of the 26 recorded interfaces are brokered and would be affected by an upgrade"
+      standards_catalogue: "context.standards — integration_via_broker is in force"
+    withheld:
+      - prior_decisions
+      - decision_audience
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.standards
+      - context.policies
+
+  policies_supplied:
+    - id: integration_via_broker
+      statement: "New integrations must go through the message broker rather than direct database connections between applications"
+      kind: preference
+
+expect:
+  frame_restated_before_analysis: true
+
+  options_assessed: 2
+  third_option_invented: false
+  reason_no_third_option_recorded: true
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    only two options were assessed
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  artifacts_produced:
+    - architecture-decision-record--decision-record.md
+    - architecture-decision-record--option-comparison.md
+
+  must_state:
+    - Why a third option was not available — that the supplier does not permit both versions
+      to run side by side — in the record, not only in the working.
+    - That opt-2's temporary point-to-point interfaces would sit against the broker standard,
+      and whether that is a deviation needing an argument or a time-boxed exception.
+    - That the 2026-09-30 contract date constrains the timing and is separate from the ranking.
+    - A revisit trigger naming an observable event, not a sentiment.
+    - Which scores were measured and which were judged.
+    - That no prior decisions were supplied, so this record does not claim to supersede anything.
+
+  assumptions_register_must_contain:
+    - no prior decisions were supplied
+    - the affected systems were taken from the inventory rather than confirmed with their owners
+
+  must_not:
+    - Add a third option in order to reach three.
+    - Rate confidence high on a two-option comparison, however clean the reasoning.
+    - Present the decision as forced when the urgency answer was decide_this_quarter.
+    - Name a real commercial product.
+
+fails_if:
+  - A third option appears that nobody could argue for honestly. That is the straw man this
+    case exists to catch, and it is the most common defect in a written decision record.
+  - The record rates itself high because the comparison looks complete.
+  - The reason a third was unavailable appears nowhere a reader would find it.
+
+tolerance: >
+  Either option may be recommended with the reasoning stated. The option count, the recorded
+  reason for it, and the medium confidence rating are not negotiable.
+
+notes: >
+  Two is acceptable and this case is what "acceptable" means in practice — the record is
+  usable, it is honest about being narrower than ideal, and it says why.

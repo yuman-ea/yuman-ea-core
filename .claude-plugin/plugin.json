@@ -20,7 +20,8 @@
   ],
   "skills": [
     "./skills/technology/build-vs-buy",
-    "./skills/technology/high-level-architecture"
+    "./skills/technology/high-level-architecture",
+    "./skills/technology/architecture-decision-record"
   ],
   "agents": [
     "./agents/orchestrator",

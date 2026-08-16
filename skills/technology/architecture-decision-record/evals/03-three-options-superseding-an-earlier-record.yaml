@@ -1,0 +1,151 @@
+spec_version: "1.0"
+id: 03-three-options-superseding-an-earlier-record
+skill: yea.technology.architecture-decision-record
+fixture: context/fixtures/northwind-corp
+description: >
+  The full case: three genuinely different options, evidence that was actually measured,
+  an option eliminated by a hard constraint, and an earlier decision that has to be
+  superseded rather than edited. Checks that the record earns a high rating, and that the
+  supersession says what changed in the old reasoning — not just what the new answer is.
+
+given:
+  scenario: >
+    Chain customers want to send orders machine to machine. An earlier record, 0007, decided
+    that chain customer orders would be accepted by nightly batch file only, on the basis that
+    volumes did not justify anything else. Volumes have since roughly quadrupled and two
+    accounts have asked for same-day acknowledgement. A spike was run over two days on the
+    two leading approaches.
+
+  ask:
+    decision_reversibility: costly_to_reverse
+    decision_driver: meet_a_requirement
+    decision_scope: single_product
+    urgency: decide_this_quarter
+    existing_precedent: deviate_from_standard
+
+  gather:
+    provided:
+      decision_subject: "How chain customer orders are accepted machine to machine"
+      problem_context: >
+        Record 0007 settled on nightly batch file intake when chain volumes were low. Volumes
+        have roughly quadrupled and two accounts now require acknowledgement the same day,
+        which nightly batch cannot provide. The existing intake path runs through nw-001, and
+        the broker nw-019 is in extended support until 2026-09-30.
+      options_considered:
+        - id: opt-1
+          name: "Synchronous interface that validates and acknowledges the order in the call"
+        - id: opt-2
+          name: "Asynchronous message on the broker, acknowledged once validation completes"
+        - id: opt-3
+          name: "Keep file exchange but move to a short cycle through the day"
+        - id: opt-4
+          name: "Expose the pricing engine directly to customer systems so they price before submitting"
+      requirements_or_constraints:
+        - Acknowledge an accepted order to the sending system within the agreed window
+        - No order lost or silently duplicated on retry
+        - Reconcile against the customer master for account and credit
+        - Operations must see what arrived, what was accepted, and what failed
+      evidence_available:
+        - "Two-day spike on opt-1 and opt-2, both carried the projected peak with headroom"
+        - "opt-3 measured at a 20 minute floor on acknowledgement, against a same-day requirement"
+        - "The team has run brokered interfaces since 2014"
+      estate_touchpoints:
+        - "nw-001 Order Capture System — validation and fulfilment, technical fitness 2"
+        - "nw-015 Customer Master — account and credit, technical fitness 1"
+        - "nw-003 Pricing Engine — customer price lists"
+        - "nw-019 Integration Middleware — extended support until 2026-09-30"
+      standards_catalogue: "context.standards"
+      prior_decisions:
+        - "0007 — Chain customer orders accepted by nightly batch file only. Status: accepted. Basis: volumes did not justify a synchronous path."
+      decision_audience: architecture_review
+    withheld: []
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.standards
+      - context.policies
+
+  policies_supplied:
+    - id: integration_via_broker
+      statement: "New integrations must go through the message broker rather than direct database connections between applications"
+      kind: preference
+    - id: security_baseline
+      statement: "Any system holding confidential or regulated data must support single sign-on, enforce multi-factor authentication, and provide an exportable audit log"
+      kind: hard_constraint
+
+expect:
+  frame_restated_before_analysis: true
+
+  options_assessed: 3
+  eliminated_options:
+    - option: opt-4
+      by_policy: security_baseline
+      must_be_reported_in:
+        - decision_record
+        - option_comparison
+
+  eliminated_before_scoring: true
+
+  supersession:
+    supersedes: "0007"
+    prior_record_edited: false
+    prior_record_marked_superseded: true
+    links_both_ways: true
+    must_explain_what_changed_in_the_old_reasoning: true
+
+  confidence: high
+  confidence_reason_must_reference: >
+    three options were assessed, requirements were supplied, and the heavily weighted criteria rest on measured evidence
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+
+  must_state:
+    - That 0007 is superseded, and specifically WHAT CHANGED in its reasoning — the volume
+      assumption behind it no longer holds. Not merely that a new decision has been taken.
+    - That 0007 itself is left otherwise unchanged, and that the earlier record must not be
+      edited to match the new position.
+    - That opt-4 was eliminated by security_baseline, and what that policy says.
+    - That opt-3 was measured at a 20 minute acknowledgement floor against a same-day
+      requirement, as the evidence that rules it out rather than an assertion.
+    - Which scores were measured and which were judged, per option.
+    - The standards position: the precedent answer was deviate_from_standard, so the record
+      carries an argument for the deviation or explains why it turned out not to be one.
+    - That the broker's extended-support position to 2026-09-30 is a risk on any option
+      routing new traffic through it.
+    - What happens if the recommended option is unavailable — which option the decision falls
+      to, and whether the consequences change materially.
+
+  sensitivity_must_report:
+    - target: options_considered
+      finding: "Which option the decision falls to if the recommendation is removed, and whether that is nearly as good or materially worse."
+    - target: evidence_available
+      finding: "Whether the recommendation survives when every judged score is marked down a point."
+
+  must_not:
+    - Edit or rewrite record 0007.
+    - Supersede 0007 without saying what changed in its reasoning.
+    - Drop opt-4 from the artifacts rather than reporting its elimination.
+    - Rate confidence below high, given three options, supplied requirements, and a measured spike.
+    - Expand scope to include replacing nw-001 or nw-015.
+    - Name a real commercial product or message standard.
+
+fails_if:
+  - The record says "we now do X" without saying why the old reasoning stopped holding. That
+    sentence is the most valuable one in a supersession, because the same change may
+    invalidate other decisions nobody has revisited.
+  - Record 0007 is modified rather than marked.
+  - opt-4 is absent from the artifacts.
+
+tolerance: >
+  opt-1 and opt-2 are both defensible; the broker preference and the team's experience point
+  one way, the acknowledgement requirement the other. Either is acceptable with the reasoning
+  stated. The supersession handling, the elimination, and the high rating are not negotiable.
+
+notes: >
+  Paired with high-level-architecture eval 03 — the same order intake problem, one decision
+  deeper. The temptation this case sets up is quiet: 0007 is now embarrassing, and the
+  tidiest-looking fix is to correct it. Doing so destroys the only record of how the
+  organization got here.
