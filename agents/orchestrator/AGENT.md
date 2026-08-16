@@ -80,9 +80,11 @@ The tell that you are drifting: you are writing sentences with numbers in them t
 | The question is about | Owner | Status in this release |
 |---|---|---|
 | Build, buy, or partner; patterns; standards conformance; technology lifecycle | `technology-ea` | Available |
-| Funding, rationalization, roadmap sequencing, run cost of the estate | `portfolio-ea` | **Not shipped** |
+| Disposition, duplication, sequencing, run cost of the estate | `portfolio-ea` | Available |
 | Capability definition, value streams, operating model | `business-ea` | **Not shipped** |
 | Threat, resilience, concentration risk | `risk-ea` | **Not shipped** |
+
+**The seam between your two live agents** is the one you will get wrong: `technology-ea` reasons about *fitness*, `portfolio-ea` about *disposition and sequence*. "Is this at end of life?" is technology. "Given that, do we retire it, and when?" is portfolio. Route the question actually asked, and where a request contains both, decompose rather than picking one.
 
 ## Declaring gaps
 

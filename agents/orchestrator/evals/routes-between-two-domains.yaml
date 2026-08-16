@@ -1,0 +1,62 @@
+spec_version: "1.0"
+id: routes-between-two-domains
+target: orchestrator
+rule: R17
+description: >
+  With one domain agent, routing could not be wrong in an interesting way. With two it
+  can. This case exercises the technology/portfolio seam — fitness versus disposition —
+  and the decompose responsibility, which has been dead code until now (ADR-0004).
+
+given:
+  user_message: >
+    Our integration middleware is on a version the supplier only supports under an extended
+    agreement, and the contract runs out in September. What should we do about it, and while
+    we're at it, is the rest of the estate carrying the same kind of problem?
+  available_agents: [technology-ea, portfolio-ea]
+  available_skills:
+    - yea.technology.build-vs-buy
+    - yea.technology.high-level-architecture
+    - yea.technology.architecture-decision-record
+    - yea.portfolio.application-rationalization
+  context_available:
+    - context.application_inventory
+    - context.application_costs
+    - context.integrations
+
+expect:
+  decomposed: true
+  parts:
+    - question: "What to do about the middleware version and support position"
+      routes_to: technology-ea
+      because: "a lifecycle and technology-choice question — fitness"
+    - question: "Whether the wider estate carries the same exposure"
+      routes_to: portfolio-ea
+      because: "an estate-level disposition question, not a judgement about one product"
+
+  parts_labelled_for_synthesis: true
+  names_the_methods_before_running: true
+
+  must_state:
+    - That the request contains two questions with two owners, before answering either.
+    - Which agent has which part.
+
+  must_not:
+    - Route the whole request to technology-ea because the trigger words are technical.
+    - Route the whole request to portfolio-ea because it mentions the estate.
+    - Answer either part from its own head.
+    - Produce a disposition for the middleware itself. That is portfolio's call once
+      technology-ea has supplied the lifecycle finding.
+    - Raise the confidence of the synthesis above the lower of the two parts.
+
+fails_if:
+  - The compound request is collapsed into a single-domain answer. Decomposition is the
+    responsibility that only becomes testable once two agents exist, and collapsing is the
+    cheapest way to look like it worked.
+  - The lifecycle finding is carried straight through to a retirement recommendation without
+    portfolio-ea involved. That crossing is the seam ADR-0004 exists to police.
+  - Synthesis introduces a conclusion neither agent reached.
+
+notes: >
+  The phrasing is deliberately how a practitioner would actually raise it — one breath, two
+  questions, the second tacked on as an afterthought. The afterthought is the portfolio
+  question, and it is the one most likely to be dropped or absorbed into the first.
