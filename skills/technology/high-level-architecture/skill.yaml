@@ -15,7 +15,7 @@ domain: technology
 category: design
 owner_agent: technology-ea
 maturity: draft
-license: MIT
+license: Apache-2.0
 
 # An architect can answer every required input from the solution intent and their own
 # knowledge of the estate. Load figures and standards improve it; nothing needs a tool.

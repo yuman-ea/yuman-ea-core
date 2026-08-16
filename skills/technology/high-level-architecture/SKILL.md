@@ -6,7 +6,7 @@ description: >
   rationale, and the risks. Assesses options against declared quality attributes and
   states the non-functional requirements it had to assume rather than inventing them.
   Works from manual input and CSV; no modelling tool required.
-license: MIT
+license: Apache-2.0
 allowed-tools: Read, Write
 metadata:
   yuman_ea_id: yea.technology.high-level-architecture

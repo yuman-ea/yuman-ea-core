@@ -35,9 +35,28 @@ To keep the framework consistent:
 - Small, focused PRs get reviewed faster than large ones.
 - Be responsive to review comments — PRs inactive for 30+ days may be closed and can be reopened later.
 
+## Licensing of contributions
+
+This project is licensed under **Apache License 2.0** — see [LICENSE](./LICENSE), [NOTICE](./NOTICE), and the reasoning in [ADR-0003](./docs/adr/0003-license-apache-2.md).
+
+**There is no CLA and there never will be.** Apache-2.0 §5 already covers it: unless you say otherwise in your pull request, anything you submit for inclusion is licensed under the same terms. A CLA would mean legal review for individual contributors, and this project's contributors are practising architects, not developers with a legal department on hand.
+
+We do ask for a **DCO sign-off** on each commit, which is one line and no paperwork:
+
+```bash
+git commit -s -m "Add cloud-disposition skill"
+```
+
+That appends `Signed-off-by: Your Name <your@email>`, certifying you wrote the contribution or have the right to submit it. See [developercertificate.org](https://developercertificate.org).
+
+Two rules that matter more than the licence text:
+
+- **Cite frameworks, never reproduce them.** TOGAF, BIZBOK, and analyst frameworks carry their own licensing. Reference and cite; prefer neutral formulations of common methods. A permissive repository licence does not make incompatible material safe to include.
+- **Never commit real enterprise data.** No application inventories, supplier names tied to costs, or customer identifiers — in any file, including examples and test fixtures. Synthetic only.
+
 ## Code of Conduct
 
-By participating, you agree to uphold our [Code of Conduct](./CODE_OF_CONDUCT.md).
+By participating, you agree to uphold our [Code of Conduct](./CODE-OF-CONDUCT.md).
 
 ## Questions
 

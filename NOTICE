@@ -1,0 +1,31 @@
+Yuman EA
+Copyright 2026 The Yuman EA Authors
+
+This product includes software developed by The Yuman EA Authors
+(https://github.com/yuman-ea/yuman-ea-core).
+
+Licensed under the Apache License, Version 2.0. See the LICENSE file
+in this repository, or http://www.apache.org/licenses/LICENSE-2.0.
+
+---
+
+Relicensing note
+----------------
+
+Releases up to and including the change recorded in
+docs/adr/0003-license-apache-2.md were published under the MIT License,
+Copyright (c) 2026 yuman-ea. Those releases remain available under MIT;
+the change is not retroactive and does not withdraw any grant already
+made. Every copyright holder of record consented to the relicensing.
+
+---
+
+Contents note
+-------------
+
+All application, capability, cost, supplier, contract, and policy data in
+this repository is SYNTHETIC. It was written to exercise the skills and
+describes no real organization. See context/fixtures/northwind-corp/README.md.
+
+No real enterprise data is present in this repository, in any form, and
+none may be added.

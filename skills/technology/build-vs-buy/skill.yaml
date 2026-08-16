@@ -15,7 +15,7 @@ domain: technology
 category: design
 owner_agent: technology-ea
 maturity: draft
-license: MIT
+license: Apache-2.0
 
 # Every input below can be answered by an architect from their own knowledge, a
 # conversation, or a spreadsheet they can produce unaided. Nothing here needs a CMDB.

@@ -62,7 +62,7 @@ description: >
   declared criteria and weights, and produces a scorecard, a recommendation
   memo, and a decision record — with assumptions, confidence, and sensitivity
   stated. Works from manual input and CSV; no portfolio tooling required.
-license: MIT
+license: Apache-2.0
 metadata:
   yuman_ea_id: yea.technology.build-vs-buy
   yuman_ea_spec_version: "1.0"
