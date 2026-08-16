@@ -1,0 +1,45 @@
+id: 03-retention-and-dependency-block-retirement
+skill: yea.portfolio.application-rationalization
+fixture: synthetic_regulated_portfolio
+description: "Checks that a low-value application is not retired when retention policy and a downstream dependency still require it."
+given:
+  scenario: >
+    A read-only historical application has very low usage and low strategic value.
+    Finance wants it removed, but the application provides access to records under a
+    retention obligation and a downstream audit process still calls it monthly.
+  ask:
+    decision_horizon: tactical_12m
+    primary_objective: cost_reduction
+    change_appetite: moderate
+    evidence_posture: decision_ready
+  gather:
+    provided:
+      portfolio_scope: "Finance records"
+      application_inventory:
+        - {application_id: APP-301, application_name: "Historical Records Viewer", business_purpose: "Read-only retrieval of retained financial records"}
+      business_profile: "Low daily use and low strategic alignment; legal and audit users still depend on retained records."
+      technical_profile: "Supported but aging; moderate maintenance burden."
+      risk_profile: "Records-retention obligation is active."
+      cost_profile: "Actual annual run cost supplied and materially high for usage."
+      dependency_map: "Monthly audit process and records repository integration depend on APP-301."
+      overlap_map: "No validated replacement currently provides equivalent retained-record access."
+      owner_attestation: "Owner would retire after retention and dependency coverage is replaced, but does not approve retirement now."
+      contract_profile: "No supplier contract blocker."
+  policies_supplied: [records_retention, critical_service_continuity]
+expect:
+  outcome:
+    - "APP-301 is not retire."
+    - "The scorecard records retirement as blocked by retention and dependency constraints."
+    - "The next action is to validate a compliant replacement/access path or wait for the retention obligation to end."
+  confidence: high
+  must_state:
+    - "Low usage and high cost do not override mandatory retention and continuity constraints."
+    - "A blocked retirement is reported as a blocked action, not hidden by changing business-value scores."
+must_not:
+  - "Recommend retirement now."
+  - "Increase business-value score merely to force the preferred safe outcome."
+fails_if: "The method allows a cost/value score to override a hard policy or confirmed dependency."
+tolerance:
+  allowed: "Primary disposition may be maintain or needs_validation depending on the remaining evidence pattern."
+  not_allowed: "Retire."
+notes: "Tests separation of scoring from hard constraints."

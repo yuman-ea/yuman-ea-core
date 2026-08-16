@@ -1,0 +1,481 @@
+spec_version: "1.0"
+id: yea.portfolio.application-rationalization
+name: application-rationalization
+display_name: Application Rationalization
+description: >
+  Determines a defensible disposition for applications in a portfolio — invest,
+  maintain, modernize, consolidate, retire, or validate further — using declared
+  business, technical, risk, cost, overlap, and change-feasibility criteria. It
+  works from manual input or CSV, degrades honestly when evidence is incomplete,
+  and produces a scorecard, executive decision memo, roadmap, and decision record
+  with assumptions, confidence, and sensitivity analysis.
+version: 0.1.0
+domain: portfolio
+category: simplify
+owner_agent: portfolio-ea
+maturity: draft
+license: MIT
+data_intensity: low
+
+triggers:
+  phrases:
+    - "rationalize our application portfolio"
+    - "which applications should we keep retire or modernize"
+    - "which apps can we retire"
+    - "which applications should we consolidate"
+    - "where are our duplicate applications"
+    - "reduce application portfolio cost"
+    - "what should we do with these applications"
+    - "application portfolio rationalization"
+  decision_types:
+    - portfolio_rationalization
+    - application_disposition
+    - portfolio_simplification
+  not_this_skill:
+    - phrase: "should we build or buy this capability"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "what architecture should the replacement solution use"
+      route_to: yea.technology.high-level-architecture
+    - phrase: "should this one application move to the cloud"
+      route_to: technology-ea
+    - phrase: "what business capabilities do we have"
+      route_to: business-ea
+    - phrase: "which investment should we fund first"
+      route_to: portfolio-ea
+
+frame:
+  restatement_template: >
+    Determine the recommended disposition for applications in {portfolio_scope}
+    over a {decision_horizon} horizon, optimizing for {primary_objective} while
+    protecting business continuity and mandatory obligations.
+  decision_statement_fields:
+    - portfolio_scope
+    - decision_horizon
+    - primary_objective
+  out_of_scope:
+    - Selecting a specific replacement product or supplier.
+    - Designing the detailed target architecture for a replacement application.
+    - Approving a retirement or consolidation without accountable business-owner confirmation.
+    - Creating a detailed migration project plan or implementation estimate.
+
+ask:
+  - id: decision_horizon
+    question: "Is this rationalization meant to drive decisions in the next 12 months, the next 1-3 years, or a 3-5 year portfolio direction?"
+    why: "The horizon changes how much current contract timing, technical debt, and future strategic alignment matter to the recommendation and sequencing."
+    type: choice
+    options: [tactical_12m, medium_1_3y, strategic_3_5y]
+    option_labels:
+      tactical_12m: "Decisions and savings inside 12 months"
+      medium_1_3y: "A sequenced 1-3 year portfolio plan"
+      strategic_3_5y: "Longer-term target portfolio direction"
+    required: true
+    default_if_skipped: medium_1_3y
+    affects: [strategic_fit, cost_efficiency, change_feasibility]
+
+  - id: primary_objective
+    question: "What outcome matters most for this exercise?"
+    why: "It changes how close calls are sequenced and what evidence is highlighted for the steering committee."
+    type: choice
+    options: [cost_reduction, risk_reduction, simplification, modernization, balanced]
+    option_labels:
+      cost_reduction: "Reduce run cost and avoidable spend"
+      risk_reduction: "Reduce operational, security, and lifecycle risk"
+      simplification: "Reduce duplication and portfolio complexity"
+      modernization: "Improve the fitness of strategically important applications"
+      balanced: "No single outcome dominates"
+    required: true
+    default_if_skipped: balanced
+    affects: [technical_fitness, risk_posture, cost_efficiency, portfolio_uniqueness]
+
+  - id: change_appetite
+    question: "How much portfolio change can the organization realistically absorb during this horizon?"
+    why: "A theoretically good consolidation can be the wrong near-term recommendation if the organization cannot absorb the transition safely."
+    type: choice
+    options: [low, moderate, high]
+    option_labels:
+      low: "Protect stability; only low-disruption changes"
+      moderate: "Selective modernization and consolidation"
+      high: "Major simplification and modernization is feasible"
+    required: true
+    default_if_skipped: moderate
+    affects: [change_feasibility]
+
+  - id: evidence_posture
+    question: "Should irreversible actions such as retirement require confirmed owner and dependency evidence, or are you screening for candidates only?"
+    why: "The same data can support a candidate list but not a safe execution decision; this prevents a screening score from being mistaken for approval."
+    type: choice
+    options: [candidate_screening, decision_ready]
+    option_labels:
+      candidate_screening: "Identify candidates for follow-up validation"
+      decision_ready: "Only label actions as ready when evidence is confirmed"
+    required: true
+    default_if_skipped: candidate_screening
+    affects: [business_value, portfolio_uniqueness, change_feasibility]
+
+gather:
+  required:
+    - id: portfolio_scope
+      description: "The business unit, domain, product area, or named set of applications being rationalized."
+      source: user
+      format: scalar
+    - id: application_inventory
+      description: "Applications in scope, with at minimum a stable application identifier, application name, and a plain-language business purpose."
+      source: [user, context.application_inventory, assets.application-rationalization-inputs.csv]
+      format: table
+
+  optional:
+    - id: business_profile
+      description: "Per-application business criticality, strategic alignment, user or customer reach, business owner, and usage trend where known."
+      source: [user, context.application_inventory]
+      format: table
+      on_missing: omit_criterion_and_reweight
+      assumption_template: "Business-value evidence was incomplete, so the business-value criterion was omitted or partially scored and the remaining weights were renormalized; irreversible dispositions remain provisional."
+      confidence_penalty: high
+
+    - id: technical_profile
+      description: "Per-application lifecycle supportability, maintainability, reliability, performance, operational burden, and technology fitness where known."
+      source: [user, context.application_inventory, context.standards]
+      format: table
+      on_missing: omit_criterion_and_reweight
+      assumption_template: "Technical-fitness evidence was incomplete, so the technical-fitness criterion was omitted or partially scored and the remaining weights were renormalized."
+      confidence_penalty: high
+
+    - id: risk_profile
+      description: "Known security findings, compliance obligations, data sensitivity, audit issues, and material operational risks per application."
+      source: [user, context.policies, context.standards]
+      format: table
+      on_missing: omit_criterion_and_reweight
+      assumption_template: "Risk and compliance evidence was not complete; risk posture was omitted or partially scored and no application is treated as safe to retire solely because no risk was recorded."
+      confidence_penalty: high
+
+    - id: cost_profile
+      description: "Annual run cost and material change, licence, infrastructure, support, or contract costs per application where available."
+      source: [user, context.application_costs, connector.finance]
+      format: table
+      on_missing: omit_criterion_and_reweight
+      assumption_template: "Comparable cost data was not available, so cost efficiency was omitted and the analysis does not claim quantified savings."
+      confidence_penalty: medium
+
+    - id: dependency_map
+      description: "Known upstream and downstream dependencies, shared data stores, interfaces, batch dependencies, and critical consumers for each application."
+      source: [user, context.integrations]
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: overlap_map
+      description: "Known capability overlap, duplicate functionality, shared user populations, and preferred target applications where duplication exists."
+      source: [user, context.application_inventory]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Semantic similarity of the business purpose and capability labels in application_inventory; this may propose overlap candidates but never confirms duplication."
+      assumption_template: "No validated overlap map was supplied. Potential duplicates were inferred only from similar business-purpose or capability descriptions and are hypotheses requiring owner validation before consolidation."
+      confidence_penalty: medium
+
+    - id: owner_attestation
+      description: "Business-owner or service-owner confirmation of criticality, replacement coverage, retirement acceptability, and known obligations."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: not_confirmed
+      assumption_template: "Accountable owner confirmation was not supplied; retire and consolidate outcomes are candidates for validation, not approved execution decisions."
+      confidence_penalty: medium
+
+    - id: contract_profile
+      description: "Contract end dates, exit charges, licensing commitments, and externally imposed timing constraints relevant to change."
+      source: [user, context.application_costs]
+      format: table
+      on_missing: use_default_value
+      default_value: unknown
+      assumption_template: "Contractual constraints were not supplied, so timing and savings estimates exclude possible exit charges or commitment windows."
+      confidence_penalty: low
+
+bound:
+  policies:
+    - records_retention
+    - regulatory_retention
+    - critical_service_continuity
+    - data_residency
+    - security_baseline
+    - approved_target_platforms
+    - contract_commitments
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - records_retention
+    - regulatory_retention
+    - critical_service_continuity
+    - data_residency
+    - contract_commitments
+
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+  criteria:
+    - id: business_value
+      display_name: Business value
+      weight: 0.30
+      description: "How important the application is to revenue, customer or employee outcomes, regulatory operations, and the organization's stated strategy."
+      evidence: [business_profile, application_inventory, decision_horizon]
+      direction: higher_is_better
+
+    - id: technical_fitness
+      display_name: Technical fitness
+      weight: 0.20
+      description: "How supportable, maintainable, reliable, performant, and operable the application is for the decision horizon."
+      evidence: [technical_profile, decision_horizon]
+      direction: higher_is_better
+
+    - id: risk_posture
+      display_name: Risk posture
+      weight: 0.15
+      description: "How well the application meets security, compliance, resilience, and data-handling expectations without material unresolved exposure."
+      evidence: [risk_profile, technical_profile]
+      direction: higher_is_better
+
+    - id: strategic_fit
+      display_name: Strategic fit
+      weight: 0.10
+      description: "How directly the application supports the target operating model, strategic capabilities, and intended portfolio direction over the selected horizon."
+      evidence: [business_profile, decision_horizon, application_inventory]
+      direction: higher_is_better
+
+    - id: cost_efficiency
+      display_name: Cost efficiency
+      weight: 0.10
+      description: "Whether the ongoing cost is proportionate to the business value, usage, and service delivered, using comparable fully stated cost evidence where available."
+      evidence: [cost_profile, business_profile]
+      direction: higher_is_better
+
+    - id: portfolio_uniqueness
+      display_name: Portfolio uniqueness
+      weight: 0.10
+      description: "Whether the application provides distinct necessary capability rather than materially duplicating another application that can cover the same business need."
+      evidence: [overlap_map, application_inventory, business_profile]
+      direction: higher_is_better
+
+    - id: change_feasibility
+      display_name: Change feasibility
+      weight: 0.05
+      description: "How feasible it is to change, consolidate, or retire the application within the horizon without unacceptable dependency, contract, or transition risk."
+      evidence: [dependency_map, contract_profile, change_appetite, owner_attestation]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — evidence points clearly away from keeping the application in its current state on this criterion."
+      - value: 2
+        meaning: "Unfavourable — a material weakness exists and requires action or an explicit exception."
+      - value: 3
+        meaning: "Mixed or neutral — evidence does not create a clear case either for change or for additional investment."
+      - value: 4
+        meaning: "Favourable — the application is in a good position on this criterion and a reviewer would recognize the advantage."
+      - value: 5
+        meaning: "Strongly favourable — the application is among the best outcomes realistically available in this portfolio on this criterion."
+
+  steps:
+    - "Confirm the frame and the exact portfolio scope before analysing any application; record applications explicitly excluded from scope."
+    - "Normalize application identifiers and names, but never merge records solely because names are similar. Preserve source identifiers so every conclusion traces back to the inventory."
+    - "Resolve every optional input. Apply each declared on_missing behaviour before scoring, write every assumption into the register, and never interpret a blank as zero or no-risk."
+    - "Apply hard constraints before disposition logic. A policy or confirmed dependency can block retirement or consolidation even when the scorecard otherwise favors it; report the blocked action rather than silently changing the score."
+    - "Score each application against every criterion with available evidence, citing the evidence IDs used. Where a criterion is omitted, renormalize the remaining weights and flag the row as reduced-evidence analysis."
+    - "Treat the weighted score as a portfolio comparison aid, not as the disposition itself. Disposition is determined by the pattern across business value, technical fitness, risk, uniqueness, and feasibility, using the rules in references/disposition-rules.md."
+    - "Recommend invest when business value and strategic fit are favourable and technical fitness and risk posture are also favourable; explain the specific outcome worth investing in rather than merely saying keep."
+    - "Recommend modernize when business value is favourable but technical fitness or risk posture is unfavourable; state whether the problem is lifecycle, resilience, security, maintainability, performance, or another evidenced issue."
+    - "Recommend consolidate only when portfolio uniqueness is unfavourable and a named overlapping application has equal or better business coverage with equal or better technical and risk fitness. If overlap came only from the proxy metric, emit needs_validation instead of consolidate."
+    - "Recommend retire only when business value is unfavourable, no hard policy blocks retirement, no material dependency requires the application, and the accountable owner has confirmed the business need is covered or no longer required. Without dependency or owner evidence, emit needs_validation with retire_candidate as the proposed action."
+    - "Recommend maintain where the application is adequate for the horizon and no decisive invest, modernize, consolidate, or retire rule is met. Maintain is a deliberate decision, not the leftover bucket."
+    - "For every application, record one primary disposition, the evidence that drove it, any blocked alternative, the next validating action, and a confidence rating. Never output a disposition without its reasoning."
+    - "Sequence the roadmap by separating validation work from execution: validate irreversible actions first, then low-dependency retire/consolidate candidates, then modernization waves, while preserving explicitly justified invest decisions."
+    - "Run every declared sensitivity target and report which dispositions or sequencing decisions change. If small evidence changes flip a disposition, say the application is a close call rather than presenting false certainty."
+
+  tie_breakers:
+    - "Prefer the more reversible action when two dispositions are equally supported; maintain or validate before retire when evidence is close."
+    - "Prefer the action that removes a confirmed security, compliance, or lifecycle exposure when business value is comparable."
+    - "Prefer consolidation where a validated overlap target already covers the same business need with better technical and risk fitness."
+    - "If still tied, emit needs_validation and name the single piece of evidence most likely to break the tie."
+
+  references:
+    - ./references/disposition-rules.md
+    - ./references/scoring-guidance.md
+
+deliver:
+  audience: [architect, steering_committee, finance, delivery_team]
+  artifacts:
+    - id: application_scorecard
+      display_name: Application rationalization scorecard
+      description: "One row per application showing evidence-backed criterion scores, weighted score, disposition, confidence, blockers, and next action."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/application-scorecard.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: application_id
+            type: string
+          - id: application_name
+            type: string
+          - id: business_value
+            type: score
+          - id: technical_fitness
+            type: score
+          - id: risk_posture
+            type: score
+          - id: strategic_fit
+            type: score
+          - id: cost_efficiency
+            type: score
+          - id: portfolio_uniqueness
+            type: score
+          - id: change_feasibility
+            type: score
+          - id: weighted_score
+            type: score
+          - id: disposition
+            type: enum
+            enum_values: [invest, maintain, modernize, consolidate, retire, needs_validation]
+          - id: proposed_action
+            type: string
+          - id: evidence_summary
+            type: string
+          - id: blocked_by
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+          - id: next_action
+            type: string
+
+    - id: decision_memo
+      display_name: Portfolio decision memo
+      description: "A steering-committee memo explaining the portfolio pattern, proposed actions, quantified opportunities where supported, risks, and evidence gaps."
+      formats: [md, docx]
+      preferred_format: docx
+      markdown_template: ./assets/decision-memo.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: decision_scope
+            heading: Decision scope
+            required: true
+          - id: executive_summary
+            heading: Executive summary
+            required: true
+          - id: portfolio_pattern
+            heading: What the portfolio evidence shows
+            required: true
+          - id: recommended_actions
+            heading: Recommended actions
+            required: true
+          - id: financial_view
+            heading: Financial view
+            required: false
+          - id: risks_and_constraints
+            heading: Risks and constraints
+            required: true
+          - id: evidence_gaps
+            heading: Evidence gaps before execution
+            required: true
+          - id: assumptions_confidence_sensitivity
+            heading: Assumptions, confidence, and sensitivity
+            required: true
+
+    - id: rationalization_roadmap
+      display_name: Rationalization roadmap
+      description: "A sequenced action plan that separates validation from execution and groups retire, consolidate, modernize, maintain, and invest actions into defensible waves."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/rationalization-roadmap.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: wave
+            type: string
+          - id: application_id
+            type: string
+          - id: application_name
+            type: string
+          - id: disposition
+            type: enum
+            enum_values: [invest, maintain, modernize, consolidate, retire, needs_validation]
+          - id: target_outcome
+            type: string
+          - id: prerequisite
+            type: string
+          - id: business_owner
+            type: string
+          - id: timing_rationale
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: decision_record
+      display_name: Rationalization decision record
+      description: "The dated audit trail of application dispositions, the evidence used, who confirmed the decision, and when it must be reviewed again."
+      formats: [md, csv]
+      preferred_format: md
+      markdown_template: ./assets/decision-record.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: application_id
+            type: string
+          - id: application_name
+            type: string
+          - id: decision
+            type: enum
+            enum_values: [invest, maintain, modernize, consolidate, retire, needs_validation]
+          - id: decision_date
+            type: date
+          - id: accountable_owner
+            type: string
+          - id: evidence_ids
+            type: string
+          - id: assumptions
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+          - id: review_date
+            type: date
+          - id: status
+            type: string
+
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+  confidence_rules:
+    - level: low
+      when: "business_profile or technical_profile is omitted, or a retire/consolidate candidate lacks confirmed dependency or owner evidence."
+    - level: medium
+      when: "business and technical evidence are present, but one or more of cost, overlap, risk, contract, or dependency evidence is incomplete and the proposed action is reversible."
+    - level: high
+      when: "business, technical, risk, dependency, overlap, and owner evidence are current and corroborated, and any cost claim is based on comparable actual data rather than estimates."
+  sensitivity_targets:
+    - target: business_value
+      variation: "score +/- 1 point for close-call applications"
+      report: "State which dispositions change if business value moves one anchor in either direction and identify the evidence needed to resolve the uncertainty."
+    - target: technical_fitness
+      variation: "score +/- 1 point for close-call applications"
+      report: "State which dispositions change if technical fitness moves one anchor and whether modernization becomes maintain or vice versa."
+    - target: cost_efficiency
+      variation: "+/- 25% on annual run cost where cost data is used"
+      report: "State whether the recommended disposition or roadmap sequencing changes under a 25% cost error; never claim savings where cost data was omitted."
+    - target: portfolio_uniqueness
+      variation: "one anchor better and one anchor worse"
+      report: "State which consolidation candidates disappear if overlap is weaker than believed and which additional applications become candidates if overlap is confirmed."
+    - target: change_feasibility
+      variation: "one anchor better and one anchor worse"
+      report: "State whether the disposition remains the same but moves to a different roadmap wave when transition feasibility changes."
+  evals: ./evals/

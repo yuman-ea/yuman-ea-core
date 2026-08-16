@@ -1,0 +1,46 @@
+id: 04-semantic-overlap-is-not-proof
+skill: yea.portfolio.application-rationalization
+fixture: synthetic_overlap_hypothesis
+description: "Checks that semantic similarity is used to propose duplicate candidates but never treated as confirmed overlap."
+given:
+  scenario: >
+    The inventory contains two applications with similar descriptions: one manages
+    customer consent and the other manages marketing preferences. No capability map,
+    owner validation, or dependency evidence is available.
+  ask:
+    decision_horizon: medium_1_3y
+    primary_objective: simplification
+    change_appetite: moderate
+    evidence_posture: candidate_screening
+  gather:
+    provided:
+      portfolio_scope: "Customer data"
+      application_inventory:
+        - {application_id: APP-401, application_name: "Consent Registry", business_purpose: "Records legal customer consent and permitted processing"}
+        - {application_id: APP-402, application_name: "Preference Center", business_purpose: "Stores customer marketing channel preferences"}
+      business_profile: "Both are used by customer-facing operations; detailed capability mapping is unavailable."
+      technical_profile: "Both are supported."
+    withheld:
+      - risk_profile
+      - cost_profile
+      - dependency_map
+      - overlap_map
+      - owner_attestation
+      - contract_profile
+  policies_supplied: []
+expect:
+  outcome:
+    - "The applications may be flagged as possible overlap candidates but neither is labelled consolidate."
+    - "At least one row is needs_validation if consolidation is proposed as a next action."
+  confidence: low
+  must_state:
+    - "Semantic similarity is a hypothesis, not proof of functional duplication."
+    - "Owner and dependency validation is required before consolidation."
+must_not:
+  - "Merge consent and preferences into one capability without evidence."
+  - "Treat similar names as equivalent business functions."
+fails_if: "The overlap proxy directly produces a consolidate disposition."
+tolerance:
+  allowed: "The skill may decide there is insufficient overlap even to flag a candidate."
+  not_allowed: "Consolidate based only on the proxy."
+notes: "Tests safe use of AI for semantic clustering."

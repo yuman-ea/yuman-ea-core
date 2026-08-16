@@ -1,0 +1,55 @@
+id: 01-incomplete-data-screening
+skill: yea.portfolio.application-rationalization
+fixture: synthetic_sparse_portfolio
+description: "Checks that a sparse inventory still produces useful screening output without inventing business value, cost, dependency, or risk data."
+given:
+  scenario: >
+    An architect has a list of six applications with names and one-line purposes only.
+    Leadership wants retirement candidates for a cost-reduction discussion next week.
+  ask:
+    decision_horizon: tactical_12m
+    primary_objective: cost_reduction
+    change_appetite: moderate
+    evidence_posture: candidate_screening
+  gather:
+    provided:
+      portfolio_scope: "Corporate services"
+      application_inventory:
+        - {application_id: APP-101, application_name: "Expense Archive", business_purpose: "Historical expense lookup"}
+        - {application_id: APP-102, application_name: "Travel Request", business_purpose: "Employee travel request workflow"}
+        - {application_id: APP-103, application_name: "Travel Portal", business_purpose: "Employee travel booking and request workflow"}
+    withheld:
+      - business_profile
+      - technical_profile
+      - risk_profile
+      - cost_profile
+      - dependency_map
+      - overlap_map
+      - owner_attestation
+      - contract_profile
+  policies_supplied: []
+expect:
+  outcome:
+    - "No application is labelled execution-ready retire or consolidate."
+    - "Potential overlap between Travel Request and Travel Portal may be proposed only as a validation hypothesis."
+  confidence: low
+  must_state:
+    - "Blank fields are unknown, not zero or no-risk."
+    - "Cost savings cannot be quantified from the supplied evidence."
+    - "Owner and dependency evidence are required before irreversible action."
+  must_emit:
+    - application_scorecard
+    - decision_memo
+    - rationalization_roadmap
+    - decision_record
+    - assumptions_register
+    - sensitivity_analysis
+must_not:
+  - "Invent annual run costs."
+  - "Assume no dependencies because none were supplied."
+  - "Declare the two travel applications duplicates solely from similar names or purposes."
+fails_if: "The skill outputs a confident retire or consolidate decision from names and descriptions alone."
+tolerance:
+  allowed: "Exact provisional scores and wording may vary."
+  not_allowed: "Confidence above low or any irreversible disposition without validation."
+notes: "This is the primary degrade-honestly case."
