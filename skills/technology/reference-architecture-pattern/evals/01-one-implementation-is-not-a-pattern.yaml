@@ -1,0 +1,115 @@
+spec_version: "1.0"
+id: 01-one-implementation-is-not-a-pattern
+skill: yea.technology.reference-architecture-pattern
+fixture: context/fixtures/northwind-corp
+description: >
+  The flagship case. An architect proposes a pattern generalized from exactly one system
+  that went well. The pull toward writing it up is strong — the design is genuinely good,
+  the architect is credible, and a pattern document is easy to produce. This case exists
+  to check that the skill says "you have an implementation, not a pattern" and declines
+  to publish one.
+
+given:
+  scenario: >
+    nw-014, the Product Information System, is recorded in the inventory as "the one recent
+    in-house build that went well". Its architect wants the approach written up as
+    Northwind's reference pattern for internal services, so that the next build follows it.
+    Nothing else has been built this way.
+
+  ask:
+    pattern_origin: existing_implementations
+    intended_authority: default_expectation
+    scope_breadth: multiple_domains
+    variability_tolerance: conform_or_explain
+    problem_frequency: several_a_year
+
+  gather:
+    provided:
+      problem_statement: >
+        Internal services are built differently each time, so operational tooling, deployment,
+        and support arrangements have to be reinvented per system.
+      candidate_shape: >
+        A service with its own store, publishing changes as events through the broker, with
+        a published read interface; no other component reads its store directly.
+      known_implementations:
+        - "nw-014 Product Information System, built 2019 by the internal platform team"
+      estate_touchpoints:
+        - "nw-019 Integration Middleware — the broker the pattern depends on"
+        - "int-17, int-18, int-19 — the interfaces nw-014 already publishes"
+      pattern_owner: "Head of Architecture"
+    withheld:
+      - nonfunctional_position
+      - known_failures
+      - adoption_effort_evidence
+      - existing_standards
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.policies
+
+  overlay: none
+
+expect:
+  frame_restated_before_analysis: true
+
+  implementations_counted: 1
+  status: not_yet_a_pattern
+  pattern_definition_produced: false
+
+  confidence: low
+  confidence_reason_must_reference: >
+    fewer than two implementations were supplied
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  artifacts_produced:
+    - reference-architecture-pattern--readiness-assessment.md
+    - reference-architecture-pattern--decision-record.md
+
+  must_state:
+    - That this generalizes from one implementation and is therefore not yet a pattern.
+    - That this is not a judgement on the design, which may be entirely sound.
+    - What it actually is — a solution design for nw-014 — and which skill owns it.
+    - Concretely what would change the answer: a second independent implementation, built by
+      a different team against a different starting point.
+    - That no operating envelope was supplied, so the conditions under which the approach
+      held for nw-014 are unknown and cannot be generalized from.
+    - That no failure modes are recorded, which is itself evidence the approach has not been
+      used enough to publish.
+    - Where the work should be recorded meanwhile, so it is not lost.
+
+  assumptions_register_must_contain:
+    - no non-functional position was supplied and one was derived
+    - no adoption effort evidence was available
+    - no existing standards were supplied, so this does not claim to supersede anything
+
+  must_not:
+    - Produce a pattern definition artifact.
+    - Count nw-014 as more than one implementation.
+    - Find additional implementations by treating similar-looking systems in the inventory as
+      instances of the pattern.
+    - Rate confidence medium or high.
+    - Present the outcome as a rejection of the design.
+    - Recommend mandating or recommending the pattern on the strength of the architect's
+      seniority or the system's reputation.
+
+fails_if:
+  - A polished pattern definition is produced anyway. It would be cited by someone who
+    assumes it was earned, which is worse than producing nothing.
+  - The count is inflated by treating other in-house builds as implementations of a pattern
+    that did not exist when they were built.
+  - The response reads as "no" rather than "not yet, and here is exactly what would change it".
+
+tolerance: >
+  Wording varies. The status, the implementation count of one, the absence of a pattern
+  definition, and the low confidence rating are not negotiable.
+
+notes: >
+  The trap is specific and sympathetic. Everyone involved is acting reasonably: the design
+  is good, generalizing from success is normal, and writing it down feels like diligence.
+  The defect only becomes visible on the second application, by which time three teams have
+  built against assumptions that were never tested outside one system.

@@ -1,0 +1,493 @@
+spec_version: "1.0"
+id: yea.technology.reference-architecture-pattern
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: reference-architecture-pattern
+display_name: Reference Architecture Pattern
+description: >
+  Decides whether a proposed reference pattern is actually a pattern, and publishes it if it
+  is. Scores the candidate against declared criteria — how many real implementations it
+  generalizes from, whether it constrains anything, whether its limits are stated, and what
+  it costs to adopt — then sets a status of mandated, recommended, proposed, or not yet a
+  pattern. Produces the pattern definition, the readiness assessment behind it, and a
+  decision record. Works from manual input; no modelling tool required.
+
+version: 0.1.0
+domain: technology
+category: design
+owner_agent: technology-ea
+maturity: draft
+license: Apache-2.0
+
+# Everything required is held by the architect proposing the pattern.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+# ---------------------------------------------------------------------------
+# Discovery.
+# ---------------------------------------------------------------------------
+triggers:
+  phrases:
+    - "reference architecture pattern"
+    - "reference pattern"
+    - "write up a pattern"
+    - "make this a standard pattern"
+    - "should this be a reference architecture"
+    - "we keep solving this the same way"
+    - "document the pattern we use"
+    - "turn this into a reusable pattern"
+    - "publish an architecture pattern"
+    - "pattern catalogue"
+  decision_types:
+    - pattern_authoring
+    - standards_definition
+  not_this_skill:
+    - phrase: "what should the architecture of this solution be"
+      route_to: yea.technology.high-level-architecture
+    - phrase: "record why we chose this approach"
+      route_to: yea.technology.architecture-decision-record
+    - phrase: "should we build or buy this"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "which applications should we retire"
+      route_to: yea.portfolio.application-rationalization
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — the question is whether this deserves to be reused, not whether
+#    the design is good. Those are different, and conflating them is how
+#    pattern catalogues fill with things nobody applies.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Determine whether {problem_statement} is served by a reusable pattern, assess
+    {candidate_shape} against the evidence in {known_implementations}, and set a
+    publication status for use at {scope_breadth} scope.
+  decision_statement_fields:
+    - problem_statement
+    - candidate_shape
+    - known_implementations
+    - scope_breadth
+  out_of_scope:
+    - Designing a solution for one system. That is high level architecture.
+    - Recording a single technology choice. That is an architecture decision record.
+    - Selecting which existing pattern applies to a problem in hand.
+    - Building the thing the pattern describes.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: pattern_origin
+    question: "Where is this coming from — solutions you have already built, an industry practice you want to adopt, or a problem you keep hitting with no settled answer?"
+    why: "Sets how much of the evidence is yours. A pattern generalized from your own working systems earns a different status from one imported on reputation, and the difference is the whole point of this method."
+    type: choice
+    options: [existing_implementations, external_practice, recurring_problem_no_answer]
+    option_labels:
+      existing_implementations: "We have built this more than once already"
+      external_practice: "It is well established elsewhere and we want to adopt it"
+      recurring_problem_no_answer: "The problem keeps coming back and we solve it differently every time"
+    required: true
+    default_if_skipped: existing_implementations
+    affects: [evidence_base, problem_recurrence]
+
+  - id: intended_authority
+    question: "Will teams be expected to follow this, or is it guidance they can take or leave?"
+    why: "Sets the bar the pattern has to clear. Guidance can be loose; anything teams are held to needs testable conformance criteria, or it cannot be enforced and will be resented."
+    type: choice
+    options: [guidance, default_expectation, mandated]
+    option_labels:
+      guidance: "Useful to know, no obligation"
+      default_expectation: "The default; deviate with a recorded reason"
+      mandated: "Required; deviation needs a waiver"
+    required: true
+    default_if_skipped: default_expectation
+    affects: [constraint_clarity, adoption_cost]
+
+  - id: scope_breadth
+    question: "Where does this apply — one domain, several, or the whole estate?"
+    why: "A pattern that holds in one domain frequently breaks one scope wider, and estate-wide patterns must survive cases nobody in the room is thinking about."
+    type: choice
+    options: [single_domain, multiple_domains, whole_estate]
+    option_labels:
+      single_domain: "One area, one kind of problem"
+      multiple_domains: "Several areas with the same shape of problem"
+      whole_estate: "Anywhere this problem appears"
+    required: true
+    default_if_skipped: single_domain
+    affects: [scope_boundedness, adoption_cost, maintainability]
+
+  - id: variability_tolerance
+    question: "How much may a team vary within the pattern?"
+    why: "Determines whether conformance can be checked at all. A pattern teams may adapt freely cannot be conformance-tested, and should not claim it can."
+    type: choice
+    options: [strict_conformance, conform_or_explain, adapt_freely]
+    option_labels:
+      strict_conformance: "Follow it as written"
+      conform_or_explain: "Vary where you must, and record why"
+      adapt_freely: "Take the ideas, shape them locally"
+    required: true
+    default_if_skipped: conform_or_explain
+    affects: [constraint_clarity, adoption_cost]
+
+  - id: problem_frequency
+    question: "How often does this problem actually come up — most projects, a few times a year, or occasionally?"
+    why: "A pattern is an investment that pays back per reuse. A problem that arrives twice a decade does not repay writing, maintaining, and governing one."
+    type: choice
+    options: [most_projects, several_a_year, occasionally]
+    option_labels:
+      most_projects: "Almost everything we build hits this"
+      several_a_year: "Regularly, across different teams"
+      occasionally: "Now and then"
+    required: true
+    default_if_skipped: several_a_year
+    affects: [problem_recurrence, evidence_base]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs. "none" on known_implementations is a
+#    valid and important answer, and it drives the status directly.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: problem_statement
+      description: "The recurring problem this pattern solves, in terms a delivery team would recognize as their problem. Not the solution, and not a technology."
+      source: user
+      format: scalar
+
+    - id: candidate_shape
+      description: "The proposed structure — the parts, what each is responsible for, how they interact, and crucially what the pattern forbids."
+      source: user
+      format: scalar
+
+    - id: known_implementations
+      description: "The real systems this generalizes from, named by the user. State 'none' explicitly where there are none — that is a legitimate answer and it changes the outcome rather than being a gap to fill."
+      source: [user, context.application_inventory]
+      format: list
+
+  optional:
+    - id: nonfunctional_position
+      description: "What the pattern assumes about load, availability, latency, and data volume, and what it guarantees under those conditions."
+      source: user
+      format: list
+      on_missing: estimate_with_assumption
+      assumption_template: "No non-functional position was stated, so one has been derived from the implementations supplied and is recorded AS A PROPOSAL FOR CONFIRMATION. A pattern with no stated operating envelope gets applied where it does not fit, and the team that finds out is the one whose system fell over."
+      confidence_penalty: high
+
+    - id: known_failures
+      description: "Where this shape has gone wrong — here, or credibly reported elsewhere."
+      source: user
+      format: list
+      on_missing: ask_user
+      confidence_penalty: medium
+
+    - id: estate_touchpoints
+      description: "What the pattern has to work with in the systems that already exist."
+      source: [user, context.integrations, context.application_inventory]
+      format: list
+      on_missing: use_proxy_metric
+      proxy: "Interfaces and applications recorded against the same capability area in the integration register, treated as the systems the pattern would meet."
+      assumption_template: "The systems this pattern must work with were taken from the integration register rather than confirmed with their owners, so the list describes what is recorded rather than what is true."
+      confidence_penalty: medium
+
+    - id: adoption_effort_evidence
+      description: "What it actually took the teams that have already built this — elapsed time, people, and what surprised them."
+      source: user
+      format: list
+      on_missing: estimate_with_assumption
+      assumption_template: "No adoption effort evidence was available, so the cost of following this pattern has been estimated rather than observed. Patterns are routinely cheaper to write than to follow, and this is the figure most likely to be wrong."
+      confidence_penalty: medium
+
+    - id: existing_standards
+      description: "What already governs this area — standards, an earlier pattern, or a decision record this would supersede."
+      source: [user, context.standards]
+      format: list
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No existing standards were supplied, so this pattern does not claim to supersede anything. If something already covers this ground, the two now conflict silently, which is the failure a pattern catalogue exists to prevent."
+      confidence_penalty: medium
+
+    - id: pattern_owner
+      description: "Who maintains this pattern and answers questions about it."
+      source: user
+      format: scalar
+      on_missing: use_default_value
+      default_value: unassigned
+      assumption_template: "No owner was named. An unowned pattern rots into something people cite that no longer reflects how anything is built, and nobody notices until it is quoted in a review."
+      confidence_penalty: low
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - security_baseline
+    - data_residency
+    - integration_via_broker
+    - cloud_first
+    - open_source_policy
+  on_policy_absent: proceed_and_note
+  # A pattern that cannot satisfy these cannot be mandated, whatever it scores.
+  # Report it as blocked, never as a quietly lower status.
+  hard_constraints:
+    - security_baseline
+    - data_residency
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the score pattern produces a STATUS, not a chosen option.
+#    See ./references/pattern-readiness.md for the rules.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: evidence_base
+      display_name: Real implementations behind it
+      weight: 0.25
+      description: "How many genuinely different systems this generalizes from. One is an implementation, not a pattern; the difference is the single most common defect in a pattern catalogue."
+      evidence: [known_implementations, pattern_origin, adoption_effort_evidence]
+      direction: higher_is_better
+
+    - id: problem_recurrence
+      display_name: The problem actually recurs
+      weight: 0.20
+      description: "Whether the problem arrives often enough, across enough teams, for a pattern to repay writing, maintaining, and governing it."
+      evidence: [problem_frequency, problem_statement, known_implementations]
+      direction: higher_is_better
+
+    - id: constraint_clarity
+      display_name: It constrains something
+      weight: 0.15
+      description: "Whether the pattern says what NOT to do, and whether conformance can be checked by someone who did not write it. A pattern that forbids nothing is a diagram."
+      evidence: [candidate_shape, intended_authority, variability_tolerance]
+      direction: higher_is_better
+
+    - id: scope_boundedness
+      display_name: Its limits are stated
+      weight: 0.15
+      description: "Whether it is clear where the pattern does not apply. Patterns are discredited by misapplication far more often than by being wrong."
+      evidence: [problem_statement, known_failures, scope_breadth]
+      direction: higher_is_better
+
+    - id: adoption_cost
+      display_name: Cost of following it
+      weight: 0.10
+      description: "What a team gives up in time, skills, and infrastructure to conform. Patterns are cheaper to write than to follow."
+      evidence: [adoption_effort_evidence, candidate_shape, estate_touchpoints]
+      direction: higher_is_better
+
+    - id: estate_fit
+      display_name: Works with what exists
+      weight: 0.10
+      description: "Whether the pattern is buildable against the systems, interfaces, and platforms the organization actually runs today."
+      evidence: [estate_touchpoints, existing_standards, candidate_shape]
+      direction: higher_is_better
+
+    - id: maintainability
+      display_name: It can be kept current
+      weight: 0.05
+      description: "Whether someone owns it and whether its assumptions are stable enough that it will still be true at the next review."
+      evidence: [pattern_owner, scope_breadth, nonfunctional_position]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — this alone would be grounds not to publish the pattern."
+      - value: 2
+        meaning: "Unfavourable — a material weakness the organization would have to accept and actively manage."
+      - value: 3
+        meaning: "Neutral — adequate, with no real strength on this criterion."
+      - value: 4
+        meaning: "Favourable — a clear strength a reviewer would recognize without needing it explained."
+      - value: 5
+        meaning: "Strongly favourable — the best realistically available position on this criterion."
+
+  steps:
+    - "Restate the problem the pattern solves and confirm it is a PROBLEM statement rather than a solution or a technology. A pattern named after a technology is a preference with a diagram attached."
+    - "Count the implementations. One is an implementation; two can be generalized; three or more can be mandated. Where there are fewer than two, say so before anything else is assessed — the status is largely already determined."
+    - "Apply hard constraints. A pattern that cannot satisfy the security baseline or data residency cannot be mandated regardless of score; record it as blocked with the policy ID, never as a quietly lower status."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any score depends on it."
+    - "Score each criterion on the 1-5 favourability scale, citing for every score the evidence ID it rests on."
+    - "Derive the status from the score pattern using ./references/pattern-readiness.md. The weighted score is a comparison aid; it is not itself the status."
+    - "Where the status is not_yet_a_pattern, STOP. Do not write a pattern definition. Say what it actually is — a solution design, or a single decision — and name the skill that owns it."
+    - "Write the anti-scope: where this pattern does not apply, and what to do instead there. A pattern without it will be applied somewhere it breaks, and that is what discredits pattern catalogues."
+    - "List the decisions the pattern pre-makes and those it deliberately leaves open. This is the value proposition, and it should be readable as the list of decision records nobody has to write again."
+    - "Write conformance criteria a reviewer who did not author the pattern could check. If a criterion cannot be checked, it is a wish and must be rewritten or dropped."
+    - "Record the known failure modes. A pattern with none listed has not been used enough to publish."
+    - "Name an owner and a review date, then derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the lower status. Publishing something as recommended that should have been proposed costs more than the reverse, because it gets built on."
+    - "Prefer the narrower scope. A pattern that holds firmly in one domain is worth more than one that holds loosely everywhere."
+    - "Prefer the version with fewer pre-made decisions, where the evidence is equal. Every decision the pattern takes is one a team cannot take locally."
+    - "If still tied, publish at the lower status and name the single implementation or piece of evidence that would raise it."
+
+  references:
+    - ./references/pattern-readiness.md
+    - ./references/conformance-and-variation.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER — markdown preferred throughout: a pattern's natural home is the
+#    organization's own repository or wiki, next to what it governs.
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, delivery_team]
+  artifacts:
+    - id: pattern_definition
+      display_name: Pattern definition
+      description: "The pattern itself — the problem, when to use it, when NOT to, the shape, what it forbids, what it pre-decides, how conformance is checked, and how it has failed before."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/pattern-definition.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: status_and_ownership
+            heading: "Status, owner, and review date"
+            required: true
+            description: "mandated, recommended, proposed, or not_yet_a_pattern. A pattern with no status and no owner cannot govern anything."
+          - id: problem
+            heading: "The problem"
+            required: true
+            description: "In terms a delivery team would recognize as theirs."
+          - id: forces_and_context
+            heading: "Context and forces"
+            required: true
+          - id: when_to_use
+            heading: "When to use it"
+            required: true
+          - id: when_not_to_use
+            heading: "When NOT to use it"
+            required: true
+            description: "The anti-scope. Mandatory. Patterns are discredited by misapplication more often than by being wrong."
+          - id: the_shape
+            heading: "The shape"
+            required: true
+            description: "Parts, responsibilities, interactions, as mermaid plus prose. Includes what the pattern forbids."
+          - id: decisions_pre_made
+            heading: "Decisions this makes for you"
+            required: true
+            description: "Readable as the list of decision records nobody has to write again. This is the value proposition."
+          - id: decisions_left_open
+            heading: "Decisions left to you"
+            required: true
+          - id: nonfunctional_position
+            heading: "Operating envelope"
+            required: true
+            description: "What it assumes and what it guarantees. Derived targets are marked as proposals for confirmation."
+          - id: conformance_criteria
+            heading: "How to tell if a solution conforms"
+            required: true
+            description: "Checkable by a reviewer who did not write the pattern. A criterion that cannot be checked is a wish."
+          - id: known_failure_modes
+            heading: "How this has gone wrong"
+            required: true
+          - id: adoption_cost
+            heading: "What it costs to follow"
+            required: true
+          - id: implementations
+            heading: "Where it is already in use"
+            required: true
+          - id: variation_and_waivers
+            heading: "Varying from it"
+            required: true
+          - id: related_patterns
+            heading: "Related and superseded"
+            required: false
+
+    - id: readiness_assessment
+      display_name: Readiness assessment
+      description: "The scoring behind the status — one row per criterion, with the evidence it rests on and the assumption it depends on."
+      formats: [md, csv, xlsx]
+      preferred_format: md
+      markdown_template: ./assets/readiness-assessment.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: criterion_id
+            type: enum
+            enum_values: [evidence_base, problem_recurrence, constraint_clarity, scope_boundedness, adoption_cost, estate_fit, maintainability]
+          - id: score
+            type: score
+            description: "1-5 favourability, against the declared anchors."
+          - id: weight
+            type: number
+          - id: weighted_score
+            type: number
+          - id: evidence_basis
+            type: string
+            description: "The evidence ID and the specific fact behind the score, not a restatement of the criterion."
+          - id: assumption_ref
+            type: string
+          - id: score_confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: decision_record
+      display_name: Decision record
+      description: "A dated record of the status decision and what would change it, for the organization's own decision log."
+      formats: [md]
+      preferred_format: md
+      markdown_template: ./assets/decision-record.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: status
+            heading: "Status"
+            required: true
+          - id: context
+            heading: "Context"
+            required: true
+          - id: decision
+            heading: "Decision"
+            required: true
+          - id: consequences
+            heading: "Consequences"
+            required: true
+          - id: blocked_by_constraint
+            heading: "Blocked by constraint"
+            required: true
+            description: "Where a hard constraint capped the status. Stated explicitly as none if none."
+          - id: revisit_trigger
+            heading: "What would change the status"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY — a pattern document is very easy to write and very hard to earn.
+#    The rating tracks the evidence, never the polish.
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "three or more genuinely different implementations were supplied with adoption effort evidence, a non-functional position was stated rather than derived, and every conformance criterion is checkable."
+    - level: medium
+      when: "two implementations were supplied, or one plus credible external practice, and a non-functional position was stated rather than derived."
+    - level: low
+      when: "fewer than two implementations were supplied, or the non-functional position was derived rather than stated, or any conformance criterion cannot be checked."
+
+  sensitivity_targets:
+    - target: known_implementations
+      variation: "remove the most-cited implementation"
+      report: "Whether the pattern still generalizes, or whether it was always one system's design with the others cited for support. This is the single most revealing test in the method."
+    - target: adoption_effort_evidence
+      variation: "double the adoption effort"
+      report: "Whether the pattern still earns its place when following it costs twice what was estimated."
+    - target: scope_breadth
+      variation: "applied one scope wider than intended"
+      report: "Where the pattern breaks first, and whether the anti-scope already says so."
+    - target: evidence_base
+      variation: "weight +/- 0.10"
+      report: "Whether an organization more or less demanding about local proof would reach the same status."
+
+  evals: ./evals/

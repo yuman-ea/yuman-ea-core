@@ -78,10 +78,13 @@ Available in this release:
 | [`yea.technology.build-vs-buy`](../../skills/technology/build-vs-buy/SKILL.md) | Whether to build, buy, or partner for a capability | `draft` |
 | [`yea.technology.high-level-architecture`](../../skills/technology/high-level-architecture/SKILL.md) | Which architecture a solution is built to, and why that one | `draft` |
 | [`yea.technology.architecture-decision-record`](../../skills/technology/architecture-decision-record/SKILL.md) | Any other technology choice, and the record of why | `draft` |
+| [`yea.technology.reference-architecture-pattern`](../../skills/technology/reference-architecture-pattern/SKILL.md) | Whether something deserves to be reused, and publishes it if so | `draft` |
 
 They run in that order on the same problem: sourcing is settled first, then the architecture for the option chosen, then the individual decisions inside it. The eval cases are paired across the same `northwind-corp` capabilities for exactly that reason.
 
-**`architecture-decision-record` is the general method and the other two are specialisations.** Reach for it when the question is a technology choice no other skill owns — a pattern, a format, a boundary, a deviation from standard. Do not use it to re-record a decision that `build-vs-buy` or `high-level-architecture` already made; both emit their own records, and a second one is how a decision log ends up with two entries that disagree.
+**`architecture-decision-record` is the general method and the others are specialisations.** Reach for it when the question is a technology choice no other skill owns — a format, a boundary, a deviation from standard. Do not use it to re-record a decision that `build-vs-buy` or `high-level-architecture` already made; both emit their own records, and a second one is how a decision log ends up with two entries that disagree.
+
+**`reference-architecture-pattern` runs on a different clock from the rest.** The others decide something *now*; it decides whether something is worth reusing *later*. A pattern pre-makes a class of decisions, so its output becomes an input — the `standards_catalogue` that `high-level-architecture` and `architecture-decision-record` reach for and currently never find. Do not invoke it to design one solution; that is `high-level-architecture` wearing the wrong name.
 
 *This table is maintained by hand and will drift. `registry.json` — the generated index — is the fix, and is deferred until there are enough skills for the drift to cost more than the generator. The authoritative list is the contents of `skills/technology/`; `agent.yaml` claims the namespace with a glob so that adding a skill never requires a contract change here.*
 

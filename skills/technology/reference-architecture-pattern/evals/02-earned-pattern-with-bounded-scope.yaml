@@ -1,0 +1,135 @@
+spec_version: "1.0"
+id: 02-earned-pattern-with-bounded-scope
+skill: yea.technology.reference-architecture-pattern
+fixture: context/fixtures/northwind-corp
+description: >
+  The positive case, and it is not a formality. A pattern with real, repeated evidence
+  should reach a publishable status — but the estate contains live counter-examples, and
+  the test is whether the run states the anti-scope rather than quietly recommending the
+  pattern everywhere.
+
+given:
+  scenario: >
+    Sixteen of Northwind's twenty-six recorded interfaces already go through the broker
+    (nw-019), built by different teams across several years, and integration_via_broker is a
+    standing policy. The architecture group wants to publish brokered asynchronous
+    integration as the reference pattern for new interfaces. The estate also contains direct
+    database links from nw-015 Customer Master (int-08, int-09) and one manual re-keying step
+    (int-23), none of which follow the pattern.
+
+  ask:
+    pattern_origin: existing_implementations
+    intended_authority: default_expectation
+    scope_breadth: whole_estate
+    variability_tolerance: conform_or_explain
+    problem_frequency: most_projects
+
+  gather:
+    provided:
+      problem_statement: >
+        New interfaces are built point to point, so each one couples two systems' availability
+        and release cycles together and the estate becomes harder to change with every addition.
+      candidate_shape: >
+        The producing system publishes a message to the broker; consumers subscribe and process
+        at their own pace. No consumer reads the producer's data store directly, and no
+        producer waits on a consumer to complete.
+      known_implementations:
+        - "int-04 order release to the warehouse system, asynchronous, built by the operations team"
+        - "int-05 and int-06 dispatch and cold chain handover, daily batch through the broker"
+        - "int-14 fulfilled orders to billing, built by the finance systems team"
+        - "int-24 employee changes to the payroll bureau, built by the people systems team"
+      nonfunctional_position:
+        - "Publisher is not blocked by consumer availability"
+        - "Delivery is at-least-once; consumers must be idempotent"
+        - "Message backlog is recoverable within a working day at current volumes"
+      known_failures:
+        - "int-23 rosters were never brought onto the broker and are re-keyed by hand daily"
+        - "A consumer that was not idempotent produced duplicate billing lines in 2023"
+      adoption_effort_evidence:
+        - "Roughly six weeks for a team new to the broker, of which half is idempotency work"
+      estate_touchpoints:
+        - "nw-019 Integration Middleware — extended support until 2026-09-30"
+        - "nw-015 Customer Master — reached today by direct database link (int-08, int-09)"
+      existing_standards: "context.standards — integration_via_broker is in force"
+      pattern_owner: "Technology Director"
+    withheld: []
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.standards
+      - context.policies
+
+  policies_supplied:
+    - id: integration_via_broker
+      statement: "New integrations must go through the message broker rather than direct database connections between applications"
+      kind: preference
+    - id: security_baseline
+      statement: "Any system holding confidential or regulated data must support single sign-on, enforce multi-factor authentication, and provide an exportable audit log"
+      kind: hard_constraint
+
+expect:
+  frame_restated_before_analysis: true
+
+  implementations_counted: 4
+  implementations_judged_independent: true
+  status_in: [recommended, mandated]
+
+  confidence: high
+  confidence_reason_must_reference: >
+    multiple independent implementations with adoption evidence and a stated operating envelope
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+
+  artifacts_produced:
+    - reference-architecture-pattern--pattern-definition.md
+    - reference-architecture-pattern--readiness-assessment.md
+    - reference-architecture-pattern--decision-record.md
+
+  anti_scope_must_state:
+    - Where the pattern does not apply, and what to do instead there.
+    - That int-08 and int-09 reach the customer master by direct database link, and either
+      that these are exceptions the pattern intends to remove, or that the pattern does not
+      cover master-data reads — but not silence on the point.
+    - That at-least-once delivery makes the pattern unsuitable where a consumer cannot be
+      made idempotent, citing the 2023 duplicate billing incident as the evidence.
+
+  must_state:
+    - That the implementations were built by different teams across several years, which is
+      what makes them independent rather than one design counted four times.
+    - Conformance criteria a reviewer who did not write the pattern could check.
+    - What the pattern forbids, specifically.
+    - That the broker is in extended support until 2026-09-30, and what that means for a
+      pattern that depends on it.
+    - The adoption cost of roughly six weeks, and that half of it is idempotency work.
+    - An owner and a review date.
+
+  must_not:
+    - Recommend the pattern estate-wide without an anti-scope.
+    - Treat the four interfaces as one implementation, or inflate the count with the other
+      twelve brokered interfaces without saying whether they were independently built.
+    - Omit the 2023 duplicate billing failure from the known failure modes.
+    - Mandate the pattern while its only broker is in extended support, without recording
+      that as a risk to the pattern itself.
+    - Name a real product.
+
+fails_if:
+  - The pattern is published with no "when NOT to use it" section. That section is what
+    stops a pattern being applied where it breaks, and its absence is what turns catalogues
+    into things teams resent.
+  - The direct database links to nw-015 go unmentioned. They are live counter-examples in
+    the same estate; a pattern that does not account for them has not been tested against
+    reality.
+  - Conformance criteria are written as aspirations rather than checks.
+
+tolerance: >
+  `recommended` and `mandated` are both defensible — mandated requires the conformance
+  criteria to be genuinely checkable and the broker's support position to be handled. What
+  is not negotiable is the anti-scope, the failure modes, and the high confidence rating.
+
+notes: >
+  Designed so that the easy answer and the right answer differ by one section. The evidence
+  clearly supports publishing; the discipline is in bounding it. A pattern this well
+  supported is exactly the kind that gets applied to the two cases it was never meant for.

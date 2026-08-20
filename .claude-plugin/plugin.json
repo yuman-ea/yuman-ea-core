@@ -22,6 +22,7 @@
     "./skills/technology/build-vs-buy",
     "./skills/technology/high-level-architecture",
     "./skills/technology/architecture-decision-record",
+    "./skills/technology/reference-architecture-pattern",
     "./skills/portfolio/application-rationalization"
   ],
   "agents": [
