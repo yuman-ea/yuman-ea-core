@@ -1,0 +1,129 @@
+spec_version: "1.0"
+id: 03-cannot-be-mandated-without-testable-conformance
+skill: yea.technology.reference-architecture-pattern
+fixture: context/fixtures/northwind-corp
+description: >
+  Real evidence, genuine value, and an owner who wants it mandated — but the conformance
+  criteria are aspirations rather than checks. The status must be capped, the reason must
+  be visible, and the run must return specific checkable criteria rather than approving
+  something no reviewer could enforce.
+
+given:
+  scenario: >
+    Northwind wants to mandate a pattern for how internal services expose data, following
+    repeated arguments in design reviews. Three services already do it this way. The proposed
+    conformance criteria are the ones the architecture group has been using verbally, and
+    nobody has written down where the pattern does not apply.
+
+  ask:
+    pattern_origin: existing_implementations
+    intended_authority: mandated
+    scope_breadth: whole_estate
+    variability_tolerance: strict_conformance
+    problem_frequency: most_projects
+
+  gather:
+    provided:
+      problem_statement: >
+        Consumers reach into other systems' data in different ways, so a change to any store
+        risks breaking consumers nobody knew about.
+      candidate_shape: >
+        Each service publishes a versioned read interface and owns its store privately. Other
+        services use the interface.
+      known_implementations:
+        - "nw-003 Pricing Engine, built 2018 by the trading systems team"
+        - "nw-014 Product Information System, built 2019 by the platform team"
+        - "nw-005 Supplier Portal integration, configured 2022 by the supply chain team"
+      proposed_conformance_criteria:
+        - "Services should be loosely coupled"
+        - "Interfaces should be well documented"
+        - "Data ownership should be clear"
+        - "Services should be independently deployable"
+      nonfunctional_position:
+        - "Read interface responds within 500ms at the 95th percentile"
+        - "Interface versions are supported for twelve months after supersession"
+      adoption_effort_evidence:
+        - "Two to four weeks per service, mostly in separating the store"
+      estate_touchpoints:
+        - "nw-015 Customer Master — eleven systems depend on it, several by direct database link"
+        - "nw-001 Order Capture System — technical fitness 2, reaches nw-015 directly"
+      pattern_owner: "Head of Architecture"
+    withheld:
+      - known_failures
+      - existing_standards
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.policies
+
+  policies_supplied:
+    - id: customer_master_authority
+      statement: "The customer master is the only authoritative source of trade account data; no application may maintain its own trade account records"
+      kind: hard_constraint
+
+expect:
+  frame_restated_before_analysis: true
+
+  implementations_counted: 3
+  status: recommended
+  status_capped: true
+  cap_reason_must_reference: >
+    conformance criteria that a reviewer could not check
+
+  confidence: low
+  confidence_reason_must_reference: >
+    conformance criteria are not checkable
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  conformance_review_must:
+    - Mark all four proposed criteria as not checkable.
+    - Return a specific, observable rewrite for each — for example, "no component reads
+      another component's data store directly; every cross-component read goes through the
+      published interface" in place of "services should be loosely coupled".
+    - State that the mandate is unavailable until the criteria are checkable, and that an
+      unenforceable mandate is worse than a recommendation because it teaches teams to
+      ignore governance generally.
+
+  must_state:
+    - That the status was CAPPED rather than judged, and by what — a capped status and a
+      judged status are indistinguishable from outside unless the document says so.
+    - That the anti-scope is missing and is mandatory before publication, with the estate
+      giving an obvious candidate: nw-015 is reached directly by eleven dependants, so the
+      pattern must say what happens to existing direct access and over what period.
+    - That strict_conformance was requested but cannot be claimed while the criteria are
+      unenforceable.
+    - That no failure modes were supplied, which for a pattern with three implementations is
+      a gap rather than an absence of failures.
+    - What specifically would raise the status to mandated.
+
+  must_not:
+    - Mandate the pattern.
+    - Accept any of the four proposed criteria as written.
+    - Report the status as recommended without saying it was capped.
+    - Rate confidence above low while a conformance criterion cannot be checked.
+    - Silently drop the strict_conformance answer rather than addressing it.
+    - Publish a pattern definition with an empty or missing anti-scope section.
+
+fails_if:
+  - The pattern is mandated. Three implementations make it publishable; unenforceable
+    criteria make it unmandatable, and the two facts must not cancel each other out.
+  - "Services should be loosely coupled" survives into the published criteria in any form.
+  - The cap is applied but not explained, leaving a reader unable to tell whether to argue
+    with the assessment or fix the criteria.
+
+tolerance: >
+  The exact rewrites will vary and only need to be observable and checkable. The cap, the
+  low confidence rating, the rejection of all four criteria as written, and the demand for
+  an anti-scope are not negotiable.
+
+notes: >
+  This is the most common real-world version of the failure: the evidence is there, the
+  pattern is genuinely useful, and the criteria are the sentences people have been saying
+  in reviews for years. They work in conversation because the speaker supplies the meaning.
+  Written down and handed to a reviewer who was not in those conversations, they decide
+  nothing.
