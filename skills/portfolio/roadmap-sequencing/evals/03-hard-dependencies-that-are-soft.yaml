@@ -1,0 +1,122 @@
+spec_version: "1.0"
+id: 03-hard-dependencies-that-are-soft
+skill: yea.portfolio.roadmap-sequencing
+fixture: context/fixtures/northwind-corp
+description: >
+  Every dependency is stated as hard, producing a strictly serial plan that misses a fixed
+  contract date by two waves. Two of the dependencies are genuinely soft. This case checks
+  that the skill asks what is actually needed and when it exists, records who confirmed each
+  reclassification, and does not simply accept a serial chain that makes the plan fail.
+
+given:
+  review_date: "2026-08-23"
+  scenario: >
+    Northwind's route planning contract expires 2026-12-31 and the replacement must be live
+    before it. The delivery leads have stated a serial chain: the temperature data model must
+    be finished before the routing engine starts, and the routing engine must be finished
+    before warehouse integration starts. Taken at face value this puts go-live two waves
+    after the contract expires. Asked what they actually need, the routing lead says they
+    need the data model agreed, not built; the integration lead says they need the routing
+    interface contract, not the engine.
+
+  ask:
+    planning_horizon: twelve_months
+    wave_length: quarterly
+    capacity_basis: measured_from_history
+    dependency_confidence: assumed
+    slack_policy: ten_percent
+
+  gather:
+    provided:
+      initiatives_to_sequence:
+        - "INIT-02a Temperature data model — small"
+        - "INIT-02b Routing engine — large"
+        - "INIT-02c Warehouse integration — medium"
+      capability_targets:
+        - "Perishable route planning with temperature constraints, live before 2026-12-31"
+      delivery_capacity: "Two delivery teams per quarter, measured from history"
+      initiative_sizing:
+        - "INIT-02a 0.5 team-quarters; INIT-02b 2.0; INIT-02c 1.0"
+      in_flight_commitments: "None"
+      fixed_dates:
+        - "Route planning contract expires 2026-12-31 — replacement must be live before it"
+      stated_dependencies:
+        - "INIT-02b depends on INIT-02a — stated as hard by the routing lead"
+        - "INIT-02c depends on INIT-02b — stated as hard by the integration lead"
+      estate_dependencies:
+        - "nw-006 Warehouse Management System and nw-008 Cold Chain Monitoring are both in INIT-02c scope"
+        - "int-05 and int-06 are already brokered through nw-019"
+    withheld:
+      - skills_profile
+    available_context:
+      - context.vendors
+      - context.application_inventory
+      - context.integrations
+
+expect:
+  serial_chain_challenged: true
+
+  reclassifications_expected:
+    - dependency: "INIT-02b on INIT-02a"
+      stated: hard
+      treated: soft
+      trigger: "data model agreed, not built"
+    - dependency: "INIT-02c on INIT-02b"
+      stated: hard
+      treated: soft
+      trigger: "routing interface contract defined, not engine complete"
+
+  each_reclassification_records_who_confirmed: true
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    dependencies were assumed rather than confirmed with the owning teams
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That taken as stated, the serial chain places go-live after the 2026-12-31 contract
+      expiry, and that this is the finding that forces the dependencies to be examined.
+    - The question that separates hard from soft, asked explicitly: what specifically do you
+      need from the predecessor, and when does it exist?
+    - That two dependencies reclassify to soft, each with the trigger milestone that releases
+      the successor, and each with the name of who confirmed it.
+    - That the reclassifications are where the plan gained its months, and that if either is
+      wrong the plan returns to missing the date.
+    - That the contract date is a fixed input constraining the latest feasible wave, and is
+      not something the sequence may move.
+    - That dependency_confidence is assumed, so the whole graph including the two
+      reclassifications is provisional until the leads confirm in writing.
+    - That INIT-02c touches nw-006 and nw-008, both of which are already brokered, so the
+      integration work has a known shape rather than an unknown one.
+
+  must_not:
+    - Accept the serial chain and report a plan that misses the contract date without
+      challenging the dependencies.
+    - Reclassify a dependency without recording the trigger milestone and who confirmed it.
+    - Move or soften the 2026-12-31 date to make the plan work.
+    - Overlap the initiatives beyond what the stated trigger milestones support.
+    - Rate confidence high while dependency_confidence is assumed.
+
+fails_if:
+  - The plan is built on the stated chain and simply reports that the date will be missed.
+    That is arithmetic, not sequencing, and the difference between "must finish" and "must be
+    far enough along" is the entire value the method adds here.
+  - A dependency is softened without a named trigger. An unrecorded reclassification is
+    indistinguishable from optimism, and it is the thing that breaks the plan in delivery.
+
+tolerance: >
+  The exact overlap between the three initiatives may vary with the trigger milestones
+  chosen. Challenging the serial chain, recording both reclassifications with triggers and
+  names, and holding the contract date fixed are not negotiable.
+
+notes: >
+  The delivery leads were not being obstructive. "We need the data model" is true, and
+  qualifying it invites being scheduled against a milestone you have not hit yet. Stating
+  dependencies as hard is the rational individual behaviour that produces an irrational
+  portfolio plan, which is why the question has to be asked rather than waited for.

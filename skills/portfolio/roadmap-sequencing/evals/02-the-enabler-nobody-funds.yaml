@@ -1,0 +1,117 @@
+spec_version: "1.0"
+id: 02-the-enabler-nobody-funds
+skill: yea.portfolio.roadmap-sequencing
+fixture: context/fixtures/northwind-corp
+description: >
+  Three initiatives depend on the same remediation work, which has no sponsor, no business
+  case, and was not on the list. Each dependent initiative has a sponsor and a benefit; the
+  enabler has neither, because its value accrues entirely to them. This case checks that the
+  enabler is surfaced, placed ahead of what it unblocks, and named as unsponsored.
+
+given:
+  review_date: "2026-08-23"
+  scenario: >
+    Northwind's second sequencing pass. INIT-01 customer portal replacement, INIT-05 trade
+    pricing refresh, and INIT-07 field sales enhancement all need trade account data from
+    nw-015 Customer Master. nw-015 was built in 2007, has a technical fitness of 1, no named
+    business owner, and eleven systems depend on it — two of them by direct database link.
+    Nobody has proposed remediating it, because it belongs to no one and delivers nothing on
+    its own.
+
+  ask:
+    planning_horizon: twenty_four_months
+    wave_length: half_yearly
+    capacity_basis: measured_from_history
+    dependency_confidence: partly_confirmed
+    slack_policy: ten_percent
+
+  gather:
+    provided:
+      initiatives_to_sequence:
+        - "INIT-01 Customer portal replacement — sponsor Commercial Director"
+        - "INIT-05 Trade pricing refresh — sponsor Head of Trading"
+        - "INIT-07 Field sales enhancement — sponsor Commercial Director"
+        - "INIT-03 Middleware upgrade — sponsor Technology Director"
+      capability_targets:
+        - "Customer self-service, by end 2027"
+        - "Trade pricing agility, by mid 2027"
+      delivery_capacity: "Three delivery teams per wave, measured from four initiatives delivered last year"
+      initiative_sizing:
+        - "INIT-01 1.5 team-half-years; INIT-05 1.0; INIT-07 0.5; INIT-03 1.0"
+      in_flight_commitments: "None in the planning window"
+      stated_dependencies:
+        - "INIT-01 requires trade account and credit data — states a dependency on nw-015 being available"
+        - "INIT-05 requires customer hierarchy — states a dependency on nw-015"
+        - "INIT-07 requires trade account data — states a dependency on nw-015"
+      estate_dependencies:
+        - "nw-015 Customer Master appears in the scope of INIT-01, INIT-05 and INIT-07"
+        - "nw-015 technical fitness 1, no named business owner, eleven dependent interfaces"
+        - "int-08 and int-09 reach nw-015 by direct database link"
+    withheld:
+      - fixed_dates
+      - skills_profile
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.vendors
+
+expect:
+  enabler_identified:
+    work: "nw-015 Customer Master remediation"
+    unblocks: [INIT-01, INIT-05, INIT-07]
+    was_on_the_initiative_list: false
+    has_sponsor: false
+    has_business_case_of_its_own: false
+
+  enabler_placed_before_dependents: true
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    capacity was measured from history but dependencies were only partly confirmed
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That three of the four initiatives depend on the same system, and that remediating it
+      is therefore enabling work that must precede all three.
+    - That this work was NOT on the initiative list, has no sponsor, and has no business case
+      of its own — because its benefit accrues entirely to the three initiatives it unblocks.
+    - That this is precisely why enabling work goes unfunded, and that naming it is the point
+      of the enabler section rather than an observation about this estate.
+    - That nw-015 has a technical fitness of 1 and no named business owner, so there is no
+      one whose job it currently is to propose the work.
+    - That the enabler has not been sized, so its wave consumption is an estimate and the
+      plan behind it is provisional.
+    - What becomes unachievable within the horizon if the enabler is cut — which is the
+      argument that gets it funded.
+    - That two of the eleven dependencies reach nw-015 by direct database link, which
+      constrains how the remediation can be sequenced without breaking them.
+
+  must_not:
+    - Sequence INIT-01, INIT-05 or INIT-07 ahead of the remediation they depend on.
+    - Omit the enabler because it was not on the supplied initiative list.
+    - Present the enabler as an ordinary initiative without noting it is unsponsored.
+    - Assume the three initiatives can each do their own remediation independently, which
+      produces the same work three times and three incompatible results.
+
+fails_if:
+  - The enabler is not surfaced at all. It is derivable from the estate dependencies alone,
+    and missing it produces a plan whose first three initiatives each discover the same
+    blocker separately, in wave one, at the same time.
+  - The enabler appears in a later wave than anything it unblocks. That plan does not work,
+    and the enabler table exists to make it visible.
+
+tolerance: >
+  How the remediation is scoped and sized may vary widely and should be flagged as an
+  estimate. Its identification, its placement ahead of the three dependents, and the
+  statement that it is unsponsored are not negotiable.
+
+notes: >
+  The structural point is worth stating plainly: every initiative here is behaving correctly.
+  Each sponsor proposed work with a clear benefit, each named its dependency honestly, and
+  none of them can reasonably be asked to fund a shared remediation on their own budget. The
+  gap is not anyone's error — it is what a portfolio view is for.

@@ -1,0 +1,479 @@
+spec_version: "1.0"
+id: yea.portfolio.portfolio-health-dashboard
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: portfolio-health-dashboard
+display_name: Portfolio Health Dashboard
+description: >
+  Produces a health view across change initiatives — cost, schedule, risk, and benefit
+  realization rated red, amber, or green from declared tolerances rather than asserted.
+  Overall status is the worst dimension and never an average; unmeasured benefits are
+  reported as not yet measurable rather than green; and an initiative amber for several
+  periods escalates regardless of trajectory. Ranks the exceptions against the
+  organization's actual capacity to intervene.
+
+version: 0.1.0
+domain: portfolio
+category: aggregate
+owner_agent: portfolio-ea
+maturity: draft
+license: Apache-2.0
+
+# An initiative list, budgets, and milestone dates. No portfolio tool required.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "portfolio health"
+    - "rag status"
+    - "red amber green"
+    - "initiative status report"
+    - "which projects are in trouble"
+    - "are we realizing the benefits"
+    - "portfolio dashboard"
+    - "programme health check"
+    - "which initiatives need attention"
+    - "benefit realization"
+  decision_types:
+    - portfolio_health_assessment
+    - initiative_escalation
+  not_this_skill:
+    - phrase: "which applications should we keep or retire"
+      route_to: yea.portfolio.application-rationalization
+    - phrase: "when do our contracts come up for renewal"
+      route_to: yea.portfolio.license-and-contract-review
+    - phrase: "which investment should we fund first"
+      route_to: portfolio-ea
+    - phrase: "what should this solution look like"
+      route_to: yea.technology.high-level-architecture
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — this is the architecture view of portfolio health, not a
+#    replacement for programme status reporting. See SKILL.md.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Produce a health view across {initiatives_in_scope} within {portfolio_scope}, rating
+    cost against {cost_position} and schedule against {schedule_position}, from status
+    that is {status_source}, and rank what needs attention against {intervention_capacity}.
+  decision_statement_fields:
+    - initiatives_in_scope
+    - portfolio_scope
+    - cost_position
+    - schedule_position
+    - status_source
+    - intervention_capacity
+  out_of_scope:
+    - Replacing programme or project status reporting. This is the architecture view alongside it.
+    - Deciding whether an initiative should continue. That is an investment decision.
+    - Re-planning an initiative, or setting a recovery plan.
+    - Assessing delivery team performance. Ratings describe initiatives, never people.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: portfolio_scope
+    question: "Which initiatives are in scope — all change, one programme, or one domain?"
+    why: "Sets the boundary, and with it whether cross-initiative dependencies are visible. Two initiatives colliding over the same system are invisible when only one of them is in scope."
+    type: choice
+    options: [all_change, one_programme, one_domain]
+    option_labels:
+      all_change: "Everything the organization has running"
+      one_programme: "One programme and its constituent projects"
+      one_domain: "Everything touching one business or technology area"
+    required: true
+    default_if_skipped: all_change
+    affects: [dependency_integrity]
+
+  - id: status_source
+    question: "Where do the current ratings come from — the initiative teams, a programme office, or measured data?"
+    why: "Self-reported status is systematically optimistic, and the correction has to be visible rather than applied quietly. This answer sets how much the ratings can be trusted and caps the confidence of the run."
+    type: choice
+    options: [self_reported, programme_office_assessed, measured]
+    option_labels:
+      self_reported: "Each initiative reports its own status"
+      programme_office_assessed: "A programme office reviews and challenges them"
+      measured: "Ratings come from actuals, not judgement"
+    required: true
+    default_if_skipped: self_reported
+    affects: [cost_performance, schedule_performance, risk_exposure]
+
+  - id: benefit_measurement_maturity
+    question: "Can benefits actually be measured yet, or are they still forecast?"
+    why: "Most initiatives report benefit as green throughout delivery because nothing has been measured. That is not green — it is unmeasured, and the two must not appear the same on a dashboard."
+    type: choice
+    options: [measured_in_production, partially_measured, forecast_only]
+    option_labels:
+      measured_in_production: "We are measuring the actual outcome"
+      partially_measured: "Some measures exist, most do not"
+      forecast_only: "It is all still projection"
+    required: true
+    default_if_skipped: forecast_only
+    affects: [benefit_realization]
+
+  - id: escalation_threshold
+    question: "How many consecutive periods amber before an initiative escalates regardless of its trajectory?"
+    why: "Persistent amber is the most under-reacted-to state in portfolio management, because it never crosses into red and therefore never triggers anything. Naming the threshold makes it trigger."
+    type: choice
+    options: [one_period, two_periods, three_periods]
+    option_labels:
+      one_period: "Amber once is enough to look"
+      two_periods: "Twice running"
+      three_periods: "Three times running"
+    required: true
+    default_if_skipped: two_periods
+    affects: [schedule_performance, risk_exposure]
+
+  - id: intervention_capacity
+    question: "How many initiatives could the organization realistically intervene on this period?"
+    why: "A dashboard with fourteen reds and capacity for two is a list, not a management tool. The exception report is ranked to capacity so that something actually gets done."
+    type: choice
+    options: [one, a_few, no_constraint]
+    option_labels:
+      one: "Realistically one"
+      a_few: "Two or three"
+      no_constraint: "Capacity is not the limit"
+    required: true
+    default_if_skipped: a_few
+    affects: [risk_exposure, dependency_integrity]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: initiatives_in_scope
+      description: "The initiatives under review, each with a name, a sponsor, what it delivers, and its current phase."
+      source: user
+      format: table
+
+    - id: cost_position
+      description: "Per initiative: approved budget, spent to date, and forecast at completion. State which of the three are actuals and which are estimates."
+      source: [user, context.application_costs]
+      format: table
+
+    - id: schedule_position
+      description: "Per initiative: the committed milestones, which have been met, and the current forecast for the next one."
+      source: user
+      format: table
+
+  optional:
+    - id: benefit_definitions
+      description: "What benefit each initiative promised, how it is measured, and by when it was due to appear."
+      source: user
+      format: table
+      on_missing: omit_criterion_and_reweight
+      assumption_template: "No benefit definitions were supplied, so benefit realization cannot be rated and the criterion has been dropped with the remaining weights renormalized. THE ABSENCE IS ITSELF THE FINDING: an initiative with no defined, measurable benefit cannot succeed or fail on its own terms, and this belongs at the top of the exception report rather than in a footnote."
+      confidence_penalty: high
+
+    - id: benefit_actuals
+      description: "What has actually been measured against each defined benefit, and as at what date."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: not_measured
+      assumption_template: "No benefit measurements were available, so every benefit rating is not_yet_measurable rather than green. Absence of measurement is not evidence of success, and reporting it as green is how a portfolio arrives at the end of a programme with nothing demonstrated."
+      confidence_penalty: high
+
+    - id: architecture_commitments
+      description: "What each initiative committed to architecturally — systems to be decommissioned, capabilities to be delivered, technical debt to be repaid, interfaces to be retired."
+      source: [user, context.application_inventory]
+      format: table
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No architectural commitments were recorded against the initiatives, so the run cannot check whether the estate changes that justified them have happened. This is the specific contribution architecture makes to portfolio health, and without it the dashboard reports only what a programme office already reports."
+      confidence_penalty: medium
+
+    - id: initiative_dependencies
+      description: "Where initiatives depend on each other, or on the same systems, teams, or decisions."
+      source: [user, context.integrations, context.application_inventory]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Applications and interfaces that appear in more than one initiative's scope, treated as shared dependencies between them."
+      assumption_template: "Dependencies between initiatives were inferred from overlapping application scope rather than confirmed with the delivery teams. Two initiatives that each report green while depending on the same system being available is the collision this view exists to surface, and an inferred dependency is a prompt to check rather than a finding."
+      confidence_penalty: medium
+
+    - id: risk_register
+      description: "Open risks and issues per initiative, with severity and whether a mitigation is actually in flight."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: medium
+
+    - id: prior_period_status
+      description: "The ratings from the previous reporting period, per initiative and per dimension."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No prior period was supplied, so movement and time-in-state cannot be reported and the persistent-amber escalation cannot fire. A single period of status is a photograph; the trend is what tells anyone whether to act."
+      confidence_penalty: medium
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only. portfolio_tolerances carries the organization's
+#    own variance bands; defaults are in ./references/rating-rules.md.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - portfolio_tolerances
+    - budget_ceiling
+    - benefit_measurement_standard
+  on_policy_absent: proceed_and_note
+  hard_constraints: []
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the weighted score RANKS initiatives for attention. It never
+#    sets the status. Status per dimension comes from declared tolerances, and
+#    overall status is the WORST dimension. See ./references/rating-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: benefit_realization
+      display_name: Benefits actually landing
+      weight: 0.25
+      description: "Whether the defined benefit is being measured and is appearing, including the architectural commitments the initiative was justified on. Weighted joint-highest because it is the dimension that gets reported green longest and checked last."
+      evidence: [benefit_definitions, benefit_actuals, benefit_measurement_maturity, architecture_commitments]
+      direction: higher_is_better
+
+    - id: cost_performance
+      display_name: Cost against plan
+      weight: 0.25
+      description: "Forecast at completion against approved budget, and whether the forecast is an actual projection or last quarter's number carried forward."
+      evidence: [cost_position, initiatives_in_scope, status_source]
+      direction: higher_is_better
+
+    - id: schedule_performance
+      display_name: Schedule against plan
+      weight: 0.20
+      description: "Milestones met against milestones committed, and whether slip is being recovered or re-baselined away."
+      evidence: [schedule_position, initiatives_in_scope, prior_period_status, escalation_threshold]
+      direction: higher_is_better
+
+    - id: risk_exposure
+      display_name: Risk and issues
+      weight: 0.20
+      description: "Open severity, and whether mitigations are genuinely in flight rather than named. A risk with an owner and no activity is an unmitigated risk with paperwork."
+      evidence: [risk_register, initiative_dependencies, status_source, escalation_threshold, intervention_capacity]
+      direction: higher_is_better
+
+    - id: dependency_integrity
+      display_name: Cross-initiative dependencies
+      weight: 0.10
+      description: "Whether initiatives are relying on each other, or on the same systems and teams, in ways that no single initiative's own status would reveal."
+      evidence: [initiative_dependencies, architecture_commitments, portfolio_scope, intervention_capacity]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Beyond tolerance and not recoverable on the current plan — red."
+      - value: 2
+        meaning: "Beyond tolerance but recoverable with intervention — red."
+      - value: 3
+        meaning: "At or near the tolerance boundary — amber."
+      - value: 4
+        meaning: "Within tolerance, with margin — green."
+      - value: 5
+        meaning: "At or ahead of plan with evidence to support it — green."
+
+  steps:
+    - "Restate the scope and confirm which initiatives are in and which are out, since a dependency that crosses the boundary is invisible to the run and must be named as a limitation."
+    - "Apply the organization's tolerance bands from the portfolio_tolerances policy. Where no overlay supplies them, use the declared defaults in ./references/rating-rules.md and say which were used — a rating means nothing without the band behind it."
+    - "Rate each dimension per initiative FROM THE TOLERANCES, not from the reported colour. Where the derived rating differs from what was reported, show both and say which is being used."
+    - "Where a dimension has no evidence, rate it unknown. Absence of bad news is not good news, and unknown must never be rendered as green."
+    - "Rate benefit realization not_yet_measurable where benefits exist but nothing has been measured. This is not amber and it is not green; it is a distinct state and it needs its own colour on the dashboard."
+    - "Set overall status to the WORST dimension. Never average, never weight, never round toward the middle. An initiative with a red risk and four greens is red, and averaging is precisely how a red risk becomes an amber overall that nobody acts on."
+    - "Compute the weighted score and use it ONLY to rank initiatives for attention. It does not set any status."
+    - "Where status is self_reported, apply the optimism correction declared in the rating rules and state that it was applied, per initiative. A correction made silently is indistinguishable from a rating that was wrong."
+    - "Compute time-in-state per dimension from the prior period. Escalate any initiative amber for the number of consecutive periods set by escalation_threshold, regardless of whether its trajectory is improving."
+    - "Check architectural commitments against what has actually happened. An initiative justified on decommissioning a system, whose delivery has completed while that system still runs, has not realized its benefit whatever its cost and schedule say."
+    - "Identify collisions: two or more initiatives depending on the same system, team, or decision, where each reports green independently. This is the finding no single initiative's status can produce, and it is the reason this view exists alongside programme reporting."
+    - "Rank the exception report to intervention_capacity. Everything beyond that capacity is listed as carried, not as actioned, so that nobody believes fourteen interventions are under way."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer escalating the initiative others depend on. A collision resolved upstream removes several downstream ambers; the reverse removes none."
+    - "Prefer the initiative whose benefit is measurable soonest, where two are otherwise comparable — the evidence returns fastest and informs the next period."
+    - "Prefer the initiative that has been in state longest. Persistence is a stronger signal than severity in a single period, because a single period can be noise."
+    - "If still tied, report the tie and name the measurement that would separate them."
+
+  references:
+    - ./references/rating-rules.md
+    - ./references/benefit-realization.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, delivery_team]
+  artifacts:
+    - id: health_dashboard
+      display_name: Portfolio health dashboard
+      description: "One row per initiative, with the derived rating per dimension, the overall, movement since last period, and the evidence each rating rests on."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/health-dashboard.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: initiative_id
+            type: string
+          - id: initiative_name
+            type: string
+          - id: phase
+            type: string
+          - id: overall_status
+            type: enum
+            enum_values: [green, amber, red, unknown]
+            description: "The WORST dimension. Never an average."
+          - id: cost_status
+            type: enum
+            enum_values: [green, amber, red, unknown]
+          - id: schedule_status
+            type: enum
+            enum_values: [green, amber, red, unknown]
+          - id: risk_status
+            type: enum
+            enum_values: [green, amber, red, unknown]
+          - id: benefit_status
+            type: enum
+            enum_values: [green, amber, red, unknown, not_yet_measurable]
+            description: "not_yet_measurable is a distinct state from green and must render distinctly."
+          - id: dependency_status
+            type: enum
+            enum_values: [green, amber, red, unknown]
+          - id: reported_status
+            type: enum
+            enum_values: [green, amber, red, not_reported]
+            description: "What the initiative said, kept beside what the tolerances derived. The gap between the two columns is the most useful thing on the dashboard."
+          - id: movement
+            type: enum
+            enum_values: [improved, unchanged, deteriorated, no_prior_period]
+          - id: periods_in_state
+            type: number
+          - id: escalated
+            type: boolean
+          - id: evidence_basis
+            type: string
+          - id: assumption_ref
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: exception_report
+      display_name: Exception report
+      description: "Only what needs action, ranked to the organization's actual capacity to intervene, with what is being carried rather than actioned stated explicitly."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/exception-report.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: acting_on_this_period
+            heading: "Acting on this period"
+            required: true
+            description: "Ranked to intervention capacity. No more entries than the organization said it could handle."
+          - id: carried_not_actioned
+            heading: "Carried, not actioned"
+            required: true
+            description: "Everything beyond capacity, named. Nobody should believe fourteen interventions are under way."
+          - id: collisions
+            heading: "Collisions between initiatives"
+            required: true
+            description: "Two or more initiatives depending on the same system, team, or decision while each reports independently. The finding no single initiative's status can produce."
+          - id: persistent_amber
+            heading: "Amber for several periods"
+            required: true
+            description: "Escalated regardless of trajectory, with the number of periods stated."
+          - id: reported_versus_derived
+            heading: "Where reported status and derived status disagree"
+            required: true
+            description: "Per initiative, with the tolerance band that produced the difference. Stated explicitly as none if none."
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+    - id: benefit_realization_note
+      display_name: Benefit realization note
+      description: "What each initiative was justified on, what has actually landed, and what architectural commitments remain outstanding after delivery completed."
+      formats: [md, csv]
+      preferred_format: md
+      markdown_template: ./assets/benefit-realization-note.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: initiative_id
+            type: string
+          - id: benefit_claimed
+            type: string
+          - id: how_measured
+            type: string
+            description: "Or 'not defined', which is itself the finding."
+          - id: due_by
+            type: date
+          - id: measured_to_date
+            type: string
+          - id: benefit_status
+            type: enum
+            enum_values: [realized, partially_realized, not_yet_measurable, not_realized, no_definition]
+          - id: architecture_commitment
+            type: string
+            description: "System to be decommissioned, capability delivered, debt repaid, interface retired."
+          - id: commitment_met
+            type: enum
+            enum_values: [met, partially_met, outstanding, no_commitment_recorded]
+          - id: evidence_basis
+            type: string
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  confidence_rules:
+    - level: high
+      when: "status came from measured data or a programme office assessment, benefit definitions and measurements were supplied, a prior period was available for trend, and tolerance bands came from an overlay rather than from defaults."
+    - level: medium
+      when: "status was programme office assessed, or self reported with the optimism correction applied and shown, and either benefit measurement or a prior period was available but not both."
+    - level: low
+      when: "status was self reported with no independent challenge, or no benefit definitions existed, or no prior period was available so no trend or persistence could be computed."
+
+  sensitivity_targets:
+    - target: status_source
+      variation: "treat every self-reported rating as one band optimistic"
+      report: "Which initiatives change status, and which move from green to amber. Where status is self reported this is the most important paragraph in the run, because it is the closest thing available to an independent check."
+    - target: cost_position
+      variation: "forecast at completion 15% higher than stated"
+      report: "Which initiatives breach the cost tolerance. Forecasts at completion are routinely last quarter's figure carried forward, and the breach usually arrives all at once."
+    - target: benefit_actuals
+      variation: "assume no benefit measured before the initiative closes"
+      report: "How much of the portfolio's justification would be undemonstrated at the point the money has been spent."
+    - target: prior_period_status
+      variation: "remove the prior period entirely"
+      report: "What can still be said. Trend and persistence disappear, which shows how much of the view depends on having history rather than a snapshot."
+
+  evals: ./evals/

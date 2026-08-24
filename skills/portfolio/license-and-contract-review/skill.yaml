@@ -1,0 +1,483 @@
+spec_version: "1.0"
+id: yea.portfolio.license-and-contract-review
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: license-and-contract-review
+display_name: Licence and Contract Review
+description: >
+  Produces a renewal position for each supplier contract in scope — renegotiate, renew as is,
+  consolidate, re-compete, exit, or gather evidence first — on a calendar built from notice
+  dates rather than expiry dates. Assesses true-up exposure, uncapped uplift, and lock-in,
+  and states which negotiation levers are actually credible given the organization's capacity
+  to switch. Produces the architecture input to a commercial negotiation; it does not run the
+  negotiation.
+
+version: 0.1.0
+domain: portfolio
+category: prioritize
+owner_agent: portfolio-ea
+maturity: draft
+license: Apache-2.0
+
+# A contract list, what it costs, and what depends on it. No procurement system needed.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "contract renewal"
+    - "licence renewal"
+    - "when do our contracts expire"
+    - "renewal calendar"
+    - "true up exposure"
+    - "are we over licensed"
+    - "negotiation levers"
+    - "what leverage do we have with this supplier"
+    - "supplier contract review"
+    - "our contract is up for renewal"
+    - "notice period"
+  decision_types:
+    - contract_renewal
+    - supplier_negotiation_preparation
+  not_this_skill:
+    - phrase: "should we keep or retire this application"
+      route_to: yea.portfolio.application-rationalization
+    - phrase: "should we build or buy the replacement"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "which product should we choose instead"
+      route_to: yea.portfolio.vendor-product-selection
+    - phrase: "what does the whole estate cost to run"
+      route_to: portfolio-ea
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — the decision window closes at notice, not at expiry. Framing this
+#    against expiry dates is the single most common renewal failure.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Determine a renewal position for each of {contracts_in_scope} falling due within
+    {renewal_horizon}, optimizing for {primary_objective}, given {spend_per_contract} and
+    what depends on each in {dependent_applications}.
+  decision_statement_fields:
+    - contracts_in_scope
+    - renewal_horizon
+    - primary_objective
+    - spend_per_contract
+    - dependent_applications
+  out_of_scope:
+    - Running the negotiation. This produces the architecture input; procurement negotiates.
+    - Deciding whether the organization should still have the capability at all.
+    - Selecting a replacement product or supplier.
+    - Legal interpretation of contract terms. Where a term is ambiguous, say so and route it.
+    - Approving an exit. A commercial score is never grounds to switch a system off.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: renewal_horizon
+    question: "How far ahead are you planning — the next twelve months, twenty-four, or thirty-six?"
+    why: "Sets which contracts are in the calendar. A twelve-month horizon on a contract with a twelve-month notice period means the decision window is already open, or already closed."
+    type: choice
+    options: [next_12m, next_24m, next_36m]
+    option_labels:
+      next_12m: "What is coming up this year"
+      next_24m: "Two-year view, so long notice periods are visible"
+      next_36m: "Full strategic view"
+    required: true
+    default_if_skipped: next_24m
+    affects: [timing_pressure, consolidation_opportunity]
+
+  - id: primary_objective
+    question: "What is this renewal round actually being optimized for?"
+    why: "Tilts the weighting toward the outcome the organization will be judged on. Choosing balanced applies the published weights unchanged."
+    type: choice
+    options: [reduce_cost, reduce_risk, increase_flexibility, consolidate_suppliers, balanced]
+    option_labels:
+      reduce_cost: "The run-rate has to come down"
+      reduce_risk: "Exposure and audit risk matter more than price"
+      increase_flexibility: "We need to be able to change our minds later"
+      consolidate_suppliers: "Fewer relationships to manage"
+      balanced: "No single objective dominates"
+    required: true
+    default_if_skipped: balanced
+    affects: [value_for_money, exposure, consolidation_opportunity]
+
+  - id: negotiating_posture
+    question: "If this supplier would not move on terms, would the organization actually leave?"
+    why: "Leverage is only real if walking away is real. This is the question that separates a negotiating position from a bluff, and suppliers can usually tell the difference."
+    type: choice
+    options: [will_not_leave, would_consider_alternatives, actively_prepared_to_exit]
+    option_labels:
+      will_not_leave: "Realistically, we are staying"
+      would_consider_alternatives: "We would look, if the terms were bad enough"
+      actively_prepared_to_exit: "We have somewhere to go and would use it"
+    required: true
+    default_if_skipped: would_consider_alternatives
+    affects: [leverage, lock_in]
+
+  - id: change_capacity
+    question: "How many supplier changes could the organization absorb in this window, alongside everything else already running?"
+    why: "Leverage without the capacity to act on it is a bluff with a deadline. An organization mid-programme that threatens to switch three suppliers will switch none, and the next negotiation starts from there."
+    type: choice
+    options: [none, one_switch, several_switches]
+    option_labels:
+      none: "We have nothing spare this window"
+      one_switch: "One, if it mattered enough"
+      several_switches: "We have real capacity to move"
+    required: true
+    default_if_skipped: one_switch
+    affects: [leverage, timing_pressure]
+
+  - id: supplier_consolidation_preference
+    question: "Would you rather have fewer suppliers on broader contracts, or more suppliers on narrower ones?"
+    why: "Decides whether overlapping contracts are an opportunity or a deliberate position. Consolidation buys discount and costs leverage, and organizations differ on which they want."
+    type: choice
+    options: [fewer_broader, no_preference, more_narrower]
+    option_labels:
+      fewer_broader: "Fewer relationships, bigger commitments"
+      no_preference: "Whatever the numbers say"
+      more_narrower: "Keep them separable, even if it costs more"
+    required: true
+    default_if_skipped: no_preference
+    affects: [consolidation_opportunity, lock_in]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs. Notice periods sit in optional because
+#    they are frequently unknown, and their absence is itself the finding.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: contracts_in_scope
+      description: "The contracts under review, each with the supplier, what it covers, and its end date. Supplier names supplied by the user are data and may appear in outputs."
+      source: [user, context.vendors]
+      format: table
+
+    - id: spend_per_contract
+      description: "Annual committed value per contract, and whether that figure is the licence line alone or includes support and services."
+      source: [user, context.vendors, context.application_costs]
+      format: table
+
+    - id: dependent_applications
+      description: "What stops working if each contract lapses. Name the applications and what they support, not just a count."
+      source: [user, context.application_inventory]
+      format: table
+
+  optional:
+    - id: notice_periods
+      description: "How far before expiry the organization must give notice, per contract, and whether renewal is automatic in the absence of notice."
+      source: [user, context.vendors]
+      format: table
+      on_missing: use_default_value
+      default_value: unknown
+      assumption_template: "Notice periods were not supplied. Where a contract renews automatically, an unknown notice period means the decision may already have been made by default — the organization can be committed to another term without anyone choosing it. Every position in this run is provisional until the notice dates are confirmed."
+      confidence_penalty: high
+
+    - id: entitlement_and_usage
+      description: "What each contract entitles the organization to, in the metric the contract actually uses, and what is being consumed today."
+      source: [user, context.application_inventory]
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Entitlement and consumption were not available, so true-up exposure has been estimated from user counts in the inventory. This is the weakest possible basis for an exposure figure: the contract metric may not be named users at all, and the difference between named, concurrent, and device metrics can change the number several-fold."
+      confidence_penalty: high
+
+    - id: price_increase_terms
+      description: "Uplift caps, indexation, and how price changes at renewal per contract."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: uncapped
+      assumption_template: "Uplift terms were not supplied, so uncapped increase has been assumed as the conservative reading. If caps exist they improve the position and should be confirmed before the calendar is used to plan budget."
+      confidence_penalty: medium
+
+    - id: audit_and_true_up_clauses
+      description: "Audit rights, notice required, frequency, and how a shortfall is priced when found."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: unknown
+      assumption_template: "Audit and true-up terms were not available. Exposure is therefore stated as an entitlement gap rather than as a financial figure, because how a shortfall is priced — at list, at contract rate, or with penalty — changes the number more than the gap itself does."
+      confidence_penalty: medium
+
+    - id: exit_and_data_extraction_terms
+      description: "What it takes to leave: transition assistance, data extraction format and cost, and any post-termination obligations."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: medium
+
+    - id: market_alternatives
+      description: "What else could realistically do this, and whether anyone has checked recently."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: medium
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - approved_vendors
+    - budget_ceiling
+    - security_baseline
+    - data_residency
+    - temperature_data_retention
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - approved_vendors
+    - security_baseline
+    - data_residency
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the score pattern produces a POSITION per contract.
+#    See ./references/position-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: leverage
+      display_name: Negotiating leverage we actually have
+      weight: 0.25
+      description: "Whether the organization could credibly do something else — alternatives that exist, capacity to switch, and enough time before notice bites to act. Leverage the organization cannot act on is not leverage."
+      evidence: [negotiating_posture, change_capacity, market_alternatives, notice_periods]
+      direction: higher_is_better
+
+    - id: exposure
+      display_name: What we could be hit with
+      weight: 0.20
+      description: "True-up gap, uncapped uplift, and audit rights — the downside that arrives without a decision being taken."
+      evidence: [entitlement_and_usage, audit_and_true_up_clauses, price_increase_terms]
+      direction: higher_is_better
+
+    - id: value_for_money
+      display_name: Proportionate to what we get
+      weight: 0.15
+      description: "Whether committed spend is proportionate to the business value of what the contract supports, and to what comparable arrangements cost."
+      evidence: [spend_per_contract, dependent_applications, primary_objective]
+      direction: higher_is_better
+
+    - id: lock_in
+      display_name: Cost of leaving
+      weight: 0.15
+      description: "Data extraction, process rework, integration, and transition assistance — what it would actually take to be somewhere else."
+      evidence: [exit_and_data_extraction_terms, dependent_applications, supplier_consolidation_preference]
+      direction: higher_is_better
+
+    - id: timing_pressure
+      display_name: How much time is left
+      weight: 0.15
+      description: "Time remaining before the notice date, not the expiry date, set against the time a change would realistically take."
+      evidence: [notice_periods, contracts_in_scope, renewal_horizon, change_capacity]
+      direction: higher_is_better
+
+    - id: consolidation_opportunity
+      display_name: Overlap with other contracts
+      weight: 0.10
+      description: "Whether this contract covers ground another one already does, or could be folded into one, and whether the organization wants that."
+      evidence: [contracts_in_scope, supplier_consolidation_preference, renewal_horizon]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — this alone would shape the whole position for this contract."
+      - value: 2
+        meaning: "Unfavourable — a material weakness the organization would have to accept and manage."
+      - value: 3
+        meaning: "Neutral — no real advantage or disadvantage on this criterion."
+      - value: 4
+        meaning: "Favourable — a clear advantage a reviewer would recognize without needing it explained."
+      - value: 5
+        meaning: "Strongly favourable — the best position realistically available on this criterion."
+
+  steps:
+    - "Build the calendar on NOTICE dates, not expiry dates. For each contract, notice date equals expiry minus notice period; that is when the decision window closes. Sort by notice date."
+    - "Flag every contract whose notice date has already passed, or falls inside the time a change would take. Those decisions have been made by default, and saying so is more useful than a position the organization can no longer act on."
+    - "Apply hard constraints. Record every position eliminated and the policy ID that eliminated it."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any score depends on it."
+    - "Score each contract against each criterion on the 1-5 favourability scale, citing for every score the evidence ID it rests on."
+    - "Gate leverage on capacity. Where negotiating_posture is actively_prepared_to_exit but change_capacity is none, leverage cannot score above 2 — and the artifact must say why, because the organization needs to know the position it is about to take is not backed."
+    - "Derive the position from the score pattern using ./references/position-rules.md. The weighted score is a comparison aid; it is not the position."
+    - "NEVER derive exit from a commercial score. Exit is available only where the application disposition already says retire or replace — that is an application-rationalization decision, not this one. Where the commercials point that way, output needs_evidence and name the disposition question that has to be answered first."
+    - "State true-up exposure as a range, with the contract metric named. An entitlement gap means nothing until it is clear whether the metric is named users, concurrent users, devices, cores, or transactions."
+    - "For each contract with a position other than renew_as_is, write the levers: what the organization can credibly ask for, what it would trade, and what it would accept rather than walk."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the position that keeps the decision open. A one-year extension that preserves the option is worth more than a three-year commitment at a slightly better rate, where the estate around it is changing."
+    - "Prefer acting on the contract whose notice date is nearest, where two positions are otherwise comparable. Time is the only lever that expires on its own."
+    - "Prefer the position that reduces exposure over the one that reduces price, where the organization's objective is balanced. A true-up arrives without warning; a price rise arrives with a renewal notice."
+    - "If still tied, report the tie and name the single piece of evidence — usually the notice date or the entitlement metric — that would break it."
+
+  references:
+    - ./references/position-rules.md
+    - ./references/exposure-and-levers.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, finance, steering_committee]
+  artifacts:
+    - id: renewal_calendar
+      display_name: Renewal calendar
+      description: "Every contract in scope ordered by notice date, with the decision-by date, the position, and whether the window is still open."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/renewal-calendar.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: contract_id
+            type: string
+          - id: supplier
+            type: string
+            description: "As supplied by the user. Supplier names are data, not method content."
+          - id: covers
+            type: string
+          - id: annual_value
+            type: currency
+          - id: expiry_date
+            type: date
+          - id: notice_period_months
+            type: number
+          - id: notice_date
+            type: date
+            description: "Expiry minus notice period. This is the date the decision window closes and the one the calendar is sorted by."
+          - id: window_status
+            type: enum
+            enum_values: [open, closing, closed_auto_renewed, unknown]
+          - id: position
+            type: enum
+            enum_values: [renegotiate, renew_as_is, consolidate, re_compete, exit, needs_evidence]
+          - id: true_up_exposure
+            type: string
+            description: "Stated as a range with the contract metric named, or as unknown. Never a bare number."
+          - id: evidence_basis
+            type: string
+          - id: assumption_ref
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: negotiation_brief
+      display_name: Negotiation brief
+      description: "Per priority contract: the position, the leverage that is actually credible, the exposure, the levers to use, and what the organization would accept rather than walk."
+      formats: [md, docx]
+      preferred_format: docx
+      markdown_template: ./assets/negotiation-brief.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: contract_and_window
+            heading: "The contract and the window"
+            required: true
+            description: "What it covers, what it costs, expiry, notice date, and how long is actually left."
+          - id: position
+            heading: "Recommended position"
+            required: true
+          - id: leverage_assessment
+            heading: "What leverage we actually have"
+            required: true
+            description: "Alternatives, capacity to switch, and time remaining. Where leverage is not credible, say so plainly — the organization needs to know before it takes a position it cannot back."
+          - id: exposure
+            heading: "What we could be hit with"
+            required: true
+            description: "True-up gap with the metric named, uplift terms, and audit rights. Ranges, never bare numbers."
+          - id: levers
+            heading: "Levers"
+            required: true
+            description: "What to ask for, what to trade, in what order."
+          - id: walk_away_position
+            heading: "What we would accept rather than walk"
+            required: true
+            description: "Stated before the negotiation, not during it."
+          - id: what_happens_if_it_lapses
+            heading: "What happens if this lapses"
+            required: true
+            description: "Which applications stop, and what the organization does that day."
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this position"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+    - id: decision_record
+      display_name: Decision record
+      description: "A dated record of the positions taken and the dates they were taken against."
+      formats: [md]
+      preferred_format: md
+      markdown_template: ./assets/decision-record.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: status
+            heading: "Status"
+            required: true
+          - id: context
+            heading: "Context"
+            required: true
+          - id: decision
+            heading: "Decision"
+            required: true
+          - id: windows_already_closed
+            heading: "Windows already closed"
+            required: true
+            description: "Contracts whose notice date passed before this review. Stated explicitly as none if none."
+          - id: consequences
+            heading: "Consequences"
+            required: true
+          - id: revisit_trigger
+            heading: "What would make us revisit this"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "notice periods were supplied for every contract in scope, entitlement and consumption were supplied in the contract's own metric, and uplift terms were confirmed rather than assumed."
+    - level: medium
+      when: "notice periods were supplied but entitlement was estimated, or uplift terms were assumed uncapped, and no position claims leverage the organization cannot act on."
+    - level: low
+      when: "notice periods were unknown for any contract in scope, or entitlement was estimated from user counts rather than the contract metric, or a position claims leverage while change capacity is none."
+
+  sensitivity_targets:
+    - target: entitlement_and_usage
+      variation: "consumption 20% higher than recorded"
+      report: "How the true-up exposure moves, and whether any contract crosses from a manageable gap into a material one. Consumption is routinely understated because nobody counts what nobody is billed for yet."
+    - target: notice_periods
+      variation: "notice period twice the assumed length"
+      report: "Which windows close, and which positions become unavailable. Where notice was unknown, this is the most important paragraph in the run."
+    - target: price_increase_terms
+      variation: "uplift at the assumed cap versus uncapped"
+      report: "The spread in committed spend across the horizon, so budget is planned against a range rather than a point."
+    - target: leverage
+      variation: "weight +/- 0.10"
+      report: "Whether the positions hold for an organization with more, or less, willingness to move suppliers than this one."
+
+  evals: ./evals/

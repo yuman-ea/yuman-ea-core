@@ -1,0 +1,126 @@
+spec_version: "1.0"
+id: 01-the-watermelon
+skill: yea.portfolio.portfolio-health-dashboard
+fixture: context/fixtures/northwind-corp
+description: >
+  Green on the outside. An initiative self-reports green overall while carrying an
+  unmitigated high-severity risk and a cost forecast past tolerance. The averaging instinct
+  is strong because four of five dimensions genuinely are fine. This case checks that
+  overall is the worst dimension, that the optimism correction is applied visibly, and that
+  the gap between reported and derived status is surfaced rather than resolved.
+
+given:
+  review_date: "2026-08-23"
+  scenario: >
+    Northwind is running its first portfolio health review. The customer portal replacement
+    reports itself green. Its forecast at completion is 18% over the approved budget, and it
+    carries an open high-severity risk — the replacement depends on the customer master
+    (nw-015, technical fitness 1, no named business owner) being available for a data
+    migration that nobody has yet scheduled with anyone.
+
+  ask:
+    portfolio_scope: all_change
+    status_source: self_reported
+    benefit_measurement_maturity: forecast_only
+    escalation_threshold: two_periods
+    intervention_capacity: a_few
+
+  gather:
+    provided:
+      initiatives_in_scope:
+        - "INIT-01 Customer portal replacement — delivery phase, sponsor Commercial Director"
+        - "INIT-02 Route planning rebuild — design phase, sponsor Head of Logistics"
+        - "INIT-03 Middleware upgrade — planning phase, sponsor Technology Director"
+      cost_position:
+        - "INIT-01 budget 1,200,000; spent 780,000; forecast at completion 1,420,000 — forecast is an actual projection, revised this month"
+        - "INIT-02 budget 2,150,000; spent 240,000; forecast at completion 2,150,000 — forecast is the original figure, not revised"
+        - "INIT-03 budget 400,000; spent 0; forecast at completion 400,000 — estimate only"
+      schedule_position:
+        - "INIT-01 next milestone user acceptance, forecast on plan"
+        - "INIT-02 design sign-off forecast two weeks late"
+        - "INIT-03 no milestones committed yet"
+      risk_register:
+        - "INIT-01 HIGH: data migration from nw-015 unscheduled, no owner engaged, no mitigation started"
+        - "INIT-02 MEDIUM: supplier will not commit to temperature-aware routing; mitigation in flight"
+        - "INIT-03 HIGH: contract expires 2026-09-30; mitigation not started"
+      reported_status:
+        - "INIT-01 reported green"
+        - "INIT-02 reported amber"
+        - "INIT-03 reported green"
+    withheld:
+      - benefit_definitions
+      - benefit_actuals
+      - architecture_commitments
+      - prior_period_status
+      - initiative_dependencies
+    available_context:
+      - context.application_inventory
+      - context.application_costs
+      - context.integrations
+
+expect:
+  overall_is_worst_dimension: true
+
+  derived_status:
+    - initiative: INIT-01
+      reported: green
+      overall: red
+      because: "cost forecast 18% over budget is beyond the 15% red band, and an unmitigated high-severity risk is red"
+    - initiative: INIT-03
+      reported: green
+      overall: red
+      because: "unmitigated high-severity risk with a contract expiring inside five weeks"
+
+  benefit_criterion_dropped_and_reweighted: true
+
+  confidence: low
+  confidence_reason_must_reference: >
+    status was self reported with no independent challenge, and no benefit definitions existed
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That overall status is the worst dimension, and that no averaging was performed.
+    - The tolerance band behind every red — the 15% cost threshold and the unmitigated
+      high-severity rule — not just the colour.
+    - That the optimism correction was applied because status is self reported, which
+      initiatives it moved, and by how much.
+    - That INIT-01 and INIT-03 reported green and derive red, in a dedicated section rather
+      than a footnote.
+    - That INIT-02's forecast at completion is the original figure rather than a revision,
+      so its cost green rests on a number nobody has re-examined.
+    - That no benefit definitions exist for any initiative, that benefit realization has
+      therefore been dropped and the remaining weights renormalized, and that the absence is
+      itself a governance finding.
+    - That no prior period exists, so movement and persistence cannot be computed and the
+      escalation rule cannot fire this period.
+
+  must_not:
+    - Average dimensions into an overall status.
+    - Rate INIT-01 amber on the grounds that four of five dimensions are acceptable.
+    - Render the dropped benefit criterion as green or as satisfied.
+    - Apply the optimism correction without saying so.
+    - Rate confidence above low.
+
+fails_if:
+  - INIT-01 comes out amber or green. Four good dimensions and one red is red, and the
+    arithmetic that produces amber here is the exact mechanism the rule exists to block.
+  - The reported-versus-derived disagreement appears nowhere. It is the most useful output
+    of the run, and a dashboard that silently overrides self-reported status teaches
+    delivery teams that reporting honestly changes nothing.
+
+tolerance: >
+  INIT-02's overall may be amber or red depending on how the unrevised forecast is treated;
+  either is defensible if the reasoning is stated. INIT-01 and INIT-03 coming out red, the
+  no-averaging statement, and the visible optimism correction are not negotiable.
+
+notes: >
+  Nobody in this scenario is lying. INIT-01's team is reporting on a project whose delivery
+  is going well, against a risk they reasonably believe someone else owns. That is exactly
+  how watermelon reporting arises — not from deception, but from each party reporting
+  accurately on the part they can see.

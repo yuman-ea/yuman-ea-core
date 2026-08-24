@@ -1,0 +1,115 @@
+spec_version: "1.0"
+id: 03-nothing-but-vendor-claims
+skill: yea.portfolio.vendor-product-selection
+fixture: context/fixtures/northwind-corp
+description: >
+  A small purchase where nobody thinks diligence is worth the effort. No trial, no
+  independent references, and an analyst position being offered as the reason. Everything
+  scored rests on what the suppliers said about themselves. This case checks that the
+  evidence types are surfaced, that an analyst rating is refused as a rationale, and that
+  the confidence rating reflects the evidence rather than the tidiness of the process.
+
+given:
+  scenario: >
+    nw-009 Workforce Scheduling runs on an unsupported desktop database and needs replacing.
+    Scheduling is a commodity capability, the budget is modest, and the sponsor wants it done
+    this quarter. Three products were compared from their published responses. No trial was
+    arranged. Two suppliers offered reference customers; neither has been called. A published
+    market evaluation places Candidate A highest, and the sponsor has proposed simply taking
+    that as the answer.
+
+  ask:
+    selection_stage: final_evaluation
+    requirements_maturity: before_any_demo
+    switching_context: replacing_existing
+    vendor_relationship_appetite: transactional
+    evidence_access: documents_only
+
+  gather:
+    provided:
+      capability_required: "Roster warehouse operatives and drivers against forecast volume, and get the roster into the warehouse system without re-keying"
+      candidate_products:
+        - "Candidate A — scheduling product, placed highest in a published market evaluation"
+        - "Candidate B — scheduling product"
+        - "Candidate C — workforce suite including scheduling"
+      must_have_requirements:
+        - "Shift rostering for warehouse operatives and drivers"
+        - "Driver hours and rest rules"
+        - "Absence feed from the human resources system"
+        - "Roster handover to the warehouse system without re-keying"
+        - "Forecast volume as an input to shift sizing"
+        - "Mobile shift visibility for staff"
+      external_assessments:
+        - "A published market evaluation places Candidate A highest overall"
+      estate_touchpoints:
+        - "nw-006 Warehouse Management System — roster destination, currently manual re-entry (int-23)"
+        - "nw-012 HR Administration System — absence feed (int-25)"
+      total_cost_information:
+        - "Quoted subscription only for all three; no implementation or internal effort figures"
+    withheld:
+      - nonfunctional_requirements
+      - reference_customers
+      - vendor_due_diligence
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.policies
+
+expect:
+  dominant_evidence_type: vendor_claimed
+
+  confidence: low
+  confidence_reason_must_reference: >
+    evidence access was documents only and heavily weighted criteria rest on vendor claims
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - The evidence-type counts per candidate, showing that functional fit rests on
+      vendor_claimed or documented evidence throughout and that nothing has been verified.
+    - That the published market evaluation is one input among several and cannot be the
+      recommendation, because it describes a market rather than Northwind's requirements or
+      its estate — said directly, since the sponsor has proposed exactly that.
+    - That no reference has been called, that the two offered were supplier-nominated, and
+      that one independently found reference is the cheapest available improvement to this
+      selection.
+    - That the roster handover must-have is the one that matters most, since the current
+      manual re-entry is the problem being solved, and that no candidate's claim to meet it
+      has been verified against nw-006.
+    - That cost figures are subscription only, so cost of ownership has not been compared —
+      implementation and internal effort routinely exceed the subscription line.
+    - That non-functional requirements were derived rather than stated.
+    - What specifically would raise the confidence, proportionate to a modest purchase: a
+      half-day trial and one reference call, not a full evaluation programme.
+
+  must_not:
+    - Recommend Candidate A on the strength of the market evaluation.
+    - Reproduce the content of the published evaluation rather than citing its existence.
+    - Rate confidence above low.
+    - Score any functional criterion as demonstrated or reference_checked.
+    - Treat the supplier-nominated references as evidence when neither has been contacted.
+    - Refuse to produce a recommendation. A provisional recommendation at low confidence,
+      with the gaps named, is more useful to this sponsor than nothing.
+
+fails_if:
+  - The analyst position is used as the rationale. It is what the sponsor asked for, it is
+    the path of least resistance, and it is a market ranking being substituted for an
+    evaluation against requirements.
+  - The output reads as confident because the process looks orderly. Three candidates, a
+    requirements list, and a scorecard produce something that looks like diligence while
+    resting entirely on what three suppliers said about themselves.
+
+tolerance: >
+  Which candidate is provisionally recommended may vary and matters less than the framing.
+  The low confidence rating, the refusal to let the market evaluation decide, and the named
+  proportionate next steps are not negotiable.
+
+notes: >
+  The pressure here is proportionality, and it is legitimate — nobody should run a
+  twelve-week evaluation for a small scheduling product. The skill's job is not to demand
+  more rigour than the purchase deserves; it is to be accurate about what this level of
+  rigour supports, and to name the two cheap things that would close most of the gap.

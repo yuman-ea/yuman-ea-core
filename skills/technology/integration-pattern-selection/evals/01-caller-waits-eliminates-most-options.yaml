@@ -1,0 +1,102 @@
+spec_version: "1.0"
+id: 01-caller-waits-eliminates-most-options
+skill: yea.technology.integration-pattern-selection
+fixture: context/fixtures/northwind-corp
+description: >
+  The timing answer does most of the work, and the case exists to check that the
+  eliminations are reported rather than silently applied. It also tests the rule that no
+  pattern gives you everything: a synchronous interface cannot deliver exactly-once, so
+  the receiver's obligations must be stated rather than assumed away.
+
+given:
+  scenario: >
+    A trade customer submits an order in the replacement portal. The portal cannot show a
+    confirmation until the order has been validated against the customer's credit position
+    and price list, so the customer knows immediately whether the order was accepted.
+
+  ask:
+    response_timing: caller_waits
+    consumer_count: single_known
+    delivery_guarantee: no_loss_no_duplicates
+    party_boundary: internal_only
+    replay_need: never
+
+  gather:
+    provided:
+      integration_purpose: "The customer portal submits an order to nw-001 Order Capture for validation and acceptance"
+      volume_and_frequency: "About 900 orders a day; peak is Monday morning at roughly 180 an hour"
+      payload_profile: "2-40 KB per order, typically 12 lines; whole order, not a delta"
+      latency_requirement: "Confirmation returned within 3 seconds at the 95th percentile"
+      existing_integration_estate:
+        - "nw-019 Integration Middleware — broker, extended support to 2026-09-30"
+        - "int-01 already carries this traffic synchronously"
+        - "Integration is supported by 2.1 FTE"
+      error_handling_expectation: "The customer sees a clear failure and can resubmit; nothing is silently dropped"
+      data_sensitivity: confidential
+    withheld:
+      - ordering_requirement
+      - partner_capability
+    available_context:
+      - context.integrations
+      - context.application_inventory
+      - context.policies
+
+expect:
+  frame_restated_before_analysis: true
+
+  eliminated_before_scoring:
+    - pattern: file_transfer
+      by: response_timing
+    - pattern: publish_subscribe
+      by: response_timing
+    - pattern: data_streaming
+      by: response_timing
+
+  recommendation: api_synchronous
+
+  confidence: high
+  confidence_reason_must_reference: >
+    peak volume, payload size, and a quantified latency requirement were all supplied
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+
+  artifacts_produced:
+    - integration-pattern-selection--pattern-recommendation.md
+    - integration-pattern-selection--pattern-comparison.md
+    - integration-pattern-selection--decision-record.md
+
+  must_state:
+    - Which patterns were eliminated by the timing answer, named, before any scoring.
+    - That a synchronous interface cannot by itself deliver no-duplicates, and that the
+      receiver must therefore deduplicate on a business key — a timeout that the caller
+      retries produces exactly this situation.
+    - The failure path: what the portal shows when nw-001 is unavailable, and whether the
+      order is held anywhere or lost.
+    - That the caller's availability is now bounded by nw-001's, and nw-001 has a technical
+      fitness of 2.
+    - That no ordering requirement was supplied, so order-independence was assumed.
+
+  must_not:
+    - Recommend a pattern that cannot return a result to a waiting caller.
+    - Claim exactly-once delivery from a synchronous interface.
+    - Omit the eliminations from the artifacts, leaving three patterns unexplained.
+    - Recommend direct_data_access on the grounds that it would be fastest.
+    - Name a real product.
+
+fails_if:
+  - The three timing-eliminated patterns simply do not appear. Options that quietly
+    disappear read as an analysis steered toward its conclusion.
+  - The no-duplicates requirement is reported as satisfied by the pattern alone, with no
+    statement of what the receiver must do.
+
+tolerance: >
+  api_asynchronous may reasonably score second and should not be eliminated, since a
+  submit-then-poll design is defensible if the portal can hold the customer. The
+  recommendation, the three eliminations, and the idempotency statement are not negotiable.
+
+notes: >
+  The answer is close to obvious, which is the point: an easy case is where a method proves
+  it reports its reasoning rather than just landing on the right pattern.

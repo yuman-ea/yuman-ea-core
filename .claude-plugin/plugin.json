@@ -23,7 +23,12 @@
     "./skills/technology/high-level-architecture",
     "./skills/technology/architecture-decision-record",
     "./skills/technology/reference-architecture-pattern",
-    "./skills/portfolio/application-rationalization"
+    "./skills/technology/integration-pattern-selection",
+    "./skills/portfolio/application-rationalization",
+    "./skills/portfolio/license-and-contract-review",
+    "./skills/portfolio/portfolio-health-dashboard",
+    "./skills/portfolio/vendor-product-selection",
+    "./skills/portfolio/roadmap-sequencing"
   ],
   "agents": [
     "./agents/orchestrator",

@@ -79,6 +79,12 @@ A lifecycle finding is an **input** to a disposition decision, never the decisio
 | Skill | Decides | Maturity |
 |---|---|---|
 | [`yea.portfolio.application-rationalization`](../../skills/portfolio/application-rationalization/SKILL.md) | Keep, retire, consolidate, or modernize — per application, with a sequence | `draft` |
+| [`yea.portfolio.license-and-contract-review`](../../skills/portfolio/license-and-contract-review/SKILL.md) | Where we stand at each supplier renewal, and what leverage is real | `draft` |
+| [`yea.portfolio.portfolio-health-dashboard`](../../skills/portfolio/portfolio-health-dashboard/SKILL.md) | Which initiatives need attention, and whether the benefits are landing | `draft` |
+| [`yea.portfolio.vendor-product-selection`](../../skills/portfolio/vendor-product-selection/SKILL.md) | Which product and supplier, and what the scores actually rest on | `draft` |
+| [`yea.portfolio.roadmap-sequencing`](../../skills/portfolio/roadmap-sequencing/SKILL.md) | What order portfolio change happens in, against the capacity we have | `draft` |
+
+**The two run in sequence, and the order matters.** `application-rationalization` decides whether the organization should still have the application; `license-and-contract-review` decides the commercial position given that answer. **The disposition is an input to the review, never an output of it.** A contract that looks expensive is not grounds to switch a system off — where the commercials point at leaving and no disposition exists, the review returns `needs_evidence` and names the rationalization question that has to be answered first.
 
 ## Context you may read
 

@@ -1,0 +1,113 @@
+spec_version: "1.0"
+id: 03-leverage-that-is-not-backed
+skill: yea.portfolio.license-and-contract-review
+fixture: context/fixtures/northwind-corp
+description: >
+  The organization says it is prepared to leave. It has no capacity to move, the contract
+  is bundled across two critical systems, and the commercials look bad enough that exit is
+  tempting. Three separate rules are under pressure here: leverage gated on capacity, exit
+  never derived from a commercial score, and consolidation costing optionality.
+
+given:
+  review_date: "2026-08-23"
+  scenario: >
+    The finance and billing contract (vendor_echo) is 1,082,000 a year — the largest in the
+    estate — covering nw-010 Financial Accounting and nw-011 Billing and Receivables under a
+    single bundled agreement. It expires 2028-03-31 with twelve months notice. The finance
+    director wants a hard line taken and has said Northwind should be prepared to leave.
+    Northwind is simultaneously replacing the customer portal, facing the middleware renewal,
+    and carrying a warehouse system two major versions behind.
+
+  ask:
+    renewal_horizon: next_24m
+    primary_objective: reduce_cost
+    negotiating_posture: actively_prepared_to_exit
+    change_capacity: none
+    supplier_consolidation_preference: fewer_broader
+
+  gather:
+    provided:
+      contracts_in_scope: "vendor_echo — finance and billing, bundled, expires 2028-03-31, 12 months notice"
+      spend_per_contract: "1,082,000 annually; nw-010 total run cost 1,597,000 and nw-011 529,000 including internal effort"
+      dependent_applications:
+        - "nw-010 Financial Accounting — critical, 180 users, general ledger and statutory reporting"
+        - "nw-011 Billing and Receivables — critical, 60 users, invoicing and collections for all trade accounts"
+        - "int-15 invoices and receipts post to the ledger daily; int-16 stock movements post from the warehouse"
+      notice_periods: "12 months, from context.vendors"
+      exit_and_data_extraction_terms: "Not specified in the summary held; the full agreement has not been retrieved"
+      market_alternatives: "Alternatives exist for both functions, but no assessment has been done"
+    withheld:
+      - entitlement_and_usage
+      - price_increase_terms
+      - audit_and_true_up_clauses
+    available_context:
+      - context.vendors
+      - context.application_inventory
+      - context.application_costs
+      - context.integrations
+
+expect:
+  window_status: open
+  notice_date: "2027-03-31"
+
+  leverage_score_capped: true
+  leverage_cap_reason_must_reference: >
+    change capacity is none
+
+  position_in: [renegotiate, needs_evidence]
+  position_must_not_be: exit
+
+  confidence: low
+  confidence_reason_must_reference: >
+    a position claiming leverage while change capacity is none, and entitlement was not supplied
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - Plainly, that the stated posture is not backed by capacity, and that the leverage score
+      is capped as a result. The person taking this into a room needs to know before the
+      supplier works it out.
+    - What Northwind is already carrying — the portal replacement, the middleware renewal,
+      the warehouse version position — as the evidence for change capacity being none.
+    - That exit is not available from this analysis, because whether Northwind still needs
+      these capabilities is an application-rationalization question, and switching off the
+      general ledger on price grounds is not a commercial decision.
+    - That the agreement is bundled across two critical systems, so any exit is two
+      simultaneous replacements, not one.
+    - That the bundle already represents a consolidation, and that fewer_broader as a stated
+      preference has already been exercised here and is part of why leverage is thin.
+    - That twelve months notice against a 2028-03-31 expiry means the decision window closes
+      2027-03-31, which is roughly seven months away and inside the time either replacement
+      would take.
+    - Levers that are actually available to an organization that is staying — term, scope
+      precision, date alignment with other contracts, uplift caps — rather than a threat.
+
+  must_not:
+    - Recommend exit.
+    - Score leverage above 2.
+    - Recommend re_compete, given the window closes inside the time a replacement would take.
+    - Present the finance director's stated posture as the leverage position without
+      qualification.
+    - Produce a true-up figure, since entitlement was withheld.
+
+fails_if:
+  - Exit is recommended on commercial grounds. It is the most damaging output available here
+    and the request invites it.
+  - The leverage assessment repeats the stated posture back without testing it against
+    capacity. That is the specific service this skill provides, and omitting it produces a
+    brief that reads confident and gets found out in the first meeting.
+
+tolerance: >
+  renegotiate and needs_evidence are both defensible; needs_evidence is stronger if the
+  missing entitlement and uplift terms are judged decisive. The leverage cap, the refusal to
+  recommend exit, and the statement that the posture is unbacked are not negotiable.
+
+notes: >
+  Everyone in this scenario is behaving reasonably. The finance director is right that the
+  contract is expensive, and being prepared to leave is the correct instinct in the abstract.
+  The skill's contribution is the sentence nobody in the room wants to say: we cannot do it
+  this year, and if we say we can, we will be worse off at the next renewal too.

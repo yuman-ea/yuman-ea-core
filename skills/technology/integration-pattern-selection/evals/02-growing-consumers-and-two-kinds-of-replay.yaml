@@ -1,0 +1,116 @@
+spec_version: "1.0"
+id: 02-growing-consumers-and-two-kinds-of-replay
+skill: yea.technology.integration-pattern-selection
+fixture: context/fixtures/northwind-corp
+description: >
+  The flagship case, and it has two traps. The consumer count points away from the
+  point-to-point batch in place today. The replay requirement points at streaming — but
+  Northwind runs no streaming anywhere and supports integration with 2.1 FTE. The run must
+  separate consumer replay from seven-year regulatory retention, which are different needs
+  with different solutions, and must not recommend a platform the organization cannot
+  operate without saying so.
+
+given:
+  scenario: >
+    Cold chain telemetry from nw-008 currently goes to nw-018 as a daily batch (int-07) for
+    compliance reporting. Quality want it for audit evidence, logistics want live alerts when
+    a vehicle drifts out of range, and two chain customers have started asking for
+    temperature evidence with their deliveries. The temperature_data_retention policy
+    requires records to be retrievable for seven years.
+
+  ask:
+    response_timing: caller_continues
+    consumer_count: unknown_and_growing
+    delivery_guarantee: no_loss
+    party_boundary: internal_only
+    replay_need: routinely
+
+  gather:
+    provided:
+      integration_purpose: "nw-008 Cold Chain Monitoring publishes temperature readings for compliance reporting, operational alerting, and customer evidence"
+      volume_and_frequency: "62 vehicles and 1 cold store reporting every 5 minutes; roughly 18,000 readings a day, peaking during the morning delivery window"
+      payload_profile: "Under 1 KB per reading; a reading, not a snapshot of state"
+      latency_requirement: "Alerting needs a reading within 2 minutes; compliance reporting tolerates 24 hours"
+      existing_integration_estate:
+        - "nw-019 Integration Middleware — broker, extended support to 2026-09-30"
+        - "16 of 26 recorded interfaces are brokered; none are streamed"
+        - "Integration is supported by 2.1 FTE with no streaming experience"
+      ordering_requirement: "Readings must be processed in order within a vehicle; across vehicles order does not matter"
+      error_handling_expectation: "A missed reading is recoverable, but a gap in the compliance record is not"
+      data_sensitivity: regulated
+    withheld:
+      - partner_capability
+    available_context:
+      - context.integrations
+      - context.application_inventory
+      - context.policies
+
+  policies_supplied:
+    - id: temperature_data_retention
+      statement: "Temperature records evidencing cold chain integrity must be retained and be retrievable for seven years"
+      kind: regulatory
+    - id: integration_via_broker
+      statement: "New integrations must go through the message broker rather than direct database connections between applications"
+      kind: preference
+
+expect:
+  frame_restated_before_analysis: true
+
+  current_pattern_is_not_retained: true
+  recommendation_in: [publish_subscribe, data_streaming]
+
+  must_separate_two_needs:
+    - need: "Consumer replay — a new consumer catching up, or reprocessing after a bug"
+      solved_by: "the integration pattern"
+    - need: "Seven-year regulatory retrievability"
+      solved_by: "an archive or record store, not the integration pattern"
+
+  confidence: high
+  confidence_reason_must_reference: >
+    volume, payload, and quantified latency were supplied and the integration estate was stated
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+
+  must_state:
+    - That the daily batch in place today cannot serve a 2-minute alerting requirement, so
+      the existing pattern is not a candidate whatever else is decided.
+    - That the two latency requirements differ by three orders of magnitude, and either how
+      one pattern serves both or that two paths are being recommended deliberately.
+    - That seven-year retention is a retention problem, NOT a replay problem, and must not
+      be solved by configuring a long retention window on the integration.
+    - If data_streaming is recommended, that Northwind runs no streaming today and supports
+      integration with 2.1 FTE, naming what would have to be built and staffed.
+    - That ordering is required within a vehicle but not across vehicles, so partitioned
+      ordering suffices and global ordering is not needed.
+    - That the broker is in extended support until 2026-09-30, and what that means for a
+      pattern that depends on it.
+    - The failure path, including what a gap in the compliance record means as distinct from
+      a missed operational alert.
+
+  must_not:
+    - Recommend data_streaming without stating the operational gap and what it would cost.
+    - Treat seven-year retention as satisfied by the messaging pattern's retention setting.
+    - Recommend a point-to-point pattern given unknown_and_growing consumers.
+    - Require global ordering when the stated requirement is per vehicle.
+    - Retain the daily batch as the answer because it is what exists.
+
+fails_if:
+  - Retention and replay are conflated. It is the most consequential error available here:
+    it produces a design that satisfies an auditor on paper and loses the records when the
+    broker is upgraded.
+  - Streaming is recommended purely on the replay requirement, with no reference to whether
+    the organization can run it.
+
+tolerance: >
+  publish_subscribe on the existing broker with a separate archive, or data_streaming with
+  an explicit capability gap stated, are both defensible. A combination — brokered events for
+  alerting plus a durable archive for compliance — is the strongest answer and should be
+  presented as a deliberate combination, not as indecision.
+
+notes: >
+  Both traps are the kind that survive review. Streaming is genuinely the textbook answer to
+  routine replay, and a retention setting genuinely does hold data for a configured period —
+  each is wrong here for a reason that only shows up in operations or in an audit.

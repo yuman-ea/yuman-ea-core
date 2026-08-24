@@ -1,0 +1,134 @@
+spec_version: "1.0"
+id: 02-strong-product-difficult-supplier
+skill: yea.portfolio.vendor-product-selection
+fixture: context/fixtures/northwind-corp
+description: >
+  The candidate with the best product has the worst supplier, and the fixture already
+  records what that looks like: the incumbent route planning supplier will not commit to
+  temperature-aware routing. This case checks that product and supplier are scored and
+  reported separately, and that the recommendation does not simply follow functional fit.
+
+given:
+  scenario: >
+    Northwind is replacing route planning before the vendor_charlie contract ends
+    2026-12-31. Three candidates. Candidate A has the strongest optimisation engine by some
+    distance and meets every must-have without customization — and two independently found
+    references describe support escalation taking weeks, a roadmap that is not shared, and a
+    contract the supplier would not vary. Candidate B is adequate on the product and its
+    references are consistently positive about how the supplier behaves when things break.
+
+  ask:
+    selection_stage: final_evaluation
+    requirements_maturity: before_any_demo
+    switching_context: replacing_existing
+    vendor_relationship_appetite: strategic_partnership
+    evidence_access: proof_of_concept_and_references
+
+  gather:
+    provided:
+      capability_required: "Plan delivery routes that respect vehicle temperature compartments as well as time windows, so planners stop overriding a third of routes by hand"
+      candidate_products:
+        - "Candidate A — specialist routing product"
+        - "Candidate B — logistics suite with a routing module"
+        - "Candidate C — specialist routing product"
+      must_have_requirements:
+        - "Route optimisation against delivery time windows"
+        - "Vehicle temperature compartment constraints modelled in the optimisation"
+        - "Driver hours and break rules"
+        - "Same-day replanning when a vehicle fails"
+        - "Manifest handover to the warehouse system"
+        - "Route registration with cold chain monitoring"
+        - "Planner override with a recorded reason"
+      nonfunctional_requirements:
+        - "Overnight plan complete and available by 05:00 daily, including after a failed run"
+        - "Replanning a single route returns within 60 seconds at peak"
+        - "Route and temperature records retained 7 years"
+      total_cost_information:
+        - "Candidate A: 340,000 annually, implementation 280,000 quoted"
+        - "Candidate B: 295,000 annually, implementation 310,000 quoted"
+        - "Candidate C: 380,000 annually, implementation 240,000 quoted"
+      reference_customers:
+        - "Candidate A: two references found independently — escalation takes weeks, roadmap not shared, contract terms not negotiable"
+        - "Candidate A: one supplier-nominated reference — positive"
+        - "Candidate B: two supplier-nominated and one found independently — all describe responsive support and a shared roadmap"
+        - "Candidate C: one supplier-nominated only"
+      vendor_due_diligence:
+        - "Candidate A: financially strong, large customer base, no concentration risk"
+        - "Candidate B: smaller, stable, Northwind would be a mid-sized account"
+        - "Candidate C: recently acquired; roadmap position unclear"
+      estate_touchpoints:
+        - "nw-006 Warehouse Management System, nw-008 Cold Chain Monitoring, nw-019 broker"
+    withheld:
+      - external_assessments
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.vendors
+      - context.policies
+
+expect:
+  product_and_supplier_totals_reported_separately: true
+
+  expected_pattern:
+    - candidate: A
+      product_total: highest
+      supplier_total: lowest
+    - candidate: B
+      product_total: adequate
+      supplier_total: highest
+
+  recommendation_in: [B, A_with_contractual_mitigation]
+  recommendation_must_not_be: A_without_mitigation
+
+  confidence: high
+  confidence_reason_must_reference: >
+    requirements were written before any product was seen, access included proof of concept and independently found references
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - dissent_note
+
+  must_state:
+    - Both totals per candidate, separately, before any combined figure.
+    - That Candidate A's product is the strongest and its supplier the weakest, in those
+      terms, rather than reporting a single blended score that hides it.
+    - That the relationship appetite is strategic_partnership, which weights supplier
+      behaviour heavily, and that a supplier who will not share a roadmap or vary a contract
+      cannot be a strategic partner whatever the product does.
+    - That Candidate A's negative references were found independently while its positive one
+      was supplier-nominated, and what that asymmetry means.
+    - That Candidate C has one supplier-nominated reference only and was recently acquired,
+      so its supplier score rests on almost nothing.
+    - If Candidate A is recommended, the specific contractual mitigations required —
+      escalation commitments, roadmap access, response times — and that the recommendation is
+      conditional on obtaining them.
+    - The runner-up position: which candidate the decision falls to if the recommendation
+      becomes unavailable.
+    - That Northwind is replacing an incumbent who already would not commit to a roadmap
+      item, so this failure mode is one the organization has just lived through.
+
+  must_not:
+    - Recommend Candidate A on functional fit without addressing the supplier position.
+    - Report a single blended score without the two component totals.
+    - Weight the supplier-nominated positive reference equally with the independently found
+      negative ones.
+    - Treat Candidate C's due diligence gap as neutral.
+
+fails_if:
+  - The recommendation follows the product score alone. It is the specific failure this
+    skill's split scoring exists to prevent, and the organization is currently living the
+    consequence of it with the incumbent.
+  - The two totals are collapsed into one number anywhere in the recommendation.
+
+tolerance: >
+  Recommending B, or recommending A conditional on named contractual mitigations, are both
+  defensible with reasoning. The separate totals, the reference asymmetry, and the high
+  confidence rating are not negotiable.
+
+notes: >
+  The uncomfortable part is that Candidate A is genuinely better at the job. Choosing B means
+  accepting a weaker optimisation engine for a supplier who answers the phone — which is the
+  right trade often enough that the method insists the trade be made visibly rather than by
+  whoever wins the argument in the room.

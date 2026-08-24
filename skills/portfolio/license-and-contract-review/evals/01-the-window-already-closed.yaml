@@ -1,0 +1,112 @@
+spec_version: "1.0"
+id: 01-the-window-already-closed
+skill: yea.portfolio.license-and-contract-review
+fixture: context/fixtures/northwind-corp
+description: >
+  The failure this skill exists to prevent, caught after the fact. Two contracts in the
+  fixture have notice dates that have already passed, and one of them is critical
+  infrastructure. The run must build the calendar on notice dates, discover this, report it
+  first, and stop offering positions the organization can no longer take.
+
+given:
+  review_date: "2026-08-23"
+  scenario: >
+    Northwind is planning its renewal round for the first time. Nobody has previously tracked
+    notice periods; the spreadsheet in use records expiry dates only. The integration
+    middleware contract (vendor_kilo, nw-019) is the one everything brokered depends on, and
+    the route planning contract (vendor_charlie, nw-007) covers a system that already fails
+    to meet the business need.
+
+  ask:
+    renewal_horizon: next_24m
+    primary_objective: reduce_risk
+    negotiating_posture: would_consider_alternatives
+    change_capacity: one_switch
+    supplier_consolidation_preference: no_preference
+
+  gather:
+    provided:
+      contracts_in_scope: "context.vendors — all twelve contracts"
+      spend_per_contract: "context.vendors annual_contract_value_usd"
+      dependent_applications: "context.application_inventory, mapped by vendor_id"
+      notice_periods: "context.vendors notice_period_months"
+    withheld:
+      - entitlement_and_usage
+      - price_increase_terms
+      - audit_and_true_up_clauses
+      - exit_and_data_extraction_terms
+      - market_alternatives
+    available_context:
+      - context.vendors
+      - context.application_inventory
+      - context.application_costs
+      - context.integrations
+
+expect:
+  calendar_sorted_by: notice_date
+
+  windows_already_closed_must_include:
+    - contract: vendor_kilo
+      expiry: "2026-09-30"
+      notice_period_months: 12
+      notice_date: "2025-09-30"
+    - contract: vendor_charlie
+      expiry: "2026-12-31"
+      notice_period_months: 6
+      notice_date: "2026-06-30"
+
+  positions_for_closed_windows: renew_as_is
+
+  confidence: low
+  confidence_reason_must_reference: >
+    entitlement was not supplied and uplift terms were assumed
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  artifacts_produced:
+    - license-and-contract-review--renewal-calendar.md
+    - license-and-contract-review--negotiation-brief.md
+    - license-and-contract-review--decision-record.md
+
+  must_state:
+    - The closed windows FIRST, before any position is recommended, with the arithmetic
+      shown — expiry minus notice period, against the review date.
+    - That vendor_kilo covers nw-019, that sixteen of twenty-six recorded interfaces are
+      brokered through it, and that the organization is therefore committed to another term
+      on infrastructure it had already recorded as being in extended support.
+    - When the next window opens for each closed contract, so the calendar has a next action
+      rather than only a finding.
+    - That vendor_charlie's window closed on a system the inventory already records as not
+      meeting the business need, which is the more expensive of the two misses.
+    - That uplift terms were unknown, so committed spend across the horizon is a range.
+    - A recommendation that notice dates be tracked, since the absence of them is the finding
+      underneath both misses.
+
+  must_not:
+    - Sort the calendar by expiry date.
+    - Recommend re_compete or renegotiate for either closed-window contract.
+    - Report the closed windows only in a footnote or an appendix.
+    - Produce a true-up figure for any contract, since entitlement was withheld.
+    - Rate confidence above low.
+
+fails_if:
+  - The calendar is built on expiry dates. Every position in it would then be wrong in the
+    same direction, and the document would read as authoritative while being unusable.
+  - The two closed windows are not identified. They are computable from the supplied data,
+    and missing them is the exact failure the skill is for.
+  - A confident negotiating position is offered on a contract that auto-renewed eleven months
+    ago.
+
+tolerance: >
+  Positions for the ten open contracts may vary widely given how much was withheld;
+  needs_evidence is a reasonable answer for most of them. The two closed windows, the
+  notice-date arithmetic, and the low confidence rating are not negotiable.
+
+notes: >
+  Both misses are arithmetic, not judgement — the data to catch them was in the register the
+  whole time and nobody subtracted. That is what makes it worth an eval: the skill's value
+  here is not insight, it is doing the subtraction every time.

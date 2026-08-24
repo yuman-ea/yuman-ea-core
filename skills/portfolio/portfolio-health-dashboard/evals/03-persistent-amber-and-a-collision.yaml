@@ -1,0 +1,125 @@
+spec_version: "1.0"
+id: 03-persistent-amber-and-a-collision
+skill: yea.portfolio.portfolio-health-dashboard
+fixture: context/fixtures/northwind-corp
+description: >
+  Nothing is red. Four initiatives have been amber for three periods with improving
+  trajectories, two of them are quietly depending on the same system, and the organization
+  can intervene on one. This case checks that persistence escalates on count rather than
+  trajectory, that the collision is surfaced when neither initiative is wrong about itself,
+  and that the exception report is ranked to capacity instead of listing everything.
+
+given:
+  review_date: "2026-08-23"
+  scenario: >
+    Northwind's fourth health review. No initiative is red. Four have been amber for three
+    consecutive periods, each reporting an improving trajectory. INIT-01 needs a data
+    migration out of nw-015 Customer Master; INIT-05 needs nw-015 available for a customer
+    hierarchy change. Neither has told the other. Both report green on dependencies. The
+    portfolio director can realistically intervene on one initiative this period.
+
+  ask:
+    portfolio_scope: all_change
+    status_source: programme_office_assessed
+    benefit_measurement_maturity: partially_measured
+    escalation_threshold: three_periods
+    intervention_capacity: one
+
+  gather:
+    provided:
+      initiatives_in_scope:
+        - "INIT-01 Customer portal replacement — delivery phase"
+        - "INIT-02 Route planning rebuild — build phase"
+        - "INIT-03 Middleware upgrade — delivery phase"
+        - "INIT-05 Trade pricing refresh — design phase"
+      cost_position: "All four within 8% of budget; forecasts revised this month"
+      schedule_position: "All four forecasting slip of up to one reporting period"
+      risk_register: "No high-severity risks open; several medium with mitigations in flight"
+      prior_period_status:
+        - "INIT-01 amber schedule for 3 consecutive periods; trajectory reported improving"
+        - "INIT-02 amber schedule for 3 consecutive periods; trajectory reported improving"
+        - "INIT-03 amber schedule for 3 consecutive periods; trajectory reported improving"
+        - "INIT-05 amber cost for 3 consecutive periods; trajectory reported improving"
+      architecture_commitments:
+        - "INIT-01 decommission nw-002 at go-live; requires data migration out of nw-015"
+        - "INIT-03 replace nw-019 before contract expiry 2026-09-30"
+        - "INIT-05 customer hierarchy restructure in nw-015"
+      benefit_definitions: "Defined for all four with baselines and target dates"
+      benefit_actuals: "None measured; none have reached go-live"
+    withheld:
+      - initiative_dependencies
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.application_costs
+
+expect:
+  escalated_on_persistence:
+    - INIT-01
+    - INIT-02
+    - INIT-03
+    - INIT-05
+  escalation_fires_despite_improving_trajectory: true
+
+  collision_identified:
+    initiatives: [INIT-01, INIT-05]
+    shared_dependency: nw-015
+    each_reports: green
+    inferred_not_confirmed: true
+
+  exception_report_ranked_to_capacity: 1
+  remainder_listed_as: carried_not_actioned
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    status was programme office assessed and a prior period was available, but dependencies were inferred
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That all four escalate on three consecutive periods amber, and that the escalation
+      fires on count regardless of the improving trajectories.
+    - Why: amber never crosses into red so it never triggers anything, and "improving"
+      reported three periods running has usually not improved.
+    - That INIT-01 and INIT-05 both depend on nw-015 while each reports green on
+      dependencies, and that neither is wrong about itself — which is why no single
+      initiative's status could produce this finding.
+    - That the dependency was INFERRED from overlapping architectural commitments rather than
+      confirmed with the delivery teams, so it is a prompt to check rather than a finding.
+    - That nw-015 has a technical fitness of 1 and no named business owner, which is why two
+      initiatives arriving at it simultaneously matters more than the count suggests.
+    - Exactly one initiative in "acting on this period", with the other three named under
+      carried and what is being accepted while they wait.
+    - That INIT-03's commitment is bound to a contract expiring 2026-09-30, roughly five
+      weeks out, which is the strongest argument for it taking the single intervention slot.
+    - That all four benefits are not_yet_measurable, none having reached go-live.
+
+  must_not:
+    - Suppress the escalations because the trajectories are improving.
+    - List all four initiatives as being acted on when capacity is one.
+    - Report the nw-015 collision as a confirmed finding when it was inferred.
+    - Report the portfolio as healthy because nothing is red.
+
+fails_if:
+  - Nothing escalates. A portfolio with no reds and four initiatives amber for three periods
+    is the most common way a portfolio quietly fails, and reporting it as healthy is the
+    failure this case exists to catch.
+  - The exception report names more interventions than the stated capacity. A report implying
+    four simultaneous interventions produces none.
+  - The collision is missed. It is derivable from the architectural commitments alone, which
+    is precisely the input that distinguishes this view from programme reporting.
+
+tolerance: >
+  Which initiative takes the single intervention slot is a judgement; INIT-03 is the
+  strongest case on the contract date, but a reasoned argument for INIT-01 on the collision
+  is acceptable. The four escalations, the collision surfaced as inferred, and the ranking to
+  capacity are not negotiable.
+
+notes: >
+  The hardest thing this case asks for is a report that says the portfolio needs attention
+  while every individual rating says it is fine. Every initiative is behaving reasonably,
+  every trajectory is improving, and nothing is red — and the portfolio is in trouble.

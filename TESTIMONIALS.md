@@ -14,7 +14,12 @@ This file also decides something: a skill cannot reach `proven` maturity without
 | [high-level-architecture](skills/technology/high-level-architecture/SKILL.md) | `draft` | 0 |
 | [architecture-decision-record](skills/technology/architecture-decision-record/SKILL.md) | `draft` | 0 |
 | [reference-architecture-pattern](skills/technology/reference-architecture-pattern/SKILL.md) | `draft` | 0 |
+| [integration-pattern-selection](skills/technology/integration-pattern-selection/SKILL.md) | `draft` | 0 |
 | [application-rationalization](skills/portfolio/application-rationalization/SKILL.md) | `draft` | 0 |
+| [license-and-contract-review](skills/portfolio/license-and-contract-review/SKILL.md) | `draft` | 0 |
+| [portfolio-health-dashboard](skills/portfolio/portfolio-health-dashboard/SKILL.md) | `draft` | 0 |
+| [vendor-product-selection](skills/portfolio/vendor-product-selection/SKILL.md) | `draft` | 0 |
+| [roadmap-sequencing](skills/portfolio/roadmap-sequencing/SKILL.md) | `draft` | 0 |
 
 ## Before you write one
 

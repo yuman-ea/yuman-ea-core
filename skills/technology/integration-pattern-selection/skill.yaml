@@ -1,0 +1,476 @@
+spec_version: "1.0"
+id: yea.technology.integration-pattern-selection
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: integration-pattern-selection
+display_name: Integration Pattern Selection
+description: >
+  Selects the integration pattern for a use case — synchronous or asynchronous interface,
+  publish and subscribe, queue, file transfer, data streaming, or partner document exchange —
+  from the timing, volume, payload, delivery guarantee, and replay characteristics of the
+  integration. Scores the realistic patterns against declared criteria, eliminates the ones
+  the requirements rule out, and states the failure path for the pattern it recommends.
+  Works from manual input; no integration tooling required.
+
+version: 0.1.0
+domain: technology
+category: design
+owner_agent: technology-ea
+maturity: draft
+license: Apache-2.0
+
+# Every required input is a fact the person designing the integration already has.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "integration pattern"
+    - "how should these systems talk to each other"
+    - "api or messaging"
+    - "should this be real time or batch"
+    - "pub sub or queue"
+    - "event driven or request response"
+    - "how do we send this data across"
+    - "file transfer or api"
+    - "synchronous or asynchronous integration"
+    - "how should we integrate these two systems"
+  decision_types:
+    - integration_design
+    - interface_selection
+  not_this_skill:
+    - phrase: "what should the whole solution architecture look like"
+      route_to: yea.technology.high-level-architecture
+    - phrase: "should we build or buy an integration platform"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "write up our standard integration approach as a pattern"
+      route_to: yea.technology.reference-architecture-pattern
+    - phrase: "record why we chose this approach"
+      route_to: yea.technology.architecture-decision-record
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — an integration designed against the wrong timing assumption is
+#    rebuilt, not adjusted.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Select the integration pattern for {integration_purpose}, carrying {payload_profile}
+    at {volume_and_frequency}, where the caller {response_timing} and delivery must be
+    {delivery_guarantee}.
+  decision_statement_fields:
+    - integration_purpose
+    - payload_profile
+    - volume_and_frequency
+    - response_timing
+    - delivery_guarantee
+  out_of_scope:
+    - The interface contract itself — field names, schemas, error codes. That is detailed design.
+    - Which product or platform implements the pattern.
+    - The architecture of the systems being integrated.
+    - Whether the two systems should be integrated at all.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped. The first one eliminates half the option set.
+# ---------------------------------------------------------------------------
+ask:
+  - id: response_timing
+    question: "Does the calling system need the answer before it can carry on, or can it continue and find out later?"
+    why: "This single answer eliminates roughly half the patterns before anything is scored. A caller that must wait rules out file transfer, publish-subscribe, and streaming outright."
+    type: choice
+    options: [caller_waits, caller_continues, scheduled_no_caller]
+    option_labels:
+      caller_waits: "It cannot proceed without the result"
+      caller_continues: "It hands the work over and moves on"
+      scheduled_no_caller: "Nothing is waiting — this runs on a schedule"
+    required: true
+    default_if_skipped: caller_continues
+    affects: [timing_fit, coupling_and_resilience]
+
+  - id: consumer_count
+    question: "How many systems need this data — one, a few known ones, or an unknown number that will grow?"
+    why: "Decides between point-to-point and broadcast. The question is about eighteen months from now, not today: one consumer today with more likely later is a publish-subscribe case, not a queue case."
+    type: choice
+    options: [single_known, several_known, unknown_and_growing]
+    option_labels:
+      single_known: "One system, and that will not change"
+      several_known: "A handful, and we know who they are"
+      unknown_and_growing: "More will want this than we can currently name"
+    required: true
+    default_if_skipped: several_known
+    affects: [change_tolerance, estate_fit]
+
+  - id: delivery_guarantee
+    question: "What is the consequence if a message is lost, or delivered twice?"
+    why: "Sets the delivery semantics the pattern must provide. Most production integration failures are duplicate or lost messages rather than throughput, and the guarantee is far cheaper to design in than to retrofit."
+    type: choice
+    options: [best_effort, no_loss, no_loss_no_duplicates]
+    option_labels:
+      best_effort: "An occasional miss is tolerable and recoverable"
+      no_loss: "Nothing may be lost; a duplicate is manageable"
+      no_loss_no_duplicates: "Neither is acceptable — money or stock moves on this"
+    required: true
+    default_if_skipped: no_loss
+    affects: [delivery_semantics_fit, coupling_and_resilience]
+
+  - id: party_boundary
+    question: "Does this cross to another organization?"
+    why: "An external boundary changes what is available. Partners cannot be told to adopt an internal pattern, and a widely used industry document format is often the only thing both sides already support."
+    type: choice
+    options: [internal_only, external_partner, external_many_partners]
+    option_labels:
+      internal_only: "Both ends are ours"
+      external_partner: "One external party we can negotiate with"
+      external_many_partners: "Many external parties, each with their own capability"
+    required: true
+    default_if_skipped: internal_only
+    affects: [estate_fit, operability]
+
+  - id: replay_need
+    question: "Will anyone need to reprocess history — a new consumer catching up, or a rebuild after a bug?"
+    why: "The question that separates streaming from queueing, and the one most often skipped. A queue that has delivered its messages has forgotten them, and discovering that after a bad deployment is expensive."
+    type: choice
+    options: [never, occasionally_from_backup, routinely]
+    option_labels:
+      never: "Once it is processed it is gone, and that is fine"
+      occasionally_from_backup: "Rarely, and restoring from a backup would do"
+      routinely: "New consumers or reprocessing are expected"
+    required: true
+    default_if_skipped: occasionally_from_backup
+    affects: [delivery_semantics_fit, change_tolerance]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required facts, all held by whoever is designing this.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: integration_purpose
+      description: "What business event or need this serves, and which system sends and which receives. One sentence."
+      source: user
+      format: scalar
+
+    - id: volume_and_frequency
+      description: "How many messages, files, or records, how often, and where the peak is. State the peak separately — averages design nothing."
+      source: [user, context.integrations]
+      format: scalar
+
+    - id: payload_profile
+      description: "Typical and maximum size of a single message or file, and whether it carries a whole record or only what changed."
+      source: user
+      format: scalar
+
+  optional:
+    - id: existing_integration_estate
+      description: "The integration patterns and infrastructure the organization already runs, and who supports them."
+      source: [user, context.integrations, context.application_inventory]
+      format: list
+      on_missing: use_proxy_metric
+      proxy: "Patterns already recorded against interfaces in the integration register, treated as the set the organization can operate today."
+      assumption_template: "The available integration capability was inferred from interfaces already in place rather than confirmed with the team that runs them. Choosing a pattern the organization cannot operate is the most common way an integration design fails after approval."
+      confidence_penalty: high
+
+    - id: latency_requirement
+      description: "How quickly the receiving system must have the data, as a number and a percentile."
+      source: user
+      format: scalar
+      on_missing: ask_user
+      confidence_penalty: medium
+
+    - id: ordering_requirement
+      description: "Whether messages must be processed in the order they were produced, and within what grouping."
+      source: user
+      format: scalar
+      on_missing: use_default_value
+      default_value: not_required
+      assumption_template: "No ordering requirement was stated, so the analysis assumes order does not matter. If it does — stock movements, financial postings, status transitions — the pattern set narrows sharply and this must be re-run."
+      confidence_penalty: medium
+
+    - id: error_handling_expectation
+      description: "What should happen when delivery fails, and who is expected to notice."
+      source: user
+      format: scalar
+      on_missing: ask_user
+      confidence_penalty: medium
+
+    - id: data_sensitivity
+      description: "The classification of the data crossing the interface."
+      source: [user, context.policies]
+      format: scalar
+      on_missing: use_default_value
+      default_value: confidential
+      assumption_template: "Data classification was not stated, so the interface has been assessed as carrying confidential data. Regulated or personal data changes the residency and audit position and requires a re-run."
+      confidence_penalty: medium
+
+    - id: partner_capability
+      description: "What the external party can actually send and receive, and what they already use with other customers."
+      source: user
+      format: scalar
+      on_missing: use_default_value
+      default_value: unknown
+      assumption_template: "The partner's technical capability was not established. Designing an external interface without it produces a pattern the partner may be unable to implement, and the discovery usually arrives after commitments have been made."
+      confidence_penalty: medium
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - integration_via_broker
+    - security_baseline
+    - data_residency
+    - customer_master_authority
+    - cloud_first
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - security_baseline
+    - data_residency
+    - customer_master_authority
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the option set is fixed by the method, not supplied by the user.
+#    See ./references/pattern-characteristics.md for what each one costs.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: timing_fit
+      display_name: Meets the timing requirement
+      weight: 0.20
+      description: "Whether the pattern delivers inside the window the receiving system needs, at peak rather than on average."
+      evidence: [response_timing, latency_requirement, volume_and_frequency]
+      direction: higher_is_better
+
+    - id: delivery_semantics_fit
+      display_name: Delivery guarantees
+      weight: 0.20
+      description: "Whether the pattern provides the loss, duplication, ordering, and replay behaviour the use case requires without bolting on extra machinery."
+      evidence: [delivery_guarantee, ordering_requirement, replay_need]
+      direction: higher_is_better
+
+    - id: estate_fit
+      display_name: The organization can run it
+      weight: 0.15
+      description: "Whether the infrastructure, skills, and support arrangements to operate this pattern exist today, or would have to be created."
+      evidence: [existing_integration_estate, party_boundary, partner_capability]
+      direction: higher_is_better
+
+    - id: coupling_and_resilience
+      display_name: Behaviour when one side is down
+      weight: 0.15
+      description: "What happens to the sender, the receiver, and the data when the other end is unavailable, slow, or rejecting."
+      evidence: [response_timing, error_handling_expectation, delivery_guarantee]
+      direction: higher_is_better
+
+    - id: volume_and_payload_fit
+      display_name: Handles the size and rate
+      weight: 0.15
+      description: "Whether the pattern carries this payload size at this frequency without itself becoming the constraint."
+      evidence: [payload_profile, volume_and_frequency, integration_purpose]
+      direction: higher_is_better
+
+    - id: operability
+      display_name: Can be run and diagnosed
+      weight: 0.10
+      description: "Whether a failed message can be found, understood, and reprocessed by someone on support at two in the morning."
+      evidence: [existing_integration_estate, error_handling_expectation, data_sensitivity]
+      direction: higher_is_better
+
+    - id: change_tolerance
+      display_name: Absorbs change
+      weight: 0.05
+      description: "What it costs to add a consumer or change the payload shape once this is in production."
+      evidence: [consumer_count, replay_need, integration_purpose]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — this alone would be grounds to reject the pattern."
+      - value: 2
+        meaning: "Unfavourable — a material weakness the organization would have to accept and actively manage."
+      - value: 3
+        meaning: "Neutral — workable, with no real advantage over the alternatives."
+      - value: 4
+        meaning: "Favourable — a clear advantage a reviewer would recognize without needing it explained."
+      - value: 5
+        meaning: "Strongly favourable — the best outcome realistically available on this criterion."
+
+  steps:
+    - "Restate the integration using the frame template, naming the sending and the receiving system, and confirm it before scoring."
+    - "Quantify the timing. If 'real time' cannot be expressed as a number and a percentile, say so — nobody means the same thing by it, and the disagreement is cheaper to find now than in testing."
+    - "Apply the response timing answer first and eliminate the patterns it rules out. A caller that must wait eliminates file transfer, publish-subscribe, and data streaming; record the eliminations rather than letting options quietly disappear."
+    - "Apply hard constraints. Record every pattern eliminated and the policy ID that eliminated it."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any score depends on it."
+    - "Score each surviving pattern against each criterion on the 1-5 favourability scale, citing for every score the evidence ID it rests on."
+    - "Score direct data access honestly rather than omitting it. It is what teams reach for when integration is hard, it is usually wrong, and a comparison that never mentions it does not help the person deciding."
+    - "Compute the weighted score. Compare the top two against the indifference band; inside it, report the patterns as too close to separate and apply tie-breakers rather than declaring a winner."
+    - "State the failure path for the recommended pattern: what happens when the receiver is down, what the sender does, where the data waits, and who finds out. A design without this describes the happy path only, and the happy path never causes an incident."
+    - "Where a combination is genuinely right — brokered events with a file-based backfill, for example — recommend it as a deliberate combination with its own failure path, never as indecision between two patterns."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the pattern the organization already runs. A marginally better pattern nobody can support at three in the morning is worse in production than an adequate one they know."
+    - "Prefer the pattern that tolerates a second consumer without redesign, where timing and delivery needs are met either way."
+    - "Prefer the pattern with the simpler failure path — fewer places a message can be sitting when someone asks where it is."
+    - "If still tied, report the tie and name the one measurement — usually peak volume or the real latency requirement — that would break it."
+
+  references:
+    - ./references/pattern-characteristics.md
+    - ./references/failure-paths-and-guarantees.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, delivery_team]
+  artifacts:
+    - id: pattern_recommendation
+      display_name: Integration pattern recommendation
+      description: "The recommended pattern, the reasoning in business language, the failure path, and what was eliminated and by what."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/pattern-recommendation.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: the_integration
+            heading: "The integration"
+            required: true
+            description: "Source, target, business purpose, and the characteristics that drove the decision."
+          - id: recommendation
+            heading: "Recommended pattern"
+            required: true
+          - id: why
+            heading: "Why"
+            required: true
+            description: "The two or three characteristics that decided it, as reasons rather than scores."
+          - id: patterns_eliminated
+            heading: "Patterns eliminated, and by what"
+            required: true
+            description: "Including those ruled out by the timing answer before scoring. Stated explicitly as none if none."
+          - id: failure_path
+            heading: "What happens when it fails"
+            required: true
+            description: "Receiver down, message rejected, backlog building. Where data waits, for how long, and who finds out."
+          - id: delivery_guarantees
+            heading: "Delivery guarantees this provides"
+            required: true
+            description: "Loss, duplication, ordering, and replay — what the pattern gives, and what the receiver must handle itself."
+          - id: what_it_costs
+            heading: "What it costs to build and run"
+            required: true
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this answer"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+    - id: pattern_comparison
+      display_name: Pattern comparison
+      description: "One row per pattern per criterion, with the score, the evidence behind it, and the assumption it depends on."
+      formats: [md, csv, xlsx]
+      preferred_format: md
+      markdown_template: ./assets/pattern-comparison.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: pattern_id
+            type: enum
+            enum_values: [api_synchronous, api_asynchronous, publish_subscribe, queue_based, file_transfer, data_streaming, partner_document_exchange, direct_data_access]
+          - id: criterion_id
+            type: enum
+            enum_values: [timing_fit, delivery_semantics_fit, estate_fit, coupling_and_resilience, volume_and_payload_fit, operability, change_tolerance]
+          - id: score
+            type: score
+            description: "1-5 favourability, against the declared anchors."
+          - id: weight
+            type: number
+          - id: weighted_score
+            type: number
+          - id: evidence_basis
+            type: string
+            description: "The evidence ID and the specific fact behind the score, not a restatement of the criterion."
+          - id: eliminated_by
+            type: string
+            description: "Policy ID or the timing answer, where the pattern was ruled out before scoring."
+          - id: assumption_ref
+            type: string
+          - id: score_confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: decision_record
+      display_name: Decision record
+      description: "A dated record of the pattern choice and what would make the organization revisit it."
+      formats: [md]
+      preferred_format: md
+      markdown_template: ./assets/decision-record.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: status
+            heading: "Status"
+            required: true
+          - id: context
+            heading: "Context"
+            required: true
+          - id: decision
+            heading: "Decision"
+            required: true
+          - id: consequences
+            heading: "Consequences"
+            required: true
+          - id: failure_path
+            heading: "Failure path"
+            required: true
+          - id: revisit_trigger
+            heading: "What would make us revisit this"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "peak volume, payload size, and a quantified latency requirement were all supplied, and the integration capability the organization actually runs was confirmed rather than inferred."
+    - level: medium
+      when: "the integration estate was inferred from the register, or the latency requirement was given only as a coarse timing answer, but volume and payload were supplied."
+    - level: low
+      when: "peak volume or payload size was not supplied, or the latency requirement could not be quantified at all, or an external interface was designed without establishing what the partner can support."
+
+  sensitivity_targets:
+    - target: volume_and_frequency
+      variation: "x10 on peak volume"
+      report: "Whether the recommended pattern still holds, and which part becomes the constraint first."
+    - target: consumer_count
+      variation: "add a second consumer that was not planned for"
+      report: "What it costs to add one. This is the change that most often invalidates a point-to-point choice, and it usually arrives within a year."
+    - target: payload_profile
+      variation: "x10 on maximum payload size"
+      report: "Whether the pattern still carries it, or whether the design shifts to passing a reference instead of the data itself."
+    - target: latency_requirement
+      variation: "requirement halved"
+      report: "Whether the recommendation survives a stricter timing requirement than the one stated, since stated requirements are frequently a first guess."
+
+  evals: ./evals/

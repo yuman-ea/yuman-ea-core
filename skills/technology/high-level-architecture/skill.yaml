@@ -48,7 +48,7 @@ triggers:
     - phrase: "should we build it or buy it"
       route_to: yea.technology.build-vs-buy
     - phrase: "which product should we choose"
-      route_to: technology-ea
+      route_to: yea.portfolio.vendor-product-selection
     - phrase: "how much will this cost and can we fund it"
       route_to: portfolio-ea
     - phrase: "what business capability does this serve"
