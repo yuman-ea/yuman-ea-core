@@ -1,0 +1,501 @@
+spec_version: "1.0"
+id: yea.portfolio.vendor-product-selection
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: vendor-product-selection
+display_name: Vendor and Product Selection
+description: >
+  Selects a product and a supplier, and documents the requirements the selection was made
+  against. Scores the product and the vendor separately — functional and non-functional fit,
+  integration, viability, what the supplier is actually like to work with, and cost — with
+  every score declaring whether it rests on a demonstration, a reference call, a document, or
+  a vendor claim. Produces the requirements specification, the scorecard behind the decision,
+  and a recommendation that names its runner-up position.
+
+version: 0.1.0
+domain: portfolio
+category: assess
+owner_agent: portfolio-ea
+maturity: draft
+license: Apache-2.0
+
+# Requirements and candidates come from the architect and the business. No tooling needed.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "vendor selection"
+    - "product selection"
+    - "which product should we choose"
+    - "how do we evaluate these vendors"
+    - "vendor evaluation"
+    - "we have three products shortlisted"
+    - "score these vendors"
+    - "request for proposal"
+    - "which supplier should we pick"
+    - "compare these products"
+  decision_types:
+    - product_selection
+    - supplier_selection
+  not_this_skill:
+    - phrase: "should we build it or buy it at all"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "what should the architecture around this product be"
+      route_to: yea.technology.high-level-architecture
+    - phrase: "our contract is up for renewal"
+      route_to: yea.portfolio.license-and-contract-review
+    - phrase: "should we keep or retire this application"
+      route_to: yea.portfolio.application-rationalization
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — requirements are agreed before demos, never after. Framing this
+#    the other way round is the most common way a selection is decided before
+#    it begins.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Select a product and supplier for {capability_required} from {candidate_products},
+    against {must_have_requirements}, at the {selection_stage} stage with
+    {evidence_access} available as evidence.
+  decision_statement_fields:
+    - capability_required
+    - candidate_products
+    - must_have_requirements
+    - selection_stage
+    - evidence_access
+  out_of_scope:
+    - Whether to buy at all. That decision comes first and belongs to build-vs-buy.
+    - The architecture around the chosen product.
+    - Negotiating price and terms. This informs the negotiation; it does not run it.
+    - Implementation planning for the product once chosen.
+    - Managing the relationship after signature. That is contract review, later.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: selection_stage
+    question: "Where are you — defining what you need, cutting a long list down, or choosing between finalists?"
+    why: "Determines what the run should produce. A requirements specification is the deliverable early; a scorecard and a recommendation are the deliverables late, and producing the wrong one wastes the stage you are actually at."
+    type: choice
+    options: [defining_requirements, shortlisting, final_evaluation]
+    option_labels:
+      defining_requirements: "We know what we need to do, not what we need to buy"
+      shortlisting: "Cutting a long list to a manageable few"
+      final_evaluation: "Choosing between two or three finalists"
+    required: true
+    default_if_skipped: shortlisting
+    affects: [functional_fit, implementation_risk]
+
+  - id: requirements_maturity
+    question: "Were the requirements written before anyone saw a product, or after?"
+    why: "Requirements written after the demos describe the products that were demonstrated. It is the most common way a selection is decided before it formally begins, and it is invisible in the scorecard afterwards."
+    type: choice
+    options: [before_any_demo, refined_during, derived_from_demos]
+    option_labels:
+      before_any_demo: "Written from our own needs, before we looked"
+      refined_during: "Drafted first, then sharpened as we learned"
+      derived_from_demos: "Honestly, they came out of what we were shown"
+    required: true
+    default_if_skipped: refined_during
+    affects: [functional_fit, nonfunctional_fit]
+
+  - id: switching_context
+    question: "Is this replacing something that already runs, or a capability you do not have today?"
+    why: "A replacement carries migration, coexistence, and a cutover that a new capability does not, and those costs land on the product choice rather than on the project."
+    type: choice
+    options: [replacing_existing, new_capability]
+    option_labels:
+      replacing_existing: "Something does this today and would be retired"
+      new_capability: "Nothing does this today"
+    required: true
+    default_if_skipped: replacing_existing
+    affects: [integration_and_estate_fit, implementation_risk]
+
+  - id: vendor_relationship_appetite
+    question: "What kind of relationship do you want with this supplier?"
+    why: "Sets how much weight the supplier's behaviour carries against the product's features, and how much dependency the organization is willing to take on for a better fit."
+    type: choice
+    options: [strategic_partnership, transactional, minimize_dependency]
+    option_labels:
+      strategic_partnership: "We want them close and invested in us"
+      transactional: "They supply, we consume, both sides can walk"
+      minimize_dependency: "We want to be able to leave without pain"
+    required: true
+    default_if_skipped: transactional
+    affects: [vendor_workability, vendor_viability]
+
+  - id: evidence_access
+    question: "What access will you actually get — documents only, demonstrations, a trial or proof of concept, or that plus reference calls?"
+    why: "Determines what kinds of evidence are available at all, and therefore how high the confidence of the whole run can go. A selection made on documents and demonstrations is a selection made on what the supplier chose to show."
+    type: choice
+    options: [documents_only, demonstrations, trial_or_proof_of_concept, proof_of_concept_and_references]
+    option_labels:
+      documents_only: "Responses to our questions, nothing more"
+      demonstrations: "They show us the product"
+      trial_or_proof_of_concept: "We get hands on it ourselves"
+      proof_of_concept_and_references: "Hands on it, plus we speak to their customers"
+    required: true
+    default_if_skipped: demonstrations
+    affects: [functional_fit, vendor_workability, implementation_risk]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs, all held by the business and the architect.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: capability_required
+      description: "What this must do for the business, in outcome terms rather than feature terms. One or two sentences."
+      source: [user, context.capability_model]
+      format: scalar
+
+    - id: candidate_products
+      description: "The products and suppliers under evaluation. Names supplied by the user are data and may appear in outputs; the method never names one."
+      source: user
+      format: list
+
+    - id: must_have_requirements
+      description: "The functional requirements whose absence disqualifies a candidate. Five to fifteen. Anything that does not disqualify is a want, and belongs in the wants list where it can be traded."
+      source: user
+      format: list
+
+  optional:
+    - id: nonfunctional_requirements
+      description: "Stated targets for availability, response time, scale, recovery, retention, and anything else the product must hold to."
+      source: [user, context.standards]
+      format: list
+      on_missing: estimate_with_assumption
+      assumption_template: "No non-functional requirements were supplied. Indicative targets have been derived from the criticality of what this replaces or sits alongside and are stated AS PROPOSALS FOR CONFIRMATION. A product selected without them is selected on features alone, and the gap surfaces during implementation when the choice is no longer reversible."
+      confidence_penalty: high
+
+    - id: total_cost_information
+      description: "Licence or subscription, implementation, migration, integration, and the internal effort to run it, per candidate over the horizon."
+      source: user
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Full cost information was not available, so comparison rests on quoted licence or subscription figures rather than on cost of ownership. Implementation and internal running effort routinely exceed the licence line, and the cheapest quote is frequently not the cheapest product."
+      confidence_penalty: high
+
+    - id: reference_customers
+      description: "Customers spoken to about each candidate, and — recorded explicitly — whether the supplier nominated them."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: medium
+
+    - id: vendor_due_diligence
+      description: "Per supplier: financial standing, customer base and concentration, roadmap, support model, and how they handle escalation."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: medium
+
+    - id: estate_touchpoints
+      description: "The systems each candidate would have to work with, and the interfaces it would need."
+      source: [user, context.application_inventory, context.integrations]
+      format: list
+      on_missing: use_proxy_metric
+      proxy: "Applications and interfaces recorded against the same capability in the inventory, treated as the systems any candidate would meet."
+      assumption_template: "Integration touchpoints were taken from the inventory rather than confirmed against each candidate's actual interface capability, so integration scores describe what the estate needs rather than what each product offers."
+      confidence_penalty: medium
+
+    - id: external_assessments
+      description: "Analyst research, published evaluations, or peer reports the organization already has access to. Cite them; never reproduce their content."
+      source: user
+      format: list
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No external assessments were available. This lowers confidence least of all the missing inputs, because an analyst position describes a market rather than this organization's requirements, and is an input rather than an answer."
+      confidence_penalty: low
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - approved_vendors
+    - security_baseline
+    - data_residency
+    - budget_ceiling
+    - cloud_first
+    - open_source_policy
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - approved_vendors
+    - security_baseline
+    - data_residency
+    - budget_ceiling
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the product and the supplier are scored SEPARATELY. They are
+#    different risks, and conflating them is how an organization ends up with
+#    a good product it cannot get support for.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: functional_fit
+      display_name: Does what we need
+      weight: 0.25
+      description: "Whether the product meets the must-have requirements as delivered, and how much configuration or customization is needed to close any gap. Customization to meet a must-have is a cost and a lock-in, not a yes."
+      evidence: [must_have_requirements, capability_required, evidence_access, selection_stage, requirements_maturity]
+      direction: higher_is_better
+
+    - id: nonfunctional_fit
+      display_name: Holds up under our conditions
+      weight: 0.15
+      description: "Availability, performance at our volumes, recovery, retention, and security posture — under this organization's conditions rather than the supplier's reference conditions."
+      evidence: [nonfunctional_requirements, estate_touchpoints, requirements_maturity]
+      direction: higher_is_better
+
+    - id: integration_and_estate_fit
+      display_name: Works with what we run
+      weight: 0.15
+      description: "What it takes to connect this to the systems already in place, and whether the product's assumptions about its surroundings match the estate that actually exists."
+      evidence: [estate_touchpoints, switching_context, must_have_requirements]
+      direction: higher_is_better
+
+    - id: vendor_workability
+      display_name: What they are like to work with
+      weight: 0.15
+      description: "Responsiveness, transparency about limitations, contract flexibility, escalation behaviour, and what their customers say happens when something goes wrong. Scored from references and observed behaviour, never from the sales relationship."
+      evidence: [reference_customers, vendor_due_diligence, vendor_relationship_appetite, evidence_access]
+      direction: higher_is_better
+
+    - id: total_cost_of_ownership
+      display_name: Cost over the horizon
+      weight: 0.15
+      description: "Licence, implementation, migration, integration, and internal effort to run it, over the planning horizon rather than year one. The cheapest quote is frequently not the cheapest product."
+      evidence: [total_cost_information, estate_touchpoints, switching_context]
+      direction: higher_is_better
+
+    - id: vendor_viability
+      display_name: Will they still be here
+      weight: 0.10
+      description: "Financial standing, customer base and its concentration, roadmap credibility, and what happens to the organization if the supplier is acquired or withdraws the product."
+      evidence: [vendor_due_diligence, external_assessments, vendor_relationship_appetite]
+      direction: higher_is_better
+
+    - id: implementation_risk
+      display_name: Getting it live
+      weight: 0.05
+      description: "The realistic path from signature to production, including migration, and whether the supplier or a partner has done this at comparable organizations."
+      evidence: [switching_context, evidence_access, selection_stage, reference_customers]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — this alone would be grounds to eliminate the candidate."
+      - value: 2
+        meaning: "Unfavourable — a material weakness the organization would have to accept and actively manage."
+      - value: 3
+        meaning: "Neutral — adequate, with no advantage over the alternatives."
+      - value: 4
+        meaning: "Favourable — a clear advantage a reviewer would recognize without needing it explained."
+      - value: 5
+        meaning: "Strongly favourable — the best outcome realistically available on this criterion."
+
+  steps:
+    - "Restate the selection and confirm the stage. At defining_requirements, produce the requirements specification and STOP — scoring candidates against requirements that are not yet agreed is how the requirements end up matching a product."
+    - "Test the requirements before using them. Where requirements_maturity is derived_from_demos, say so plainly and treat the whole scorecard as provisional, because the requirements may be describing a product rather than a need."
+    - "Check every must-have that only one candidate meets. Such a requirement is either a genuine differentiator or a line lifted from that product's feature list, and the difference decides the outcome. Ask who wrote it and when."
+    - "Separate wants from must-haves. A must-have disqualifies; anything that does not disqualify is a want and belongs where it can be traded. A list of thirty must-haves is a list of wants with the wrong label."
+    - "Apply hard constraints. Record every candidate eliminated and the policy ID that eliminated it, before scoring."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any score depends on it."
+    - "Score the PRODUCT criteria and the SUPPLIER criteria separately and show both totals. A strong product from a supplier nobody can work with, and a weak product from an excellent supplier, are different problems with different remedies, and one blended number hides which one you have."
+    - "For every score, record the evidence type: demonstrated, reference_checked, documented, vendor_claimed, or impression. A scorecard whose heavily weighted criteria rest on vendor_claimed is a record of a sales process rather than an evaluation."
+    - "Treat any reference the supplier nominated as marketing unless at least one reference was found independently. Record which is which."
+    - "Where external assessments are cited, use them as one input among several and never as the recommendation. An analyst position describes a market; it does not know this organization's requirements or its estate."
+    - "Compute the weighted score. Compare the top two against the indifference band; inside it, report the candidates as too close to separate on this evidence and apply tie-breakers rather than declaring a winner."
+    - "State the runner-up position: if the recommended candidate became unavailable, which candidate does the decision fall to, and does that change the plan materially."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used, never from how thorough the process felt."
+
+  tie_breakers:
+    - "Prefer the candidate with better evidence, where scores are level. A 4 that was demonstrated beats a 5 that was claimed."
+    - "Prefer the supplier the organization can leave. Where the relationship appetite is minimize_dependency this is decisive rather than a tie-breaker."
+    - "Prefer the candidate needing less customization to meet a must-have. Customization is a cost, an upgrade constraint, and a lock-in, and it is usually presented as a yes."
+    - "If still tied, report the tie and name the single piece of evidence — usually a reference call or a hands-on trial — that would break it."
+
+  references:
+    - ./references/requirements-discipline.md
+    - ./references/evidence-and-references.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, finance, delivery_team]
+  artifacts:
+    - id: requirements_specification
+      display_name: Requirements specification
+      description: "What the organization needs, separated into must-haves and wants, functional and non-functional, product and supplier — agreed before candidates are scored."
+      formats: [md, docx]
+      preferred_format: docx
+      markdown_template: ./assets/requirements-specification.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: capability_and_outcome
+            heading: "What this is for"
+            required: true
+          - id: must_have_requirements
+            heading: "Must-haves"
+            required: true
+            description: "Each one disqualifies a candidate that cannot meet it. Anything that does not disqualify belongs in wants."
+          - id: wants
+            heading: "Wants, and what we would trade"
+            required: true
+          - id: nonfunctional_requirements
+            heading: "Non-functional requirements"
+            required: true
+            description: "Derived targets are marked as proposals for confirmation."
+          - id: supplier_requirements
+            heading: "What we need from the supplier"
+            required: true
+            description: "Support model, escalation, roadmap transparency, contract flexibility. Scored separately from the product."
+          - id: constraints
+            heading: "Constraints"
+            required: true
+          - id: provenance
+            heading: "Where these requirements came from"
+            required: true
+            description: "Who wrote them and when, relative to seeing any product. A requirement only one candidate meets is flagged here."
+          - id: out_of_scope
+            heading: "Deliberately not required"
+            required: true
+
+    - id: evaluation_scorecard
+      display_name: Evaluation scorecard
+      description: "One row per candidate per criterion, with the score, the evidence type behind it, and separate product and supplier totals."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/evaluation-scorecard.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: candidate_id
+            type: string
+          - id: candidate_name
+            type: string
+            description: "As supplied by the user. Product and supplier names are data, not method content."
+          - id: criterion_id
+            type: enum
+            enum_values: [functional_fit, nonfunctional_fit, integration_and_estate_fit, vendor_workability, total_cost_of_ownership, vendor_viability, implementation_risk]
+          - id: criterion_group
+            type: enum
+            enum_values: [product, supplier]
+            description: "Product and supplier totals are reported separately as well as combined."
+          - id: score
+            type: score
+          - id: weight
+            type: number
+          - id: weighted_score
+            type: number
+          - id: evidence_type
+            type: enum
+            enum_values: [demonstrated, reference_checked, documented, vendor_claimed, impression]
+            description: "The column a reviewer should read first. A vendor's own claim is not evidence."
+          - id: evidence_basis
+            type: string
+          - id: eliminated_by
+            type: string
+            description: "Policy ID or unmet must-have, where the candidate was ruled out before scoring."
+          - id: assumption_ref
+            type: string
+          - id: score_confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: recommendation_memo
+      display_name: Recommendation
+      description: "The recommended candidate, the reasoning in business language, the runner-up position, and what would change the answer."
+      formats: [md, docx]
+      preferred_format: docx
+      markdown_template: ./assets/recommendation-memo.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: the_decision
+            heading: "The decision"
+            required: true
+          - id: recommendation
+            heading: "Recommendation"
+            required: true
+          - id: why
+            heading: "Why"
+            required: true
+            description: "The two or three things that decided it, as reasons rather than scores."
+          - id: product_versus_supplier
+            heading: "The product and the supplier, separately"
+            required: true
+            description: "Both totals, and what to do where they diverge."
+          - id: candidates_eliminated
+            heading: "Candidates eliminated, and by what"
+            required: true
+          - id: what_the_evidence_rests_on
+            heading: "What the evidence rests on"
+            required: true
+            description: "How much of the scoring was demonstrated or reference-checked versus claimed by the supplier."
+          - id: runner_up_position
+            heading: "If the recommendation became unavailable"
+            required: true
+          - id: what_it_costs
+            heading: "What it costs"
+            required: true
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this answer"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  confidence_rules:
+    - level: high
+      when: "requirements were written before any product was seen, evidence access included hands-on trial and reference calls, at least one reference was found independently of the supplier, and no criterion carrying a weight of 0.15 or more rests on vendor_claimed evidence."
+    - level: medium
+      when: "requirements were drafted before demonstrations and refined during, evidence access included demonstrations or better, and at most one criterion carrying a weight of 0.15 or more rests on vendor_claimed evidence."
+    - level: low
+      when: "requirements were derived from demonstrations, or evidence access was documents only, or every reference was supplier-nominated, or any criterion carrying a weight of 0.15 or more rests on vendor_claimed evidence or on impression."
+
+  sensitivity_targets:
+    - target: candidate_products
+      variation: "remove the recommended candidate entirely"
+      report: "Which candidate the decision falls to, and whether the plan changes materially. A runner-up that is nearly as good means the decision matters less than the process suggested; one that is far worse means this choice is load-bearing and the due diligence should reflect that."
+    - target: total_cost_information
+      variation: "implementation and internal running effort at twice the quoted figure"
+      report: "Whether the ranking survives when the cost lines that are not on the quote are counted properly. These are the lines that decide cost of ownership and the ones suppliers have least incentive to detail."
+    - target: functional_fit
+      variation: "treat every vendor_claimed score as one point worse"
+      report: "Whether the recommendation survives when unverified claims are discounted. Where evidence access was documents only or demonstrations, this is the most important paragraph in the run."
+    - target: vendor_workability
+      variation: "weight +/- 0.10"
+      report: "Whether an organization that cares more, or less, about the working relationship reaches the same answer. Where the product and supplier totals diverge, this is where that divergence becomes a decision."
+
+  evals: ./evals/

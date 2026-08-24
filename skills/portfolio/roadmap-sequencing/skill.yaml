@@ -1,0 +1,487 @@
+spec_version: "1.0"
+id: yea.portfolio.roadmap-sequencing
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: roadmap-sequencing
+display_name: Roadmap Sequencing
+description: >
+  Sequences capability-building initiatives into waves that respect dependencies, fixed
+  external dates, and the delivery capacity the organization actually has. Surfaces enabling
+  work that nothing funds, dependencies that live in the estate rather than in anyone's plan,
+  and the point at which a wave exceeds capacity — reported as infeasible rather than
+  smoothed. Produces a wave plan, the reasoning behind the order, and a capacity profile
+  showing where it breaks.
+
+version: 0.1.0
+domain: portfolio
+category: design
+owner_agent: portfolio-ea
+maturity: draft
+license: Apache-2.0
+
+# An initiative list, a rough team count, and what depends on what. No planning tool needed.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "roadmap sequencing"
+    - "what order should we do these in"
+    - "wave plan"
+    - "delivery roadmap"
+    - "we cannot do everything at once"
+    - "what goes in wave one"
+    - "sequence these initiatives"
+    - "dependency order"
+    - "do we have the capacity for this plan"
+    - "phasing the programme"
+  decision_types:
+    - portfolio_sequencing
+    - delivery_planning
+  not_this_skill:
+    - phrase: "which initiatives are in trouble right now"
+      route_to: yea.portfolio.portfolio-health-dashboard
+    - phrase: "which applications should we keep or retire"
+      route_to: yea.portfolio.application-rationalization
+    - phrase: "should we build or buy this capability"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "which investment should we fund at all"
+      route_to: portfolio-ea
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — a sequence that ignores capacity is a wish list with dates on it.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Sequence {initiatives_to_sequence} into waves of {wave_length} across
+    {planning_horizon}, building toward {capability_targets}, against
+    {delivery_capacity} whose basis is {capacity_basis}.
+  decision_statement_fields:
+    - initiatives_to_sequence
+    - wave_length
+    - planning_horizon
+    - capability_targets
+    - delivery_capacity
+    - capacity_basis
+  out_of_scope:
+    - Deciding whether an initiative should be funded at all.
+    - Re-planning any individual initiative internally.
+    - Reporting on initiatives already in flight. That is the health dashboard.
+    - Estimating an initiative that has never been sized. This sequences what you can size.
+    - Resource allocation to named individuals.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: planning_horizon
+    question: "How far out are you sequencing — twelve months, twenty-four, or thirty-six?"
+    why: "Sets how many waves exist and therefore what can be deferred rather than dropped. A twelve-month horizon turns 'later' into 'no', and that should be a visible consequence rather than a surprise."
+    type: choice
+    options: [twelve_months, twenty_four_months, thirty_six_months]
+    option_labels:
+      twelve_months: "This year"
+      twenty_four_months: "Two years"
+      thirty_six_months: "Three years"
+    required: true
+    default_if_skipped: twenty_four_months
+    affects: [time_criticality, enabling_value]
+
+  - id: wave_length
+    question: "How long is a wave — a quarter, a half year, or a year?"
+    why: "Sets the granularity of the plan and how much slip a single wave absorbs. Waves longer than the organization's planning cycle are ignored; waves shorter than its delivery cycle are fiction."
+    type: choice
+    options: [quarterly, half_yearly, annual]
+    option_labels:
+      quarterly: "Quarterly waves"
+      half_yearly: "Half-yearly waves"
+      annual: "Annual waves"
+    required: true
+    default_if_skipped: half_yearly
+    affects: [capacity_fit, readiness]
+
+  - id: capacity_basis
+    question: "Where does your capacity figure come from — measured from what you have actually delivered, estimated from headcount, or not really known?"
+    why: "Capacity is the binding constraint on almost every roadmap, and a capacity figure derived from headcount is systematically optimistic because it counts people rather than throughput. This answer caps the confidence of the whole plan."
+    type: choice
+    options: [measured_from_history, estimated_from_headcount, unknown]
+    option_labels:
+      measured_from_history: "From what we have actually delivered before"
+      estimated_from_headcount: "From how many people we have"
+      unknown: "Honestly, we are guessing"
+    required: true
+    default_if_skipped: estimated_from_headcount
+    affects: [capacity_fit, readiness]
+
+  - id: dependency_confidence
+    question: "Have the dependencies been confirmed with the teams that own them, or are they assumed?"
+    why: "A sequence is only as good as its dependency graph. Assumed dependencies are usually incomplete rather than wrong, and the ones nobody stated are the ones that stop a wave."
+    type: choice
+    options: [confirmed_with_owners, partly_confirmed, assumed]
+    option_labels:
+      confirmed_with_owners: "We have been through them with the owning teams"
+      partly_confirmed: "Some checked, some taken on trust"
+      assumed: "Drawn up from what we know"
+    required: true
+    default_if_skipped: partly_confirmed
+    affects: [enabling_value, risk_reduction]
+
+  - id: slack_policy
+    question: "How much of each wave's capacity is deliberately left unallocated?"
+    why: "A plan allocated to one hundred per cent of capacity fails on the first slip, and every plan slips. Making slack an explicit choice stops it being an omission that nobody decided on."
+    type: choice
+    options: [none, ten_percent, twenty_percent_or_more]
+    option_labels:
+      none: "Fully allocated"
+      ten_percent: "About a tenth held back"
+      twenty_percent_or_more: "A fifth or more held back"
+    required: true
+    default_if_skipped: ten_percent
+    affects: [capacity_fit, risk_reduction]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: initiatives_to_sequence
+      description: "The initiatives being sequenced, each with what it delivers and which capability it builds toward."
+      source: user
+      format: table
+
+    - id: capability_targets
+      description: "The capabilities the organization is trying to create or strengthen, and by when. This is what the waves build toward; without it the sequence optimizes for delivery convenience."
+      source: [user, context.capability_model]
+      format: list
+
+    - id: delivery_capacity
+      description: "How much delivery capacity exists per wave, in whatever unit the organization plans in — teams, people, or throughput. A rough figure is enough; how good the figure is comes from the capacity_basis answer."
+      source: user
+      format: table
+
+  optional:
+    - id: stated_dependencies
+      description: "What each initiative says it depends on, and whether the dependency is a hard finish-before-start or a softer far-enough-along."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: in_flight_commitments
+      description: "Work already running that consumes capacity in the waves being planned."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No in-flight commitments were supplied, so the plan assumes the full delivery capacity is available from wave one. Organizations are never starting from zero, and a plan built on free capacity is over-committed before it is published."
+      confidence_penalty: high
+
+    - id: initiative_sizing
+      description: "Effort per initiative, in the same unit as the capacity figure."
+      source: user
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Initiative sizing was not supplied and has been estimated from scope. Sizing is the input the whole capacity comparison rests on, and an estimated size makes every wave assignment provisional rather than planned."
+      confidence_penalty: high
+
+    - id: fixed_dates
+      description: "Dates the plan cannot move — contract expiries, support end dates, regulatory deadlines, seasonal windows."
+      source: [user, context.vendors, context.application_inventory]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Contract end dates from the supplier register and support positions recorded against applications, treated as fixed dates the sequence must respect."
+      assumption_template: "Fixed dates were taken from contract and support records rather than confirmed with the business, so seasonal windows, regulatory deadlines, and commitments made outside those records are missing. A fixed date discovered after a plan is published moves everything behind it."
+      confidence_penalty: high
+
+    - id: estate_dependencies
+      description: "Dependencies that exist in the estate rather than in anyone's plan — shared systems, shared interfaces, shared data."
+      source: [user, context.integrations, context.application_inventory]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Applications and interfaces appearing in the scope of more than one initiative, treated as shared dependencies between them."
+      assumption_template: "Estate dependencies were inferred from overlapping initiative scope rather than confirmed. These are the dependencies nobody declares, because each initiative is correct that it needs the system and neither knows the other is coming."
+      confidence_penalty: medium
+
+    - id: skills_profile
+      description: "What kind of capacity is available, not only how much — the skills, and which initiatives need which."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: fungible
+      assumption_template: "Skills were not profiled, so capacity has been treated as fungible. This is the most common error in capacity planning: three teams is not capacity for work that needs a data engineer if all three are front-end teams, and the shortfall appears only when the wave starts."
+      confidence_penalty: medium
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - change_freeze_periods
+    - budget_ceiling
+    - portfolio_tolerances
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - change_freeze_periods
+    - budget_ceiling
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the score sets PRIORITY ORDER. Dependencies and capacity then
+#    determine feasible placement. See ./references/sequencing-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: enabling_value
+      display_name: What it unblocks
+      weight: 0.25
+      description: "How many other initiatives cannot start, or must be reworked, until this exists. Weighted highest because enabling work has no business case of its own — its benefit accrues to other initiatives — and is therefore the work most reliably left unfunded."
+      evidence: [stated_dependencies, estate_dependencies, capability_targets, dependency_confidence]
+      direction: higher_is_better
+
+    - id: time_criticality
+      display_name: Tied to a date that will not move
+      weight: 0.20
+      description: "Whether a fixed external date makes this a wave-one item regardless of its value — a contract expiry, a support end, a regulatory deadline."
+      evidence: [fixed_dates, initiatives_to_sequence, planning_horizon]
+      direction: higher_is_better
+
+    - id: business_value
+      display_name: What it is worth
+      weight: 0.20
+      description: "The value of the capability this builds toward, and how much of that value is lost by each wave of delay rather than merely postponed."
+      evidence: [capability_targets, initiatives_to_sequence]
+      direction: higher_is_better
+
+    - id: risk_reduction
+      display_name: Risk of not doing it yet
+      weight: 0.15
+      description: "Whether deferring increases exposure — an unsupported system carrying critical load, a dependency growing more entangled, a skill leaving the organization."
+      evidence: [fixed_dates, estate_dependencies, dependency_confidence, slack_policy]
+      direction: higher_is_better
+
+    - id: capacity_fit
+      display_name: The capacity for it exists
+      weight: 0.10
+      description: "Whether the specific capacity this needs is available in the wave, in the right skills rather than only in the right quantity."
+      evidence: [delivery_capacity, skills_profile, initiative_sizing, capacity_basis, wave_length, slack_policy]
+      direction: higher_is_better
+
+    - id: readiness
+      display_name: Ready to start
+      weight: 0.10
+      description: "Whether the initiative could actually begin — scope understood, sponsor in place, funding agreed. A high-value initiative nobody can start is a wave-two item however it scores elsewhere."
+      evidence: [initiatives_to_sequence, initiative_sizing, capacity_basis, wave_length]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — this alone would push the initiative to a later wave."
+      - value: 2
+        meaning: "Unfavourable — a material argument against an early wave."
+      - value: 3
+        meaning: "Neutral — no particular claim on an early or a late wave."
+      - value: 4
+        meaning: "Favourable — a clear argument for an early wave that a reviewer would recognize."
+      - value: 5
+        meaning: "Strongly favourable — the strongest available claim on wave one."
+
+  steps:
+    - "Restate the sequence and confirm the capability targets. Without them the plan optimizes for delivery convenience, which produces a defensible order that builds nothing in particular."
+    - "Build the dependency graph from stated and estate dependencies together. The ones nobody stated are the ones that stop a wave, because each initiative is correct that it needs the shared system and neither knows the other is coming."
+    - "Classify every dependency as HARD (must finish first) or SOFT (must be far enough along). Teams state everything as hard; the difference between the two is routinely several months of plan."
+    - "Identify enabling initiatives — anything two or more others depend on. Name them explicitly, because enabling work has no business case of its own and is the work most reliably left unfunded."
+    - "Apply fixed dates as constraints on placement, never as outputs of the sequence. A contract expiry or a regulatory deadline sets the latest wave an initiative can occupy; it is not something the plan may move."
+    - "Apply hard constraints. Record every wave placement blocked by a change freeze or a budget ceiling, with the policy ID."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any placement depends on it."
+    - "Score each initiative for priority order. The score is a claim on an early wave; it is not the wave assignment."
+    - "Assign waves in priority order, respecting dependencies and subtracting in-flight commitments from available capacity before anything new is placed."
+    - "Apply the slack policy before the wave is declared full. A plan allocated to one hundred per cent of capacity fails on the first slip, and every plan slips."
+    - "Check capacity by SKILL, not only by total. Three teams is not capacity for work needing a data engineer if all three are front-end teams, and the shortfall appears only when the wave starts."
+    - "Where an initiative does not fit, say so. NEVER compress an initiative to make it fit a wave, and never assume a dependency resolves faster than stated — report the plan as infeasible for that scope and name what would have to give: capacity, scope, or a date."
+    - "State what falls outside the horizon entirely. Where the horizon turns 'later' into 'never', that is a decision being made by omission and it needs to be visible."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the enabler. An initiative that unblocks two others returns its wave slot; one that unblocks none does not."
+    - "Prefer the initiative with the fixed date. A date that will not move is the only genuinely hard constraint in most plans."
+    - "Prefer the initiative that reduces risk while it runs, over the one that delivers value only at the end. A long initiative delivering nothing until wave four is a bet, not a plan."
+    - "If still tied, place the smaller one first. It returns capacity sooner and the plan learns faster."
+
+  references:
+    - ./references/sequencing-rules.md
+    - ./references/capacity-and-dependencies.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, delivery_team]
+  artifacts:
+    - id: wave_plan
+      display_name: Wave plan
+      description: "Every initiative placed in a wave, with what it depends on, what it unblocks, the capacity it consumes, and any fixed date constraining it."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/wave-plan.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: initiative_id
+            type: string
+          - id: initiative_name
+            type: string
+          - id: capability_target
+            type: string
+          - id: wave
+            type: string
+            description: "Or 'beyond horizon' / 'does not fit', which are placements too and must not be blank."
+          - id: placement_reason
+            type: enum
+            enum_values: [priority_order, dependency_constrained, fixed_date_constrained, capacity_constrained, freeze_constrained, does_not_fit, beyond_horizon]
+          - id: depends_on
+            type: string
+          - id: dependency_type
+            type: enum
+            enum_values: [hard, soft, inferred_from_estate, none]
+          - id: unblocks
+            type: string
+            description: "Initiatives that cannot start until this exists. A populated value here marks an enabler."
+          - id: is_enabler
+            type: boolean
+          - id: effort
+            type: string
+          - id: skills_required
+            type: string
+          - id: fixed_date
+            type: date
+          - id: evidence_basis
+            type: string
+          - id: assumption_ref
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: capacity_profile
+      display_name: Capacity profile
+      description: "Demand against supply per wave and per skill, showing the waves where the plan exceeds what the organization has."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/capacity-profile.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: wave
+            type: string
+          - id: skill_group
+            type: string
+            description: "Or 'all' where skills were not profiled — which is itself recorded as an assumption."
+          - id: capacity_available
+            type: number
+          - id: in_flight_committed
+            type: number
+            description: "Subtracted before anything new is placed. Organizations are never starting from zero."
+          - id: slack_reserved
+            type: number
+          - id: capacity_allocatable
+            type: number
+          - id: demand_placed
+            type: number
+          - id: over_or_under
+            type: number
+          - id: status
+            type: enum
+            enum_values: [within_capacity, at_capacity, over_capacity]
+            description: "over_capacity is reported, never smoothed. A plan that exceeds capacity in any wave is infeasible for that scope."
+
+    - id: sequencing_rationale
+      display_name: Sequencing rationale
+      description: "Why this order — what is constrained by what, which enablers were surfaced, what does not fit, and what falls outside the horizon."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/sequencing-rationale.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: what_this_builds_toward
+            heading: "What this builds toward"
+            required: true
+          - id: wave_summary
+            heading: "The shape of the plan"
+            required: true
+          - id: enablers
+            heading: "Enabling work"
+            required: true
+            description: "Initiatives that unblock others and have no business case of their own. Named explicitly, because this is the work that gets cut."
+          - id: what_constrains_what
+            heading: "What is constrained by what"
+            required: true
+            description: "Dependencies, fixed dates, freezes, and capacity — per initiative that was not placed on priority alone."
+          - id: does_not_fit
+            heading: "What does not fit"
+            required: true
+            description: "Initiatives that cannot be placed within capacity, and what would have to give — capacity, scope, or a date. Never compressed to fit."
+          - id: beyond_horizon
+            heading: "Outside the horizon"
+            required: true
+            description: "Where 'later' means 'never' at this horizon, that is a decision by omission and must be visible."
+          - id: hard_versus_soft
+            heading: "Dependencies we treated as soft"
+            required: true
+            description: "Every dependency reclassified from hard to soft, with who confirmed it. This is where the plan gained its months, and it is where it will break if the reclassification was wrong."
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this plan"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  confidence_rules:
+    - level: high
+      when: "capacity was measured from delivery history, dependencies were confirmed with the owning teams, initiatives were sized, in-flight commitments were supplied, and no wave exceeds capacity after slack is reserved."
+    - level: medium
+      when: "capacity was estimated from headcount or dependencies were only partly confirmed, but initiatives were sized, in-flight commitments were supplied, and no wave exceeds capacity."
+    - level: low
+      when: "capacity basis is unknown, or dependencies were assumed rather than confirmed, or initiative sizing was estimated, or in-flight commitments were not supplied, or any wave exceeds capacity."
+
+  sensitivity_targets:
+    - target: delivery_capacity
+      variation: "capacity 20% lower than stated"
+      report: "Which waves break and which initiatives move. Where the capacity basis is headcount rather than history, this is closer to the real number than the stated one, and it is the most important paragraph in the run."
+    - target: estate_dependencies
+      variation: "one additional dependency discovered per initiative during delivery"
+      report: "How far the plan slips. Dependencies are discovered, not designed, and a plan with no tolerance for discovery is a plan for the first wave only."
+    - target: enabling_value
+      variation: "remove the highest-scoring enabler from the plan"
+      report: "What becomes unachievable, and in which wave. This is the test of whether the enabler was genuinely enabling or merely early."
+    - target: initiative_sizing
+      variation: "every initiative 30% larger"
+      report: "How many waves the plan grows by. Sizing done before scope is settled is consistently low, and the growth lands on the waves furthest out where it is least visible."
+
+  evals: ./evals/

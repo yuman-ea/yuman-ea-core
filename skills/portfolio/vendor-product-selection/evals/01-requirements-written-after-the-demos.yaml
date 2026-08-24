@@ -1,0 +1,123 @@
+spec_version: "1.0"
+id: 01-requirements-written-after-the-demos
+skill: yea.portfolio.vendor-product-selection
+fixture: context/fixtures/northwind-corp
+description: >
+  The selection that was decided before it began. Requirements were drafted after three
+  demonstrations, and two must-haves are met by only one candidate. Everything about the
+  process looks correct — a scorecard, weights, a panel — and the outcome was fixed in the
+  first fortnight. This case checks that the skill tests the requirements before using them.
+
+given:
+  scenario: >
+    Following the build-vs-buy run, Northwind is buying a commercial trade commerce platform
+    to replace nw-002. Three suppliers demonstrated over four weeks. The requirements list was
+    written afterwards by the project manager, drawing on notes from the demonstrations. Two
+    of the eleven must-haves are met by only one candidate: substitution handling with
+    customer-specific rules, and a built-in allergen data model.
+
+  ask:
+    selection_stage: final_evaluation
+    requirements_maturity: derived_from_demos
+    switching_context: replacing_existing
+    vendor_relationship_appetite: transactional
+    evidence_access: demonstrations
+
+  gather:
+    provided:
+      capability_required: "Let trade customers place, repeat, and track orders themselves, so ordering stops depending on a phone call"
+      candidate_products:
+        - "Candidate A — commercial trade commerce platform"
+        - "Candidate B — commercial trade commerce platform"
+        - "Candidate C — commercial commerce platform with a configurable trade module"
+      must_have_requirements:
+        - "Order placement against customer-specific price lists"
+        - "Order tracking and delivery window visibility"
+        - "Repeat-order and standing-order templates"
+        - "Mobile browser usable one-handed in a walk-in fridge"
+        - "Single sign-on for trade account users"
+        - "Credit position visible at order time"
+        - "Product data including allergens"
+        - "Substitution handling with customer-specific rules — met only by Candidate A"
+        - "Built-in allergen data model — met only by Candidate A"
+        - "Accessibility to the organization's published standard"
+        - "Integration to the existing order capture system"
+      estate_touchpoints:
+        - "nw-001 Order Capture, nw-015 Customer Master, nw-014 Product Information, nw-019 broker"
+    withheld:
+      - nonfunctional_requirements
+      - total_cost_information
+      - reference_customers
+      - vendor_due_diligence
+      - external_assessments
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.policies
+
+expect:
+  requirements_tested_before_scoring: true
+  scorecard_treated_as_provisional: true
+
+  single_candidate_must_haves_flagged:
+    - "Substitution handling with customer-specific rules"
+    - "Built-in allergen data model"
+
+  confidence: low
+  confidence_reason_must_reference: >
+    requirements were derived from demonstrations
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  artifacts_produced:
+    - vendor-product-selection--requirements-specification.md
+    - vendor-product-selection--evaluation-scorecard.md
+    - vendor-product-selection--recommendation-memo.md
+
+  must_state:
+    - That the requirements were written after the demonstrations, that they may therefore
+      describe the products rather than the need, and that the entire scorecard is provisional
+      as a result — stated before any scores are presented, not after.
+    - That two must-haves are met by only one candidate, naming them, and asking directly who
+      wrote them and when.
+    - That the honest test for each is whether it is a genuine differentiator or a line taken
+      from Candidate A's feature list, and that the answer decides the outcome.
+    - That the allergen requirement is plausibly genuine given Northwind is a food
+      distributor, and that plausibility is not the same as provenance — it still needs
+      confirming against who wrote it.
+    - That evidence access is demonstrations only, so nothing has been verified hands-on and
+      every functional score rests on what suppliers chose to show.
+    - That no references have been taken, and that this is the cheapest gap in the selection
+      to close.
+    - That non-functional requirements were derived rather than stated, marked as proposals.
+
+  must_not:
+    - Present the scorecard as decisive.
+    - Recommend a candidate at medium or high confidence.
+    - Treat the two single-candidate must-haves as ordinary requirements.
+    - Score functional fit above 3 for any candidate on demonstration evidence alone.
+    - Rate any score as demonstrated when only a supplier demonstration was seen — that is
+      the supplier showing the product, not the organization running it.
+
+fails_if:
+  - The run scores the candidates and recommends one without challenging the provenance of the
+    requirements. Everything downstream is then a well-formatted confirmation of a decision
+    made in the first fortnight.
+  - The two single-candidate must-haves pass without comment. They are the mechanism by which
+    the outcome was fixed, and they are visible in the input.
+
+tolerance: >
+  Whether a candidate is ultimately recommended, or the run halts and asks for the
+  requirements to be re-derived, are both defensible — halting is stronger. The provenance
+  challenge, the two flagged must-haves, and the low confidence rating are not negotiable.
+
+notes: >
+  Nobody cheated. The project manager wrote requirements from the best information available,
+  which happened to be three demonstrations, and the two features that impressed everyone went
+  on the list because they were genuinely good ideas. That is how it always happens, and it is
+  why the question has to be asked mechanically rather than left to whether anyone suspects it.

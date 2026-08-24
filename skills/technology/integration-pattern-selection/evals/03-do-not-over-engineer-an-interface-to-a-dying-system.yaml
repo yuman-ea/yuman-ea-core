@@ -1,0 +1,103 @@
+spec_version: "1.0"
+id: 03-do-not-over-engineer-an-interface-to-a-dying-system
+skill: yea.technology.integration-pattern-selection
+fixture: context/fixtures/northwind-corp
+description: >
+  A genuine integration gap — a daily manual re-keying step — attached to a source system
+  that is on its way out. The trap is building the durable, correct integration to a system
+  that will not exist in a year. This case checks that the source system's lifecycle is
+  treated as a design input, and that the estate constraint is applied honestly rather than
+  aspirationally.
+
+given:
+  scenario: >
+    Shift rosters produced in nw-009 are re-keyed by hand into nw-006 every day (int-23).
+    nw-009 was built in 2011, runs on an unsupported desktop database, is recorded as sunset,
+    has a technical fitness of 1, and has no interface surface of any kind. A replacement for
+    workforce scheduling is expected but is not scheduled or funded. Operations want the
+    re-keying to stop.
+
+  ask:
+    response_timing: scheduled_no_caller
+    consumer_count: single_known
+    delivery_guarantee: no_loss
+    party_boundary: internal_only
+    replay_need: occasionally_from_backup
+
+  gather:
+    provided:
+      integration_purpose: "nw-009 Workforce Scheduling sends the next day's shift roster to nw-006 Warehouse Management System"
+      volume_and_frequency: "One roster per site per day, four sites; produced late afternoon, needed before the early shift"
+      payload_profile: "Roughly 95 rows per site per day, under 50 KB; a full roster, not a delta"
+      latency_requirement: "Available to nw-006 by 05:00; produced by about 17:00 the previous day"
+      existing_integration_estate:
+        - "nw-019 Integration Middleware — broker, extended support to 2026-09-30"
+        - "nw-009 has no API and no supported extension point; it is an unsupported desktop database"
+        - "Scheduled file exchange is already used for 9 of the 26 recorded interfaces"
+        - "Integration is supported by 2.1 FTE"
+      error_handling_expectation: "If the roster does not arrive, the shift supervisor must know before 05:00, not discover it at handover"
+      data_sensitivity: confidential
+    withheld:
+      - ordering_requirement
+      - partner_capability
+    available_context:
+      - context.integrations
+      - context.application_inventory
+      - context.policies
+
+expect:
+  frame_restated_before_analysis: true
+
+  recommendation: file_transfer
+
+  source_system_lifecycle_treated_as_input: true
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    the integration estate was stated but the source system has no supported interface surface
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That nw-009 is recorded as sunset with a technical fitness of 1, and that building a
+      durable integration to a system due for replacement is effort that will be discarded.
+    - That the twelve-hour window between roster production and the 05:00 deadline makes the
+      timing requirement undemanding, so the cheapest operable pattern is the right one.
+    - That absence detection must be built deliberately — a file that never arrives raises no
+      error, and the supervisor must know before 05:00 rather than at handover.
+    - That the daily manual re-keying is a cost of the status quo, not a cost of any option.
+    - That the pattern choice should be revisited when nw-009 is replaced, as a named
+      revisit trigger rather than a general intention.
+    - Why the broker was not chosen despite integration_via_broker being a standing
+      preference — or, if it was chosen, why it is worth the effort here.
+
+  must_not:
+    - Recommend publish_subscribe, queue_based, or data_streaming for a once-daily roster
+      with one consumer and a twelve-hour window.
+    - Recommend an interface nw-009 cannot expose, such as a synchronous API.
+    - Treat the manual re-keying as a baseline cost of the recommended option.
+    - Ignore nw-009's sunset status and design as though the system were permanent.
+    - Rate confidence high, given the source has no supported interface surface.
+
+fails_if:
+  - A durable, elaborate integration is recommended to a system recorded as sunset. It is
+    the most expensive available mistake here and the easiest to make, because every
+    criterion except estate fit and lifecycle points toward doing it properly.
+  - Absence detection is not mentioned. A scheduled file that does not arrive is the classic
+    silent failure, and it is the specific risk this pattern carries.
+
+tolerance: >
+  A database-level extract from nw-009 to produce the file is acceptable as an
+  implementation note, provided it is named as a deliberate concession to an unsupported
+  source rather than as direct_data_access being scored well. Confidence may be low rather
+  than medium. The recommendation and the lifecycle reasoning are not negotiable.
+
+notes: >
+  The interesting pressure is that doing it properly is usually the right instinct, and here
+  it is not. An architect who recommends the durable pattern is not being careless — they are
+  applying a good habit to a case where the system's remaining life is shorter than the
+  payback period.

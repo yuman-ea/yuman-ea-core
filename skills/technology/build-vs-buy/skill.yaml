@@ -46,7 +46,7 @@ triggers:
     - solution_selection
   not_this_skill:
     - phrase: "which of these two products should we pick"
-      route_to: technology-ea
+      route_to: yea.portfolio.vendor-product-selection
     - phrase: "should we keep this application or retire it"
       route_to: portfolio-ea
     - phrase: "should we move this to the cloud"

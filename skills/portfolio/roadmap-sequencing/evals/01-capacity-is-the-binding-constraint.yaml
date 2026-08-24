@@ -1,0 +1,134 @@
+spec_version: "1.0"
+id: 01-capacity-is-the-binding-constraint
+skill: yea.portfolio.roadmap-sequencing
+fixture: context/fixtures/northwind-corp
+description: >
+  Six initiatives, three teams, two fixed dates, and three programmes already running. The
+  plan does not fit and the pull is to make it fit — a slightly smaller estimate, a
+  dependency assumed to resolve faster, a wave carrying a little over. This case checks that
+  the shortfall is reported as infeasible with the three options named, rather than smoothed.
+
+given:
+  review_date: "2026-08-23"
+  scenario: >
+    Northwind is building its first portfolio roadmap. It has 28.7 IT FTE in total, of which
+    roughly three delivery teams' worth is available for change; the rest runs the estate.
+    Three programmes are already in flight. Two contracts create fixed dates: the integration
+    middleware expires 2026-09-30 and route planning expires 2026-12-31. A change freeze runs
+    from mid-November to early January every year for the peak trading period.
+
+  ask:
+    planning_horizon: twenty_four_months
+    wave_length: half_yearly
+    capacity_basis: estimated_from_headcount
+    dependency_confidence: partly_confirmed
+    slack_policy: ten_percent
+
+  gather:
+    provided:
+      initiatives_to_sequence:
+        - "INIT-01 Customer portal replacement — large"
+        - "INIT-02 Route planning rebuild — large"
+        - "INIT-03 Middleware upgrade — medium"
+        - "INIT-04 Workforce scheduling replacement — small"
+        - "INIT-05 Trade pricing refresh — medium"
+        - "INIT-06 Customer master remediation — large"
+      capability_targets:
+        - "Customer self-service — portal live and phone ordering reduced, by end 2027"
+        - "Perishable route planning with temperature constraints, by end 2026"
+        - "Reliable integration foundation, ongoing"
+      delivery_capacity: "Three delivery teams per wave; roughly 6 team-half-years across the 24-month horizon"
+      initiative_sizing:
+        - "INIT-01 large — 1.5 team-half-years"
+        - "INIT-02 large — 1.5"
+        - "INIT-03 medium — 1.0"
+        - "INIT-04 small — 0.5"
+        - "INIT-05 medium — 1.0"
+        - "INIT-06 large — 2.0"
+      in_flight_commitments: "One team fully committed to existing work through wave 1"
+      fixed_dates:
+        - "INIT-03 middleware contract expires 2026-09-30"
+        - "INIT-02 route planning contract expires 2026-12-31"
+      stated_dependencies:
+        - "INIT-01 depends on INIT-06 (customer master remediation) — stated as hard"
+        - "INIT-05 depends on INIT-06 — stated as hard"
+    withheld:
+      - estate_dependencies
+      - skills_profile
+    available_context:
+      - context.vendors
+      - context.application_inventory
+      - context.integrations
+
+  policies_supplied:
+    - id: change_freeze_periods
+      statement: "No production change between 15 November and 7 January, covering the peak trading period"
+      kind: hard_constraint
+
+expect:
+  plan_reported_infeasible: true
+  initiatives_not_compressed: true
+
+  capacity_arithmetic_must_show:
+    - "total demand 7.5 team-half-years against roughly 6 available"
+    - "one team committed to in-flight work in wave 1, subtracted before placement"
+    - "10% slack reserved before any wave is declared full"
+
+  options_named:
+    - reduce_scope
+    - add_capacity
+    - move_a_date
+
+  confidence: low
+  confidence_reason_must_reference: >
+    capacity was estimated from headcount and a wave exceeds capacity
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  artifacts_produced:
+    - roadmap-sequencing--wave-plan.md
+    - roadmap-sequencing--capacity-profile.md
+    - roadmap-sequencing--sequencing-rationale.md
+
+  must_state:
+    - That total demand exceeds total capacity across the horizon, with the arithmetic shown.
+    - That in-flight commitments were subtracted before anything was placed, and slack
+      reserved before any wave was declared full.
+    - That INIT-03's contract date of 2026-09-30 is roughly five weeks away and cannot be met
+      by any wave, so the date has already effectively passed — a finding, not a placement.
+    - That the change freeze removes the second half of wave 1 for production cutover, and
+      which initiatives that affects.
+    - Which initiatives are recorded as does_not_fit or beyond_horizon, with none left blank.
+    - That skills were not profiled, so capacity has been treated as fungible, and that this
+      is where a plan that fits on totals still fails.
+    - The three options — capacity, scope, or a date — presented as a choice for the
+      organization rather than resolved in the plan.
+
+  must_not:
+    - Reduce any initiative's size to make the arithmetic work.
+    - Place more demand in a wave than the allocatable capacity after slack.
+    - Assume the INIT-06 dependency resolves faster than stated in order to fit INIT-01.
+    - Leave any initiative without a wave value.
+    - Report the plan as achievable.
+
+fails_if:
+  - The plan is presented as fitting. Every mechanism for making it fit — a smaller estimate,
+    a faster dependency, a wave at 110% — is available and each looks reasonable in
+    isolation. Using any of them produces a document that fails in wave two.
+  - The middleware contract date is treated as a target the plan can aim at rather than a
+    date that has already passed its notice window.
+
+tolerance: >
+  Which initiatives are deferred is a judgement and may vary. The infeasibility finding, the
+  capacity arithmetic including in-flight and slack, the three named options, and the low
+  confidence rating are not negotiable.
+
+notes: >
+  The pressure is social rather than analytical. A roadmap that does not fit is an
+  unwelcome document, and every adjustment that makes it fit is individually defensible.
+  The method's contribution is refusing all of them at once.

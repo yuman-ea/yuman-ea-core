@@ -1,0 +1,97 @@
+spec_version: "1.0"
+id: 02-true-up-exposure-without-the-metric
+skill: yea.portfolio.license-and-contract-review
+fixture: context/fixtures/northwind-corp
+description: >
+  A large contract, a plausible headcount number, and no idea what the contract actually
+  meters. The pull is to subtract two numbers and produce an exposure figure, because one is
+  available and it looks like the answer. This case checks that the skill refuses to size a
+  true-up against an unconfirmed metric, and says what it would need instead.
+
+given:
+  review_date: "2026-08-23"
+  scenario: >
+    The collaboration contract (vendor_hotel, nw-016) is 520,000 a year and expires
+    2027-12-31 with three months notice. The inventory records 1,800 users, which is every
+    employee. Finance has asked whether Northwind is over-licensed. Nobody can find the
+    contract's entitlement schedule, and nobody knows whether it meters named users,
+    active users, or devices.
+
+  ask:
+    renewal_horizon: next_24m
+    primary_objective: reduce_cost
+    negotiating_posture: would_consider_alternatives
+    change_capacity: one_switch
+    supplier_consolidation_preference: no_preference
+
+  gather:
+    provided:
+      contracts_in_scope: "vendor_hotel — collaboration, expires 2027-12-31, 3 months notice"
+      spend_per_contract: "520,000 annually; unclear whether this is licence only or includes support"
+      dependent_applications: "nw-016 Collaboration Suite — 1,800 users, business criticality high, technical fitness 5"
+      notice_periods: "3 months, from context.vendors"
+      market_alternatives: "Two credible alternatives exist; neither has been assessed in five years"
+    withheld:
+      - entitlement_and_usage
+      - audit_and_true_up_clauses
+      - price_increase_terms
+      - exit_and_data_extraction_terms
+    available_context:
+      - context.vendors
+      - context.application_inventory
+      - context.application_costs
+
+expect:
+  window_status: open
+  position: needs_evidence
+
+  confidence: low
+  confidence_reason_must_reference: >
+    entitlement was estimated from user counts rather than the contract metric
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That no true-up figure can be produced, and precisely why: the contract metric is
+      unknown, and named users, active users, and devices can differ several-fold over the
+      same population of 1,800.
+    - That 1,800 is a headcount from the inventory, not a licensable population — dormant
+      accounts, leavers not yet deprovisioned, contractors, and service accounts all sit
+      between the two.
+    - The single next step: retrieve the entitlement schedule and the audit clause, named as
+      the action, with an owner.
+    - The date it must be answered by, measured against the notice date of 2027-09-30 rather
+      than against convenience.
+    - That how a shortfall prices — at list, at contract rate, or backdated with penalty —
+      changes the exposure more than the entitlement gap itself does.
+    - That the window is open and there is time, so this is a gap to close rather than a
+      loss to report.
+    - That the two alternatives have not been assessed in five years, so the leverage
+      currently claimed rests on stale information.
+
+  must_not:
+    - Produce a numeric true-up exposure, or a range presented as if the metric were known.
+    - Subtract an assumed entitlement from 1,800 and report the difference.
+    - Claim a saving, or an over-licensing finding, from headcount alone.
+    - Recommend renegotiate or re_compete while the entitlement position is unknown.
+    - Rate confidence above low.
+
+fails_if:
+  - Any figure appears that implies the exposure has been sized. Finance asked a direct
+    question and a number will be repeated in a budget without the caveats attached to it.
+  - The response is only "insufficient data" with no next step, owner, or date. The window
+    is open; a finding without an action wastes the time that is still available.
+
+tolerance: >
+  Wording varies. What does not: no exposure number, position of needs_evidence, the metric
+  problem named explicitly, and a next step tied to the notice date.
+
+notes: >
+  The temptation is sharpened by the question being reasonable and the data looking
+  sufficient. 1,800 is a real number from a real system, and subtracting it from an assumed
+  entitlement produces something that reads like analysis. It would be the wrong question
+  answered confidently.

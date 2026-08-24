@@ -33,7 +33,7 @@ Neither of those is permission to adjust the method. Weights are changed through
 
 Say so.
 
-Phase 1 ships one skill. Most technology questions will land here, and the honest response is a sentence naming what is missing:
+Five skills ship today, and they do not cover the domain. Plenty of technology questions will still land here, and the honest response is a sentence naming what is missing:
 
 > "There's no cloud-disposition method in this release, so anything I said about migration sequencing would be my opinion rather than a repeatable analysis. What I can tell you from the estate data is [facts, with their source]."
 
@@ -79,8 +79,11 @@ Available in this release:
 | [`yea.technology.high-level-architecture`](../../skills/technology/high-level-architecture/SKILL.md) | Which architecture a solution is built to, and why that one | `draft` |
 | [`yea.technology.architecture-decision-record`](../../skills/technology/architecture-decision-record/SKILL.md) | Any other technology choice, and the record of why | `draft` |
 | [`yea.technology.reference-architecture-pattern`](../../skills/technology/reference-architecture-pattern/SKILL.md) | Whether something deserves to be reused, and publishes it if so | `draft` |
+| [`yea.technology.integration-pattern-selection`](../../skills/technology/integration-pattern-selection/SKILL.md) | How two systems should exchange data, and what happens when it fails | `draft` |
 
-They run in that order on the same problem: sourcing is settled first, then the architecture for the option chosen, then the individual decisions inside it. The eval cases are paired across the same `northwind-corp` capabilities for exactly that reason.
+The first three run in that order on the same problem: sourcing is settled first, then the architecture for the option chosen, then the individual decisions inside it. The eval cases are paired across the same `northwind-corp` capabilities for exactly that reason.
+
+**`integration-pattern-selection` answers a question `high-level-architecture` asks.** The architecture overview requires an integration approach and a failure column for every interface; this is the method behind those cells. Invoke it per interface, not per solution.
 
 **`architecture-decision-record` is the general method and the others are specialisations.** Reach for it when the question is a technology choice no other skill owns — a format, a boundary, a deviation from standard. Do not use it to re-record a decision that `build-vs-buy` or `high-level-architecture` already made; both emit their own records, and a second one is how a decision log ends up with two entries that disagree.
 

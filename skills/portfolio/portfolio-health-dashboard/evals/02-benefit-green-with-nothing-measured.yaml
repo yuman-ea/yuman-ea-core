@@ -1,0 +1,131 @@
+spec_version: "1.0"
+id: 02-benefit-green-with-nothing-measured
+skill: yea.portfolio.portfolio-health-dashboard
+fixture: context/fixtures/northwind-corp
+description: >
+  Two failures at once. Initiatives mid-delivery report benefit green because nothing has
+  been measured, and a closed initiative reports success while the system it was justified
+  on decommissioning is still running and still being paid for. The second is the finding
+  only architecture produces, and the fixture carries the run cost to price it.
+
+given:
+  review_date: "2026-08-23"
+  scenario: >
+    Northwind's second health review. Three initiatives are mid-delivery and all report
+    benefit green. A fourth closed last quarter having delivered the product information
+    system; its business case was built on decommissioning the legacy product data held in
+    nw-009 Workforce Scheduling's shared database and retiring the manual roster re-keying
+    step. nw-009 is still running at 108,000 a year and int-23 is still a daily manual
+    re-entry.
+
+  ask:
+    portfolio_scope: all_change
+    status_source: programme_office_assessed
+    benefit_measurement_maturity: partially_measured
+    escalation_threshold: two_periods
+    intervention_capacity: one
+
+  gather:
+    provided:
+      initiatives_in_scope:
+        - "INIT-01 Customer portal replacement — delivery phase"
+        - "INIT-02 Route planning rebuild — build phase"
+        - "INIT-04 Product information system — CLOSED 2026-06-30, reported successful"
+      cost_position:
+        - "INIT-01 budget 1,200,000; spent 900,000; forecast 1,180,000 — revised this month"
+        - "INIT-02 budget 2,150,000; spent 610,000; forecast 2,200,000 — revised this month"
+        - "INIT-04 budget 380,000; final spend 372,000"
+      schedule_position:
+        - "INIT-01 next milestone on plan"
+        - "INIT-02 next milestone on plan"
+        - "INIT-04 closed on plan"
+      benefit_definitions:
+        - "INIT-01 orders placed without a phone call, baseline 41% measured over two quarters, target 70%, due two quarters after go-live"
+        - "INIT-02 planner overrides per week, baseline 33% of routes, target below 10%, due one quarter after go-live"
+        - "INIT-04 decommission legacy product data store and retire manual re-keying; run cost saving 108,000 annually, due at close"
+      benefit_actuals:
+        - "INIT-01 not measured; go-live not reached"
+        - "INIT-02 not measured; go-live not reached"
+        - "INIT-04 no measurement recorded at close"
+      architecture_commitments:
+        - "INIT-01 decommission nw-002 Customer Order Portal at go-live"
+        - "INIT-02 replace nw-007 before contract expiry 2026-12-31"
+        - "INIT-04 decommission the legacy product data store; retire int-23 manual re-entry"
+      prior_period_status:
+        - "INIT-01 benefit green last period"
+        - "INIT-02 benefit green last period"
+      reported_status:
+        - "INIT-01 benefit reported green"
+        - "INIT-02 benefit reported green"
+        - "INIT-04 closed, reported successful"
+    withheld:
+      - risk_register
+      - initiative_dependencies
+    available_context:
+      - context.application_inventory
+      - context.application_costs
+      - context.integrations
+
+expect:
+  benefit_status:
+    - initiative: INIT-01
+      status: not_yet_measurable
+      not: green
+    - initiative: INIT-02
+      status: not_yet_measurable
+      not: green
+    - initiative: INIT-04
+      status: not_realized
+      because: "closed with the architectural commitment outstanding and no measurement recorded"
+
+  closed_initiative_with_outstanding_commitment: INIT-04
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    status was programme office assessed and benefit definitions existed, but measurement was incomplete
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That INIT-01 and INIT-02 are not_yet_measurable rather than green, and that this is a
+      distinct state which must render distinctly on the dashboard.
+    - That both reported benefit green and have done for two consecutive periods, so the
+      pattern is established rather than a one-off.
+    - That INIT-04 closed having reported success while nw-009 is still running and int-23
+      is still a daily manual re-entry, so the benefit it was justified on has not been
+      realized.
+    - The ongoing cost of the outstanding commitment, using the 108,000 annual figure from
+      the application costs, since a number is what makes this land with finance.
+    - That the saving was booked at close and the cost is still being paid.
+    - That INIT-04 appears in the benefit realization note despite being closed, and stays
+      there until the commitment is met or formally abandoned.
+    - That formal abandonment is a legitimate outcome, and quiet cessation of tracking is not.
+
+  must_not:
+    - Render not_yet_measurable as green anywhere.
+    - Rate INIT-04 successful or exclude it because it is closed.
+    - Report the outstanding commitment without the ongoing cost, where the cost is available
+      in the fixture.
+    - Treat "no measurement recorded at close" as equivalent to "benefit delivered".
+
+fails_if:
+  - Any benefit renders green with nothing measured. It is the dimension the whole investment
+    was justified on and the only one never independently checked.
+  - INIT-04 is dropped from the view because it closed. The closed initiatives with
+    outstanding commitments are where a portfolio's credibility with finance is decided.
+
+tolerance: >
+  INIT-04's benefit status may be not_realized or partially_realized depending on how the
+  delivered product information capability is weighed against the outstanding
+  decommissioning; either is defensible with reasoning. The not_yet_measurable ratings and
+  the outstanding-commitment finding are not negotiable.
+
+notes: >
+  The second failure is slow and nearly invisible. The new system went live, the initiative
+  reported success on cost and schedule, and the old system stayed running because something
+  still pointed at it. Nobody decided to abandon the saving; it simply stopped being anyone's
+  job to check.
