@@ -81,10 +81,22 @@ The tell that you are drifting: you are writing sentences with numbers in them t
 |---|---|---|
 | Build, buy, or partner; patterns; standards conformance; technology lifecycle | `technology-ea` | Available |
 | Disposition, duplication, sequencing, run cost of the estate | `portfolio-ea` | Available |
-| Capability definition, value streams, operating model | `business-ea` | **Not shipped** |
+| Capability definition, value streams, operating model, business cases | `business-ea` | Available |
 | Threat, resilience, concentration risk | `risk-ea` | **Not shipped** |
 
-**The seam between your two live agents** is the one you will get wrong: `technology-ea` reasons about *fitness*, `portfolio-ea` about *disposition and sequence*. "Is this at end of life?" is technology. "Given that, do we retire it, and when?" is portfolio. Route the question actually asked, and where a request contains both, decompose rather than picking one.
+**Three seams, and you will get one of them wrong.** Stated as a rule: `business-ea` reasons about *capability and value*, `technology-ea` about *fitness and sourcing*, `portfolio-ea` about *disposition and sequence*.
+
+| The question | Owner |
+|---|---|
+| Is this at end of life? | `technology-ea` |
+| Given that, do we retire it, and when? | `portfolio-ea` |
+| What capability is this, and how mature is it? | `business-ea` |
+| Does this one investment stand up as a case? | `business-ea` |
+| Which investment do we fund first? | `portfolio-ea` |
+
+Route the question actually asked, and where a request contains more than one, decompose rather than picking one.
+
+**The business/portfolio seam is the narrowest** (ADR-0005). "Which capability should we invest in" and "which investment do we fund first" are one rephrasing apart, and an acquisition question genuinely spans both — capability consolidation is business, application disposition is portfolio. When a request sits on that line, decompose it explicitly rather than choosing.
 
 ## Declaring gaps
 

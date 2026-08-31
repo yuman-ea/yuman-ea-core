@@ -1,0 +1,116 @@
+spec_version: "1.0"
+id: 03-the-transition-that-cannot-pause
+skill: yea.business.operating-model-design
+fixture: context/fixtures/northwind-corp
+description: >
+  Two candidate models, one clearly better as an end state, whose transition has a stage the
+  organization cannot sit in. This checks that the transition is designed as part of the
+  model, that the stall state is evaluated, and that parallel-running cost is stated rather
+  than assumed away.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Two operating models are on the table for supply chain planning.
+
+    **Option A** moves all planning into a single central function in one step, with the four
+    site planning teams standing down as it goes live. As an end state it scores well:
+    one method, one fleet view, clear ownership.
+
+    **Option B** keeps site planning and adds a small central function that owns method,
+    tooling, and cross-site allocation, with the site teams gradually narrowing to execution
+    over two years. It is a weaker end state — the duplication persists longer and ownership
+    stays shared.
+
+    Option A has a stage in the middle. For roughly five months the central function is
+    partially staffed and the site teams are running down, and neither has full coverage. In
+    that period Northwind is entering its peak season, during which a change freeze applies
+    and next-day delivery volumes are at their highest.
+
+    Nobody has costed running both. The plan assumes site teams release capacity as central
+    capacity arrives.
+
+  ask:
+    design_trigger: strategy_change
+    centralisation_preference: genuinely_open
+    people_constraint: role_changes_expected
+    change_appetite: significant
+    time_to_operate: twelve_months
+
+  gather:
+    provided:
+      value_proposition: "Reliable next-day delivery of perishable stock to trade accounts through peak season"
+      capability_model: "cap-03 Supply Chain Planning and cap-04 Warehouse and Logistics"
+      design_scope: "Supply chain planning across four distribution centres"
+      current_operating_arrangement:
+        - "Four site planning teams; no central function"
+        - "Peak season change freeze applies"
+      decision_rights_map: "Stock allocation decided at site; cross-site reallocation escalated to the Director of Operations"
+      performance_measures: "On-time delivery measured per site"
+    withheld:
+      - cost_baseline
+      - location_footprint
+      - supplier_arrangements
+      - value_stream_definitions
+    available_context:
+      - context.capability_model
+      - context.policies
+      - context.organization_profile
+
+expect:
+  transition_evaluated_not_only_end_state: true
+  stall_state_reported_for_option_a: true
+  parallel_running_cost_surfaced: true
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    the current arrangement, decision rights, and measures were supplied, but no cost
+    baseline exists
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That Option A's middle stage coincides with peak season and a change freeze, and that
+      the organization cannot sit in that stage — it is not a resting point.
+    - That transitions stall routinely, for reasons unrelated to the design, and that an
+      option unworkable halfway is a worse choice than a weaker end state that can be paused.
+    - That the plan's assumption — site capacity releases as central capacity arrives — is an
+      assumption rather than a schedule, and that it fails in exactly one direction: if
+      central capacity is late, both are under-resourced simultaneously.
+    - That parallel running has not been costed, that it is rarely optional and almost never
+      as short as estimated, and that it needs a figure and a named coordinator.
+    - Which policy governs the peak-season freeze, by ID, without restating its content.
+    - That Option B is the weaker end state and may still be the better choice, and that this
+      comparison is invisible in an end-state-only evaluation.
+
+  must_not:
+    - Recommend Option A on end-state scores alone.
+    - Compress the five-month stage, or assume the freeze can be worked around.
+    - Assume site teams and central capacity cross over cleanly. That is the assumption under
+      examination.
+    - Present Option B as safe. It carries a real cost — duplication persists and ownership
+      stays shared for two years — and that cost belongs in the comparison.
+    - Sequence the transition into a schedule. That is roadmap sequencing.
+
+fails_if:
+  - The recommendation is made on end-state scores. Option A is the better end state, the
+    scoring will say so, and the organization would commit to a transition whose middle stage
+    lands on peak season with neither planning arrangement whole.
+  - The stall question is not asked of both options. Option B's stall state is genuinely
+    benign, and that is the finding — it is only visible if the question is asked of both.
+
+tolerance: >
+  Either option may be recommended, and Option A with a re-timed transition avoiding peak
+  season is a good answer. What is fixed is that the stall state is evaluated for both, that
+  the freeze is surfaced, and that parallel running is named as an uncosted item.
+
+notes: >
+  This is the shape of failure that makes operating model work unpopular: a well-argued
+  target, a well-received design, and a transition that runs into the one part of the year
+  the business cannot afford disruption. The end state was never the problem. The five months
+  in the middle were, and they were nobody's section of the document.

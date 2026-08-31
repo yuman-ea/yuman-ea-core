@@ -1,0 +1,130 @@
+spec_version: "1.0"
+id: 03-two-concerns-that-cannot-both-be-satisfied
+skill: yea.business.stakeholder-and-concern-map
+fixture: context/fixtures/northwind-corp
+description: >
+  Two well-stated concerns from two approvers that cannot both be satisfied. Resolving it
+  inside a deliverable is the path of least resistance and removes the decision from the
+  person whose decision it is. This checks that the conflict is recorded with a named
+  decider, and that the likely loser is identified so they can be consulted rather than
+  informed.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Both concerns are specific, both are stated, and both come from someone who can stop the
+    portal replacement.
+
+    The Commercial Director needs trade customers to be able to place an order in under two
+    minutes without training, because the current portal's friction is the top customer
+    complaint and several accounts have moved to phone ordering. Their question: can a
+    customer who has not logged in for six months place a repeat order in under two minutes
+    on their first attempt?
+
+    The Head of Information Security owns the security baseline, which requires any system
+    holding confidential data to support single sign-on and enforce multi-factor
+    authentication. The portal holds trade account and contracted pricing data. Their
+    question: does every route into customer data enforce multi-factor authentication?
+
+    Trade customers are chefs and purchasing managers at 4200 independent accounts. Most have
+    no corporate identity provider. Several order from a phone in a walk-in fridge.
+
+    The Head of Information Security is two levels below the Commercial Director, who is the
+    programme sponsor.
+
+  ask:
+    concern_source: asked_stakeholders
+    engagement_stage: kick_off
+    governance_context: formal_board
+    deliverable_commitment: open
+    contest_level: some_disagreement
+
+  gather:
+    provided:
+      engagement_definition: "Replace nw-002 Customer Order Portal; investment decision at the November board"
+      stakeholder_list:
+        - "Commercial Director — sponsor, approves"
+        - "Head of Information Security — approves"
+        - "Technology Director — consulted"
+      stated_concerns:
+        - "Commercial Director: can a customer who has not logged in for six months place a repeat order in under two minutes on their first attempt?"
+        - "Head of Information Security: does every route into customer data enforce multi-factor authentication?"
+      decision_and_veto_rights:
+        - "Head of Information Security holds approval on any system holding confidential data"
+        - "Commercial Director sponsors and approves the investment"
+      escalation_paths: "Both report into the executive committee; no defined arbitration between them"
+    withheld:
+      - planned_viewpoints
+      - affected_but_unrepresented
+      - prior_engagement_history
+      - stakeholder_influence
+    available_context:
+      - context.policies
+      - context.application_inventory
+      - context.organization_profile
+
+expect:
+  conflict_recorded: true
+  status_for_both: conflicting
+  conflict_resolved_by_skill: false
+  who_decides_named: true
+  likely_loser_identified: "Head of Information Security"
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    concerns were stated directly by the stakeholders and veto rights are known, but planned
+    viewpoints and the affected group were not supplied
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That both concerns are well formed, both are stated, and both come from an approver —
+      so this is a decision rather than an analysis problem.
+    - Why they collide specifically: 4200 independent accounts without a corporate identity
+      provider, and customers ordering from a phone in a cold environment, so the
+      authentication requirement and the two-minute requirement pull against each other.
+    - Which policy governs the security half, by ID, without restating it, and that it is a
+      hard constraint rather than a preference to be traded away informally.
+    - Who has to decide, named, and that no arbitration between the two approvers currently
+      exists — which means it will be settled by whoever is more senior in the room unless
+      someone routes it deliberately.
+    - That the Head of Information Security is the likely loser on seniority rather than on
+      argument, and that saying so now allows them to be consulted rather than informed.
+    - That the deliverable set is open, so a view can be produced that puts the trade-off in
+      front of the decision-maker rather than concealing it.
+
+  must_not:
+    - Resolve the conflict, propose the compromise as the answer, or select one concern over
+      the other.
+    - Average the two into a single concern about "balancing usability and security", which
+      satisfies neither and was chosen by nobody.
+    - Record it as unaddressed and move on. It is not that nothing answers it; it is that
+      the two answers are incompatible.
+    - Treat the security requirement as negotiable because the sponsor outranks its owner, or
+      as absolute because it is written down. Which it is, is the decision.
+    - Judge whether either concern is reasonable.
+
+fails_if:
+  - The map proposes a design that satisfies both. A plausible one is easy to write, it
+    would be accepted, and it would make an unexamined trade-off on behalf of two approvers
+    who each believe their requirement was met.
+  - No decider is named. "To be resolved" with no owner means it is resolved by whoever is
+    most senior on the day, which is the outcome this section exists to prevent.
+
+tolerance: >
+  Whether the likely resolution is characterised as a genuine tension or as a governance gap
+  is free, and noting that a technical accommodation may exist is acceptable so long as it is
+  offered as an input to the decision rather than as the resolution. Recording the conflict
+  with a named decider is not negotiable.
+
+notes: >
+  The asymmetry is the part worth noticing. The Commercial Director sponsors the programme
+  and outranks the person holding the constraint, so the conflict will very likely settle
+  their way whatever the analysis says. That is not necessarily wrong — it may be the right
+  business decision — but it should be a decision someone makes, with the consequence
+  visible, rather than one that happens because nobody wrote the conflict down.

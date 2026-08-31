@@ -1,0 +1,116 @@
+spec_version: "1.0"
+id: 02-doing-nothing-is-not-free
+skill: yea.business.business-case
+fixture: context/fixtures/northwind-corp
+description: >
+  A renewal where the alternative to spending is that something stops working. Framed as a
+  return on investment it looks weak; framed against a costed do-nothing baseline it is a
+  continuity decision. This checks the counterfactual is established before the numbers are
+  built.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    nw-019 Integration Middleware carries most of the estate's interfaces and costs 685,500 a
+    year to run. It is on a version the supplier supports only under an extended agreement,
+    and that agreement expires on 30 September 2026. Twenty-six recorded interfaces depend on
+    it, including the order flow between nw-001, nw-006, and nw-007.
+
+    Two things are on the table: renew the extended support agreement for a further two years
+    at an uplift of 240,000 a year, or upgrade to the current version at an estimated
+    1,100,000 with an unchanged run cost afterwards.
+
+    The board paper has been drafted as a return-on-investment case for the upgrade. It shows
+    a negative net present value over five years, because the upgrade delivers no new
+    capability and the only quantified benefit is avoiding the extended support uplift.
+
+    The paper does not say what happens if neither is done.
+
+  ask:
+    benefit_owner_commitment: verbally_agreed
+    benefit_type: risk_avoidance
+    cost_basis: delivery_team_estimate
+    appraisal_period: five_years
+    decision_being_supported: renewal
+
+  gather:
+    provided:
+      investment_definition: "Upgrade nw-019 Integration Middleware to the supported current version, or renew extended support"
+      cost_estimate: "Upgrade 1,100,000 one-off; extended support renewal 240,000 a year uplift for two years"
+      benefit_estimate: "Avoidance of the extended support uplift after year two"
+      do_nothing_baseline: "Not established in the drafted paper"
+      ongoing_run_cost: "685,500 a year, unchanged under either option"
+      discount_rate: "0.08 from the organization profile"
+    withheld:
+      - benefit_owners
+      - realisation_timeline
+      - transition_and_change_cost
+      - comparable_outcomes
+    available_context:
+      - context.application_costs
+      - context.application_inventory
+      - context.integrations
+      - context.vendors
+
+expect:
+  counterfactual_established_before_numbers: true
+  reframed_as_continuity_not_return: true
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    costs are a delivery team estimate and no transition cost was supplied
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That there are three futures, not two, and that the third — do neither — has not been
+      costed and is the one the paper is missing.
+    - That doing nothing here means running unsupported middleware carrying twenty-six
+      interfaces including the core order flow, and that this is a continuity exposure rather
+      than a cost line.
+    - That a return-on-investment framing is the wrong frame for this decision: the upgrade
+      delivers no new capability, and presenting it as an investment produces a weak-looking
+      case for something the organization has very little choice about.
+    - That the correct comparison is the cost of continuity under each option — upgrade,
+      extended support, or accept the exposure — over the same period.
+    - That extended support at 240,000 a year for two years is 480,000 and defers rather than
+      resolves, so the comparison at year three is the upgrade cost against a further renewal
+      at a rate nobody has quoted.
+    - That the 30 September 2026 expiry has already passed the point where the extended
+      support option can be arranged without urgency, and that this constrains the decision
+      more than the arithmetic does.
+    - That the risk-avoidance benefit needs its probability and impact stated rather than
+      appearing as a single figure.
+
+  must_not:
+    - Report the upgrade as a poor investment on the negative net present value.
+    - Produce a return-on-investment recommendation without the do-nothing option costed.
+    - Present the extended support renewal as the cheaper option without noting that it
+      defers the same decision to year three at an unquoted price.
+    - Recommend which option to take on continuity grounds alone. The exposure has to be
+      quantified and the choice belongs to someone accountable for it.
+    - State a probability of failure for unsupported middleware. Nothing in the evidence
+      supports one, and inventing it would put a fabricated number at the centre of the case.
+
+fails_if:
+  - The case is built and reported as a negative return. It would be arithmetically correct,
+    it would match the drafted paper, and it would recommend against an upgrade the
+    organization has almost no alternative to — on the basis that keeping a critical system
+    supported generates no return, which is true and irrelevant.
+  - The do-neither option is not costed or described. It is the baseline every other number
+    is measured against, and the paper's central defect is that it is absent.
+
+tolerance: >
+  How the continuity exposure is expressed — in qualitative terms, as a range, or as the cost
+  of the interfaces affected — is free, and a qualitative statement is the most defensible
+  given the evidence. Establishing the counterfactual before the numbers is not.
+
+notes: >
+  Whoever drafted the paper did what the template asked for. Most business case templates
+  assume an investment producing a return, and they have no shape for a decision where the
+  alternative is that something stops. Recognising which kind of decision this is — before
+  the numbers are built rather than after they come out negative — is the whole contribution.

@@ -1,0 +1,124 @@
+spec_version: "1.0"
+id: 01-the-approver-nobody-asked
+skill: yea.business.stakeholder-and-concern-map
+fixture: context/fixtures/northwind-corp
+description: >
+  A stakeholder holds a formal veto, has never been asked, and is not obstructing anything —
+  they are simply not thinking about this work yet. This checks that the gap is surfaced as
+  the highest-priority finding, that blocking power is separated from interest, and that
+  their concerns are not invented on their behalf to fill the row.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind is kicking off the customer portal replacement. The programme has consulted the
+    Commercial Director, the Director of Operations, two trade account managers, and the
+    Technology Director, and has a good set of concerns from each.
+
+    Two people can stop it and have not been asked. The Head of Information Security owns the
+    security baseline, which any system holding confidential data must satisfy — the portal
+    holds trade account and pricing data. The General Counsel owns the data protection
+    position and has to approve anything that changes how customer data is processed.
+
+    Neither has been approached. The programme's view is that security and legal review
+    happen at design authority, later, and that there is nothing to show them yet. Neither
+    has expressed any interest, and neither has objected to anything.
+
+    The last portal project at Northwind was stopped at design authority for exactly this
+    reason. Nobody involved this time was involved then.
+
+  ask:
+    concern_source: asked_stakeholders
+    engagement_stage: kick_off
+    governance_context: formal_board
+    deliverable_commitment: open
+    contest_level: uncontested
+
+  gather:
+    provided:
+      engagement_definition: "Replace nw-002 Customer Order Portal; feeds an investment decision at the November board"
+      stakeholder_list:
+        - "Commercial Director — sponsor"
+        - "Director of Operations — consulted"
+        - "Technology Director — consulted"
+        - "Two trade account managers — consulted"
+        - "Head of Information Security — approves"
+        - "General Counsel — approves"
+      stated_concerns:
+        - "Commercial Director: will trade customers actually use it, and when can we say it is live?"
+        - "Director of Operations: does this change anything about how orders reach the warehouse?"
+        - "Technology Director: what does it cost to run, and what does it integrate with?"
+        - "Trade account managers: will my accounts have to be retrained?"
+      decision_and_veto_rights:
+        - "Head of Information Security holds approval on any system holding confidential data"
+        - "General Counsel holds approval on changes to customer data processing"
+    withheld:
+      - planned_viewpoints
+      - affected_but_unrepresented
+      - prior_engagement_history
+      - stakeholder_influence
+    available_context:
+      - context.policies
+      - context.application_inventory
+
+expect:
+  blockers_unengaged:
+    - "Head of Information Security"
+    - "General Counsel"
+  status_for_both: blocker_unengaged
+
+  confidence: low
+  confidence_reason_must_reference: >
+    two stakeholders with blocking power have no recorded concern
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That two stakeholders hold formal approval and have no recorded concern, and that this
+      is the highest-priority finding in the map regardless of how good the other concerns are.
+    - That blocking power and interest are different things, and that neither of these two has
+      shown any interest — which is normal, not obstructive. They are not thinking about this
+      work yet, and will be on the day it reaches them.
+    - Which policies attach to each approver, by ID — security_baseline and data_residency —
+      without restating what they say.
+    - That the deliverable set is open, so their concerns should be asked now and allowed to
+      shape it, which is the cheapest moment this will ever be possible.
+    - That the previous portal project was stopped at design authority for this reason, and
+      that nobody involved this time was involved then — so the organization has the
+      experience and this programme does not.
+    - That the programme's reasoning — nothing to show them yet — is exactly the reasoning
+      that produces a late stop, because what these approvers need shapes the design rather
+      than reviewing it.
+
+  must_not:
+    - Infer concerns for the Head of Information Security or the General Counsel and record
+      them as concerns. Predicting that they will care about authentication and data
+      processing is reasonable and is not evidence.
+    - Report the map as complete because four stakeholders gave good concerns.
+    - Report medium or high confidence. The concerns that were gathered are well evidenced
+      and the ones that can stop the work are absent.
+    - Treat the two approvers as uncooperative. Neither has been asked.
+
+fails_if:
+  - The two approvers appear in the register with plausible inferred concerns and a status of
+    addressed or unaddressed. The map then looks complete, the inferred concerns shape
+    deliverables nobody requested, and the real concerns arrive at design authority.
+  - The finding is recorded and not prioritised. Every other concern on this map is at least
+    known about; these two are the only unknowns, and burying them mid-document is the same
+    as missing them.
+
+tolerance: >
+  Whether the recommendation is to interview both before the deliverable set is fixed, or to
+  hold the kick-off open until they respond, is free. Surfacing both as blocker_unengaged and
+  refusing to invent their concerns is not.
+
+notes: >
+  Nobody here is at fault, which is what makes it the common case. The programme's reasoning
+  is normal and sounds prudent. The two approvers are behaving reasonably. The organization
+  has already learned this lesson once and the learning left with the people who were there —
+  which is the argument for the map being an artifact rather than an instinct.

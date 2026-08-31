@@ -1,0 +1,120 @@
+spec_version: "1.0"
+id: 02-the-preference-defended-as-a-conclusion
+skill: yea.business.operating-model-design
+fixture: context/fixtures/northwind-corp
+description: >
+  The centralisation answer is decided before the design starts. This checks that the
+  preference is recorded as a preference, that the opposite is designed and scored, and that
+  the register distinguishes a choice the analysis supported from one it accommodated.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    The Finance Director has been clear in three forums that route planning should be
+    centralised, on the grounds that four sites each running their own routing is duplicated
+    effort and that a single team would cost less. The design brief reflects this.
+
+    The evidence is not one-sided. Route planning and delivery reliability is one of the four
+    capabilities Northwind states it competes on. Routing depends on same-day knowledge that
+    currently reaches planners informally: which vehicles are actually available, which driver
+    knows a difficult delivery access, what the cold storage facility can release this
+    afternoon, and which customers will accept an early arrival. None of that is in nw-007
+    Route Planning System, which runs its allocation as an overnight batch.
+
+    Against that, the duplication is real. Four planning teams, four ways of working, and no
+    shared view of the fleet.
+
+  ask:
+    design_trigger: cost_reduction
+    centralisation_preference: centralised
+    people_constraint: headcount_reduction_expected
+    change_appetite: significant
+    time_to_operate: twelve_months
+
+  gather:
+    provided:
+      value_proposition: "Reliable next-day delivery of perishable stock; route planning and delivery reliability is stated as differentiating"
+      capability_model: "cap-04-02 Route Planning and Delivery, differentiating, owned by Operations"
+      design_scope: "Route planning across four distribution centres and one cold storage facility"
+      current_operating_arrangement:
+        - "Four site planning teams, each with its own way of working"
+        - "No shared view of fleet availability"
+        - "nw-007 Route Planning System runs allocation as an overnight batch"
+      decision_rights_map:
+        - "Route changes on the day are made by the site planner, informally"
+        - "Vehicle reallocation between sites requires the Director of Operations"
+      performance_measures:
+        - "On-time delivery measured per site"
+        - "No measure of routing efficiency across sites"
+    withheld:
+      - cost_baseline
+      - location_footprint
+      - value_stream_definitions
+      - supplier_arrangements
+    available_context:
+      - context.capability_model
+      - context.application_inventory
+      - context.organization_profile
+
+expect:
+  opposite_designed_and_scored: true
+  preference_recorded_as_preference: true
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    the current arrangement, decision rights, and performance measures were supplied, but no
+    cost baseline exists
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That centralisation was stated as a preference before the design began, and that the
+      register records for each affected decision whether the analysis independently
+      supported it or accommodated it.
+    - That a federated option — shared fleet view and one method, local same-day decisions —
+      was designed and scored, not merely mentioned.
+    - That the information a route planner uses on the day is largely informal and not in any
+      system, so centralising the decision without replacing that information moves the
+      decision away from the knowledge it needs.
+    - That the duplication the Finance Director identified is real, and that a shared method
+      and a shared fleet view capture much of the saving without moving the same-day decision.
+    - That the capability is stated as differentiating, so a cost-driven design here is
+      trading against something the organization says it competes on — and that trade-off has
+      to be explicit rather than incidental.
+    - That no cost baseline was supplied, so any figure describing the saving is directional
+      and should not be carried into a business case without being rebuilt.
+    - What each option makes harder, for both options, in the register.
+
+  must_not:
+    - Recommend centralisation because it was the stated preference, without scoring the
+      alternative.
+    - Recommend against centralisation because the preference was stated in advance. A stated
+      preference is not evidence of error, and reflexively opposing it is the same failure
+      with the sign reversed.
+    - Present a cost saving as a figure. No baseline was supplied.
+    - Make any recommendation about which planners are retained.
+
+fails_if:
+  - Only the centralised model is designed. The design would match the brief, satisfy the
+    Finance Director, and be challenged in the first steering committee on exactly the
+    question it did not answer.
+  - The trade-off against a differentiating capability is not named. Cost reduction against a
+    capability the organization competes on is a legitimate decision and an expensive
+    accident, and the difference between them is whether it was stated.
+
+tolerance: >
+  Either option may be recommended, and a genuine tie reported inside the indifference band
+  is a good outcome here. What is fixed is that both are designed and scored, that the
+  preference is recorded as such, and that the same-day information question is surfaced.
+
+notes: >
+  The Finance Director's argument is sound as far as it goes — four teams doing the same work
+  four ways is real duplication with a real cost. What the design has to add is the part
+  finance cannot see: that some of what looks like duplication is local knowledge that has
+  never been written down, and that the saving and the capability are not independent of each
+  other.

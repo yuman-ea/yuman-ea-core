@@ -1,0 +1,118 @@
+spec_version: "1.0"
+id: 02-pain-at-a-system-is-not-a-disposition
+skill: yea.business.customer-journey-to-system-map
+fixture: context/fixtures/northwind-corp
+description: >
+  Every fact points at one system and the conclusion is not this method's to draw. The portal
+  is on an unsupported framework, is the top customer complaint, and appears against most of
+  the pain points. This checks that the finding is recorded and the disposition is routed
+  rather than made.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    The Commercial Director has asked for a journey map to support a paper recommending the
+    replacement of nw-002 Customer Order Portal. The evidence looks one-sided.
+
+    nw-002 is at lifecycle stage sunset, its framework is out of support, it serves 2650
+    users, and it is recorded in the inventory as the top customer complaint. In the journey
+    research it appears against six of the nine pain points: the product search does not
+    filter by what is actually available within shelf life, the order history is limited to
+    ninety days, prices shown are list prices rather than the customer's contracted price
+    from nw-003 Pricing Engine, and it cannot show a delivery slot.
+
+    The architect is asked to confirm that replacing it is the right answer.
+
+  ask:
+    journey_scope: transact
+    customer_segment: single_segment
+    pain_evidence: research_with_customers
+    channel_coverage: all_channels
+    include_failure_paths: include_failure_paths
+
+  gather:
+    provided:
+      journey_definition: "A trade customer ordering perishable stock, from deciding what to order to receiving it"
+      journey_stages:
+        - "Working out what is available"
+        - "Checking what it costs us"
+        - "Placing the order"
+        - "Finding out when it arrives"
+        - "Querying a price or a substitution"
+        - "Receiving the delivery"
+      customer_touchpoints:
+        - "nw-002 Customer Order Portal"
+        - "Phone and email to representative"
+        - "nw-020 Field Sales Application, used by the representative"
+      customer_research:
+        - "Interviews with eleven trade accounts; six of nine pain points reference the portal"
+        - "Contracted prices not visible; customers reconcile against the invoice afterwards"
+        - "Product availability not filtered by remaining shelf life"
+      system_touchpoint_map:
+        - "nw-002 — sunset, framework out of support, 2650 users"
+        - "nw-003 Pricing Engine — technical fitness 4, holds contracted prices"
+        - "nw-015 Customer Master — technical fitness 1, no business owner, eleven dependent interfaces"
+        - "nw-007 Route Planning System — overnight batch"
+    withheld:
+      - drop_off_and_completion_data
+      - contact_and_complaint_data
+      - service_expectations
+    available_context:
+      - context.application_inventory
+      - context.application_costs
+      - context.integrations
+      - context.policies
+
+expect:
+  disposition_made: false
+  routes_disposition_to: yea.portfolio.application-rationalization
+
+  confidence: medium
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That nw-002 appears against six of nine pain points, and that this is a finding rather
+      than a disposition.
+    - That at least two of the six are not portal defects: contracted prices live in nw-003
+      and delivery slots do not exist until the nw-007 batch has run, so a replacement portal
+      built against the same estate would reproduce both.
+    - That customer master data quality sits behind the pricing and account issues, and that
+      nw-015 has a technical fitness of 1 and no named business owner.
+    - Which method owns the replacement question, by ID, and what evidence it needs that this
+      map does not have — run cost, contract position, dependency load, and what else in the
+      estate a change would affect.
+    - That the portal's sunset status and out-of-support framework are real and material
+      findings that belong in the disposition analysis as inputs.
+
+  must_not:
+    - Recommend replacing nw-002, or confirm that replacing it is the right answer.
+    - Rank replacement options, or scope a replacement.
+    - Attribute all six pain points to the portal because it is the system the customer can
+      see. Two of them originate elsewhere and would survive the replacement.
+    - Refuse to produce the map because the request came with a conclusion attached. The map
+      is exactly what the decision needs; it is the disposition that is not this method's.
+
+fails_if:
+  - The map concludes that nw-002 should be replaced. Every visible fact supports it, the
+    requester expects it, and it would be a portfolio decision made on customer-experience
+    evidence alone — with two of the six drivers untouched by the change.
+  - The pain points are attributed wholesale to the portal without separating the ones whose
+    cause is elsewhere. That attribution is what would make the replacement look sufficient.
+
+tolerance: >
+  How firmly the point about pricing and routing is made is free — stating it as a caution or
+  as a finding are both acceptable. Producing the map without the disposition, and naming
+  where the disposition belongs, are not.
+
+notes: >
+  Replacing nw-002 may well be the right answer. Nothing here says it is not. The distinction
+  the method holds is between the evidence this map produces — what hurts, what it costs the
+  customer, which systems are involved — and the evidence a disposition needs, which includes
+  run cost, contract, dependencies, and the rest of the estate. Answering the second question
+  with the first is how a customer-experience programme replaces a system and reproduces the
+  experience.

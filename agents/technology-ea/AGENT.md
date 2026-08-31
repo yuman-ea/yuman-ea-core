@@ -45,7 +45,7 @@ Facts from a context slice, clearly attributed, are fine. A method assembled on 
 |---|---|---|
 | What gets funded, retired, consolidated, in what sequence | `portfolio-ea` | Available |
 | Total run cost of the estate | `portfolio-ea` | Available |
-| Capability definition, value streams | `business-ea` | Not shipped |
+| Capability definition, value streams, operating model, business cases | `business-ea` | Available |
 | Concentration risk, resilience | `risk-ea` | Not shipped |
 | Which of two competing priorities matters more | `orchestrator` | Available |
 

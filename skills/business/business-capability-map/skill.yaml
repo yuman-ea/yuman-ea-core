@@ -1,0 +1,495 @@
+spec_version: "1.0"
+id: yea.business.business-capability-map
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: business-capability-map
+display_name: Business Capability Map
+description: >
+  Builds a levelled model of what an organization does — stable capabilities rather than
+  departments or systems — and heat-maps it against strategic importance, performance,
+  system support, process maturity, and ownership. Refuses to decompose past the level the
+  evidence supports, reports overlaps rather than resolving them silently, and rates each
+  capability on its worst dimension rather than an average that hides it. Produces the
+  capability model, the heat map, and the reasoning behind both.
+
+version: 0.1.0
+domain: business
+category: discover
+owner_agent: business-ea
+maturity: draft
+license: Apache-2.0
+
+# A description of the business and whatever names its activities. No repository,
+# no modelling tool, no reference model licence.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "capability map"
+    - "capability model"
+    - "what do we actually do"
+    - "business capabilities"
+    - "heat map our capabilities"
+    - "we need a capability view for the strategy"
+    - "nobody agrees what this business does"
+    - "level 1 and level 2 capabilities"
+    - "where are we weak as a business"
+    - "capability taxonomy"
+  decision_types:
+    - capability_modelling
+    - business_discovery
+  not_this_skill:
+    - phrase: "how mature are we against where we need to be"
+      route_to: yea.business.capability-gap-assessment
+    - phrase: "how does work actually flow end to end"
+      route_to: yea.business.value-stream-map
+    - phrase: "how should we be organized to deliver this"
+      route_to: yea.business.operating-model-design
+    - phrase: "which applications support this and which do we retire"
+      route_to: yea.portfolio.application-rationalization
+    - phrase: "should we build or buy this capability"
+      route_to: yea.technology.build-vs-buy
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — a model of the org chart is not a capability model. It records the
+#    current structure and calls it architecture, and it is obsolete at the next
+#    reorganization — usually the event that prompted someone to ask for it.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Build a capability model of {scope_boundary} to {depth_required}, for the purpose of
+    {modelling_purpose}, starting from {structural_starting_point}, and heat-map it against
+    evidence whose basis is {heat_basis}.
+  decision_statement_fields:
+    - scope_boundary
+    - depth_required
+    - modelling_purpose
+    - structural_starting_point
+    - heat_basis
+  out_of_scope:
+    - Assessing maturity against a target. That is the gap assessment, and it consumes this.
+    - Deciding which capabilities to invest in. This says where the heat is, not what to fund.
+    - Naming the applications that support a capability, beyond attributing what exists.
+    - Redesigning the organization. A capability model deliberately survives a reorganization.
+    - Modelling how work flows through the capabilities. That is a value stream.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: modelling_purpose
+    question: "What is this model for — strategy planning, prioritising investment, comparing two businesses, or making sense of the systems estate?"
+    why: "A model built for one purpose is usually wrong for another. Investment prioritisation needs the heat map to be defensible; systems rationalisation needs the capabilities to attribute cleanly to applications; a merger comparison needs both organizations described in the same terms even where neither uses them."
+    type: choice
+    options: [strategy_planning, investment_prioritisation, business_comparison, systems_rationalisation]
+    option_labels:
+      strategy_planning: "Working out where the business is going"
+      investment_prioritisation: "Deciding where the money goes"
+      business_comparison: "Comparing two businesses, or us against a benchmark"
+      systems_rationalisation: "Making sense of what the systems actually support"
+    required: true
+    default_if_skipped: strategy_planning
+    affects: [strategic_importance, performance_gap]
+
+  - id: depth_required
+    question: "How deep — two levels, three levels, or as deep as the evidence actually supports?"
+    why: "Anything can be decomposed further; whether it should be depends on whether the split changes a decision. A model taken to level 3 without level 3 evidence is a taxonomy of guesses, and its extra precision is read as extra confidence."
+    type: choice
+    options: [level_2, level_3, evidence_led]
+    option_labels:
+      level_2: "Two levels"
+      level_3: "Three levels"
+      evidence_led: "As deep as we can actually evidence"
+    required: true
+    default_if_skipped: evidence_led
+    affects: [process_maturity, system_support]
+
+  - id: heat_basis
+    question: "Where does the performance judgement come from — measured, assessed by the people who run the capability, or the architect's own read?"
+    why: "The heat map is the half of this artifact that drives money, and its credibility rests entirely on this answer. An architect's read is a legitimate starting point and a poor thing to present as an assessment; this caps the confidence of every rating downstream."
+    type: choice
+    options: [measured, assessed_by_owners, architect_judgement, none]
+    option_labels:
+      measured: "We have measures for it"
+      assessed_by_owners: "The people who run it rated it"
+      architect_judgement: "My own read of it"
+      none: "No basis yet"
+    required: true
+    default_if_skipped: architect_judgement
+    affects: [performance_gap, process_maturity]
+
+  - id: structural_starting_point
+    question: "What are you starting from — an industry reference model, an existing internal model, the org structure, or a blank sheet?"
+    why: "Starting from the org structure is the most common route to a model that mirrors the current arrangement, and it produces something that looks finished while being obsolete at the next reorganization. Knowing the starting point is how that bias gets corrected rather than inherited."
+    type: choice
+    options: [industry_reference_model, existing_internal_model, org_structure, blank_sheet]
+    option_labels:
+      industry_reference_model: "A published reference model for our sector"
+      existing_internal_model: "A model we already have"
+      org_structure: "The organization chart"
+      blank_sheet: "Nothing — starting fresh"
+    required: true
+    default_if_skipped: blank_sheet
+    affects: [ownership_clarity, system_support]
+
+  - id: change_context
+    question: "Is the organization about to reorganize, acquire, divest, or otherwise change shape?"
+    why: "A model built during a restructure must be independent of structure or it is obsolete on the day it is published. Where change is coming, ownership is recorded as of today and explicitly marked as the volatile column rather than presented as settled."
+    type: choice
+    options: [stable, reorganization_underway, acquisition_or_divestment, unknown]
+    option_labels:
+      stable: "No structural change expected"
+      reorganization_underway: "A reorganization is in progress or planned"
+      acquisition_or_divestment: "We are buying or selling part of the business"
+      unknown: "Not sure"
+    required: true
+    default_if_skipped: stable
+    affects: [ownership_clarity, strategic_importance]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: business_description
+      description: "What the organization does, what it sells, who it sells to, and how it makes money. The narrative the model has to account for."
+      source: [user, context.organization_profile]
+      format: document
+
+    - id: scope_boundary
+      description: "What is inside the model — the whole enterprise, one business unit, or one end-to-end chain — and what is deliberately outside it."
+      source: user
+      format: scalar
+
+    - id: activity_evidence
+      description: "Whatever names real activity: process lists, functional teams, job families, system names, cost lines, a service catalogue. The raw material a capability is derived from and traced back to."
+      source: [user, context.application_inventory, context.capability_model]
+      format: table
+
+  optional:
+    - id: capability_performance_evidence
+      description: "How well each capability currently performs — measures, complaint themes, backlog age, rework rates, audit findings, whatever exists."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: strategic_positioning
+      description: "Which capabilities the organization believes it competes on, which are at parity with the sector, and which are commodity."
+      source: [user, context.organization_profile]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "The strategic_position block of the organization profile, where one exists, treated as the stated competitive position."
+      assumption_template: "Strategic positioning was taken from the recorded organization profile rather than confirmed with the executive team. A stated position and a believed one diverge more often than either party expects, and this column is what the whole heat map is weighted against."
+      confidence_penalty: high
+
+    - id: capability_owners
+      description: "Who is accountable for each capability — not who runs the system, and not the department it sits in."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: unassigned
+      assumption_template: "Capability owners were not supplied and are recorded as unassigned. An unassigned capability is a finding rather than a blank cell: it is the capability nobody is accountable for improving, and it is usually one of the ones performing worst."
+      confidence_penalty: medium
+
+    - id: system_support_map
+      description: "Which applications support which capability, and how well."
+      source: [user, context.application_inventory]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "The capability attribution already recorded against each application in the inventory, treated as the support map."
+      assumption_template: "System support was inferred from the capability recorded against each application in the inventory. That attribution was made for a different purpose and is usually one-to-one, so capabilities supported by several systems and systems supporting several capabilities are both under-represented."
+      confidence_penalty: medium
+
+    - id: value_stream_definitions
+      description: "The end-to-end flows of value the capabilities serve, where these have been defined."
+      source: user
+      format: list
+      on_missing: use_proxy_metric
+      proxy: "The sequences implied by the integration map — which systems hand work to which — treated as the outline of the flows the capabilities serve."
+      assumption_template: "Value streams were inferred from how systems hand work to each other rather than from how value actually reaches the customer. This finds the automated flow and misses everything carried by email, spreadsheet, or phone call, which is disproportionately where the friction is."
+      confidence_penalty: medium
+
+    - id: cost_by_capability
+      description: "What each capability costs to run, where cost has been attributed above the level of individual applications."
+      source: [user, context.application_costs]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Application run costs rolled up through the capability recorded against each application."
+      assumption_template: "Capability cost was rolled up from application run cost, so it captures technology cost only. Labour, third-party service, and process cost are excluded, which understates people-intensive capabilities and systematically overstates how expensive the automated ones are by comparison."
+      confidence_penalty: medium
+
+    - id: existing_capability_model
+      description: "A capability model the organization already has, from a previous exercise, a reference model, or a supplier."
+      source: [user, context.capability_model]
+      format: table
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No existing model was supplied, so the model has been derived from the activity evidence alone. This is the normal starting position and is not itself a weakness; it does mean nothing independent corroborates the structure."
+      confidence_penalty: low
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - capability_model_standard
+    - strategic_priorities
+    - data_governance_charter
+  on_policy_absent: proceed_and_note
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the weighted score ORDERS capabilities for attention. The heat
+#    STATUS comes from the score pattern, never the total, because a capability
+#    can be strategically vital, well funded, and still hopelessly manual.
+#    See ./references/heat-map-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: strategic_importance
+      display_name: How much rides on it
+      weight: 0.30
+      description: "How much of the organization's competitive position depends on doing this better than others do. Weighted highest because it is the dimension that decides whether a weakness is urgent or merely untidy — a commodity capability performing badly is a cost problem, and a differentiating one performing badly is a strategy problem."
+      evidence: [strategic_positioning, business_description, modelling_purpose, change_context]
+      direction: higher_is_better
+
+    - id: performance_gap
+      display_name: How well it performs today
+      weight: 0.25
+      description: "The distance between how this capability performs and how it needs to perform for the organization to do what it says it will. Scored from evidence, and explicitly capped by where that evidence came from."
+      evidence: [capability_performance_evidence, activity_evidence, heat_basis, modelling_purpose]
+      direction: lower_is_better
+
+    - id: system_support
+      display_name: Whether the estate helps or fights it
+      weight: 0.20
+      description: "Whether the applications supporting this capability enable it, constrain it, or are worked around. A capability supported by three overlapping systems and a spreadsheet is not well supported, however much has been spent on it."
+      evidence: [system_support_map, cost_by_capability, activity_evidence, depth_required, structural_starting_point]
+      direction: higher_is_better
+
+    - id: process_maturity
+      display_name: Whether it runs repeatably
+      weight: 0.15
+      description: "Whether the capability is delivered the same way twice — defined and repeatable, or dependent on particular people knowing what to do. This is the dimension most often invisible in a systems-led model and most often the real constraint."
+      evidence: [capability_performance_evidence, value_stream_definitions, activity_evidence, heat_basis, depth_required]
+      direction: higher_is_better
+
+    - id: ownership_clarity
+      display_name: Whether anyone is accountable
+      weight: 0.10
+      description: "Whether one named person is accountable for how well this capability performs. Weighted lowest because it rarely changes a priority on its own, and reported prominently because an unowned capability is the one that never improves regardless of what the other dimensions say."
+      evidence: [capability_owners, activity_evidence, structural_starting_point, change_context]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Severely deficient — this dimension alone makes the capability a hotspot."
+      - value: 2
+        meaning: "Weak — a material problem that a reviewer would recognize without prompting."
+      - value: 3
+        meaning: "Adequate — works, with known irritations, and nothing that threatens the outcome."
+      - value: 4
+        meaning: "Strong — performs well and is not a constraint on anything else."
+      - value: 5
+        meaning: "Excellent — a genuine strength worth protecting rather than optimising further."
+
+  steps:
+    - "Restate the scope and say what is deliberately outside it. A capability model with no stated boundary grows until it describes everything and decides nothing."
+    - "Derive candidate capabilities from the activity evidence as NOUNS describing what the organization does, never as verbs, departments, systems, or projects."
+    - "Where the starting point is the org structure, actively test each candidate against the question 'would this still exist if we reorganized tomorrow?' and rewrite the ones that would not. This is the single most common defect in capability models and it is inherited silently."
+    - "Group into levels. Stop at the level where decisions are actually made — decomposing further is always possible and adds precision the evidence cannot support."
+    - "Run the coverage check in both directions: every capability traces to something the organization actually does, and every significant activity in the evidence lands in exactly one capability."
+    - "Report overlaps rather than resolving them. Where two capabilities contest the same activity, that contest is usually a real organizational ambiguity and quietly picking a side hides it."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any rating depends on it."
+    - "Score each capability on all five dimensions separately. Never blend them into a single health figure before the statuses are assigned."
+    - "Assign a heat status from the SCORE PATTERN, not the weighted total — see ./references/heat-map-rules.md. A capability rated 5 on importance and 1 on process maturity is a hotspot, and its total says 'adequate'."
+    - "Identify overinvestment explicitly: commodity capabilities carrying differentiating-level cost or system support. Nobody asks for this finding and it is frequently the most actionable one in the run."
+    - "Mark every capability that could not be rated as insufficient_evidence rather than guessing. A rated capability and an unrated one must be distinguishable at a glance."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the capability with the wider blast radius. One that several value streams depend on outranks one used in a single place, at the same score."
+    - "Prefer the capability whose weakness is structural over one whose weakness is a backlog. A backlog clears; an unowned, unsupported capability does not."
+    - "Prefer the capability with an owner who can act. Where two are equally hot, the one nobody is accountable for will not move, and saying so is more useful than ranking it first."
+    - "If still tied, prefer the one closer to the customer. Its failures are visible outside the organization."
+
+  references:
+    - ./references/capability-modelling-rules.md
+    - ./references/heat-map-rules.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, delivery_team]
+  artifacts:
+    - id: capability_model
+      display_name: Capability model
+      description: "The levelled model — every capability, its parent, what it means, what evidence it was derived from, and who owns it."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/capability-model.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: capability_id
+            type: string
+          - id: name
+            type: string
+            description: "A noun phrase. Never a verb, a department, a system, or a project."
+          - id: level
+            type: number
+          - id: parent_capability_id
+            type: string
+          - id: definition
+            type: string
+            description: "What the organization does when it does this. One sentence, in business language, testable enough that someone could say it is wrong."
+          - id: derived_from
+            type: string
+            description: "The activity evidence this capability was traced to. A capability with nothing here is aspiration, and must be marked as such rather than left blank."
+          - id: owner
+            type: string
+            description: "Or 'unassigned', which is a finding rather than a gap in the table."
+          - id: strategic_position
+            type: enum
+            enum_values: [differentiating, parity, commodity, not_assessed]
+          - id: overlaps_with
+            type: string
+            description: "Other capabilities contesting the same activity. Reported, not resolved."
+          - id: evidence_basis
+            type: enum
+            enum_values: [measured, assessed_by_owners, architect_judgement, inferred, none]
+          - id: assumption_ref
+            type: string
+
+    - id: capability_heat_map
+      display_name: Capability heat map
+      description: "Every capability rated on all five dimensions separately, with a status derived from the score pattern rather than a blended average."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/capability-heat-map.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: capability_id
+            type: string
+          - id: name
+            type: string
+          - id: strategic_importance
+            type: score
+          - id: performance_gap
+            type: score
+          - id: system_support
+            type: score
+          - id: process_maturity
+            type: score
+          - id: ownership_clarity
+            type: score
+          - id: weighted_score
+            type: number
+            description: "An ordering aid for attention. It is NOT the status, and must never be presented as the rating."
+          - id: heat_status
+            type: enum
+            enum_values: [strength, adequate, fragile, hotspot, overinvested, insufficient_evidence]
+          - id: driving_dimension
+            type: string
+            description: "Which dimension produced the status. Where a status comes from one bad score among four good ones, that is the whole finding."
+          - id: annual_cost
+            type: currency
+          - id: supporting_systems
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: model_rationale
+      display_name: Model rationale
+      description: "How the model was derived, what it deliberately excludes, where capabilities overlap, and what the heat map does and does not support."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/model-rationale.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: what_this_covers
+            heading: "What this covers, and what it does not"
+            required: true
+          - id: how_it_was_derived
+            heading: "How the model was derived"
+            required: true
+            description: "The starting point, and — where that was the org structure — what was done to stop the structure being inherited."
+          - id: where_the_heat_is
+            heading: "Where the heat is"
+            required: true
+          - id: overinvestment
+            heading: "Where we may be overinvesting"
+            required: true
+            description: "Commodity capabilities carrying differentiating-level cost or attention. Nobody asks for this and it is often the most actionable finding in the run."
+          - id: overlaps
+            heading: "Capabilities that contest the same ground"
+            required: true
+            description: "Reported rather than resolved. An overlap is usually a real organizational ambiguity, and picking a side quietly hides it."
+          - id: unowned
+            heading: "Capabilities nobody owns"
+            required: true
+          - id: not_rated
+            heading: "What we could not rate"
+            required: true
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this model"
+            required: true
+          - id: how_to_use_it
+            heading: "How to use this, and how not to"
+            required: true
+            description: "Explicitly including that the model is not an operating model and does not imply a structure."
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "performance evidence was measured or assessed by capability owners, strategic positioning was confirmed rather than inferred, owners are named for the great majority of capabilities, and the coverage check passed in both directions."
+    - level: medium
+      when: "performance evidence was assessed by owners or partly measured, strategic positioning was taken from a recorded profile, and system support was inferred from the inventory, but the model traces cleanly to activity evidence."
+    - level: low
+      when: "the heat basis is architect judgement or none, or strategic positioning was inferred, or performance evidence was not supplied, or the model was started from the org structure without the structure-independence test being applied."
+
+  sensitivity_targets:
+    - target: strategic_positioning
+      variation: "move each differentiating capability to parity in turn"
+      report: "Which hotspots stop being hotspots. Almost every organization overstates what it competes on, and the capabilities that survive this test are the short list that actually matters."
+    - target: strategic_importance
+      variation: "weight +/- 0.10"
+      report: "Whether the ordering of the top capabilities changes. If a small weight change reorders the top five, the model is separating capabilities that the evidence does not actually separate, and it should be reported as a band rather than a ranking."
+    - target: capability_performance_evidence
+      variation: "treat every architect-judged rating as one point more favourable"
+      report: "How many hotspots disappear. An architect's read of a capability they do not run is usually pessimistic about the visible problems and blind to the invisible ones, and this quantifies the exposure."
+    - target: depth_required
+      variation: "collapse the model one level"
+      report: "Whether any finding is lost. A finding that survives collapsing is a real one; a finding that only exists at level 3 is usually an artifact of how the decomposition was drawn."
+
+  evals: ./evals/

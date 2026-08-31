@@ -1,0 +1,113 @@
+spec_version: "1.0"
+id: 03-the-digital-only-map-that-looks-healthy
+skill: yea.business.customer-journey-to-system-map
+fixture: context/fixtures/northwind-corp
+description: >
+  A digital-only scope with good analytics produces a healthy-looking journey. The customers
+  having the worst experience left the digital channel before the metrics could see them.
+  This checks that the scope limitation is stated as a distortion rather than a caveat, and
+  that the confidence rating reflects it.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    A digital programme has been funded to improve the ordering experience, and its scope is
+    the portal. The analytics are genuinely good: 2650 registered users, 94% of started
+    orders completed, median time to place a repeat order under three minutes, low error
+    rates on submission.
+
+    What the analytics cannot show: the accounts that gave up on the portal years ago and
+    order by email or by phoning a representative, and the orders placed for them in nw-020
+    Field Sales Application. Nobody knows how many accounts those are. Northwind has 4200
+    trade accounts and 2650 portal users, and no one has reconciled the two figures.
+
+    The programme team has asked for a journey map covering the digital channel, since that
+    is what they can change.
+
+  ask:
+    journey_scope: transact
+    customer_segment: all_customers
+    pain_evidence: measured
+    channel_coverage: digital_only
+    include_failure_paths: intended_journey
+
+  gather:
+    provided:
+      journey_definition: "A trade customer placing a repeat order through the portal"
+      journey_stages:
+        - "Signing in"
+        - "Finding the products"
+        - "Adding to the order"
+        - "Submitting"
+        - "Seeing it accepted"
+      customer_touchpoints:
+        - "nw-002 Customer Order Portal, all stages"
+      drop_off_and_completion_data:
+        - "94% of started orders completed"
+        - "Median repeat order placed in under three minutes"
+        - "Low submission error rate"
+      system_touchpoint_map:
+        - "nw-002 Customer Order Portal — sunset, 2650 users"
+        - "nw-001 Order Capture System"
+        - "nw-020 Field Sales Application — 140 users, used by representatives"
+    withheld:
+      - customer_research
+      - contact_and_complaint_data
+      - service_expectations
+      - segment_definitions
+    available_context:
+      - context.application_inventory
+      - context.organization_profile
+
+expect:
+  confidence: low
+  confidence_reason_must_reference: >
+    only digital channels were covered and failure paths were excluded
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That 2650 portal users against 4200 trade accounts leaves roughly 1550 accounts
+      unaccounted for, and that the map covers none of them.
+    - That a 94% completion rate is a completion rate among customers who are still using the
+      portal, and that customers who abandoned it entirely cannot appear in it — the metric
+      improves as the unhappiest customers leave the channel.
+    - That the scope excludes the failure paths, so the stages where customers give up are
+      structurally absent rather than absent because they were checked and found empty.
+    - That this is the map the organization's own analytics already produce, and that its
+      healthy appearance is a property of the scope rather than of the experience.
+    - What would resolve it: reconciling registered users against active accounts, and asking
+      any of the roughly 1550 accounts not using the portal why.
+    - That the programme's scope is a legitimate constraint on what it can change, and not a
+      legitimate constraint on what the map is allowed to say about the journey.
+
+  must_not:
+    - Report the journey as performing well.
+    - Report medium or high confidence on the strength of good measured data. The data is
+      good and it is measuring a self-selected population.
+    - Present the channel limitation only as a closing caveat. It inverts the headline
+      finding and belongs in the opening section.
+    - Refuse to produce the map. The digital stages are real, the analytics are real, and a
+      map of them with its distortion clearly stated is exactly what the programme needs.
+
+fails_if:
+  - The map concludes the ordering journey is healthy. Every number supports it, all the
+    evidence is measured rather than inferred, and the conclusion is an artifact of who is
+    left in the sample.
+  - The 2650-against-4200 gap is not surfaced. It is derivable from the fixture alone, it is
+    the single strongest signal in the run, and it is the number that reframes the whole map.
+
+tolerance: >
+  How the missing accounts are characterised — as former portal users, as accounts that never
+  onboarded, or as unknown — is free, and "unknown" is the most defensible. Surfacing the gap
+  and reporting low confidence are not.
+
+notes: >
+  This is survivorship bias arriving with clean data and a reasonable scope. The programme
+  team asked for what they can change, which is sensible. The map's contribution is to say
+  that the channel they can change is the one the satisfied customers are still using, and
+  that the number of accounts outside it is larger than the number inside.

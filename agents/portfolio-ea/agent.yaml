@@ -44,7 +44,8 @@ refuses:
     route_to: technology-ea
   - question: "What business capability is this, and what value stream does it serve?"
     route_to: business-ea
-    available: false
+  - question: "Does this one investment stand up as a business case on its own merits?"
+    route_to: business-ea
   - question: "What is our concentration risk if this supplier fails?"
     route_to: risk-ea
     available: false

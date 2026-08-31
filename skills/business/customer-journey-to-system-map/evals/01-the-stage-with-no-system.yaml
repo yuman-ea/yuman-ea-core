@@ -1,0 +1,127 @@
+spec_version: "1.0"
+id: 01-the-stage-with-no-system
+skill: yea.business.customer-journey-to-system-map
+fixture: context/fixtures/northwind-corp
+description: >
+  The highest-effort stage in the journey touches no system, produces no record, and appears
+  in no report. This checks that it is mapped as a stage rather than treated as a gap between
+  stages, that it is scored for visibility, and that its invisibility is reported as a
+  finding about the organization.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind is reviewing the trade customer ordering experience. A chef or purchasing
+    manager places an order through nw-002 Customer Order Portal, and needs to know whether a
+    perishable delivery will arrive in the morning window, because their kitchen or shop
+    floor plans around it.
+
+    The portal shows "order accepted". It does not show a delivery slot, because routing runs
+    as an overnight batch in nw-007 Route Planning System and the slot does not exist until
+    the following morning. Customers who need to know call their representative. The
+    representative, who cannot see the route either, calls the distribution centre. The
+    distribution centre checks the morning run sheet and calls back.
+
+    Nobody records any of this. It does not appear in portal analytics, there is no ticket,
+    and the contact is not logged anywhere. The Commercial Director's view is that the
+    ordering experience is "fine apart from the portal being old".
+
+  ask:
+    journey_scope: transact
+    customer_segment: single_segment
+    pain_evidence: research_with_customers
+    channel_coverage: all_channels
+    include_failure_paths: include_failure_paths
+
+  gather:
+    provided:
+      journey_definition: "A trade customer ordering perishable stock for delivery, from deciding what to order to having it arrive when they planned around it"
+      journey_stages:
+        - "Working out what to order and whether it is available"
+        - "Placing the order"
+        - "Finding out whether it will arrive in the morning window"
+        - "Planning the day around the delivery"
+        - "Receiving the delivery"
+      customer_touchpoints:
+        - "nw-002 Customer Order Portal — order placement and 'order accepted' confirmation"
+        - "Phone call to representative — no system"
+        - "Callback from representative — no system"
+        - "Driver arrival"
+      customer_research:
+        - "Interviews with eleven trade accounts"
+        - "Most-cited frustration is not knowing the delivery slot until the morning"
+        - "Several report ordering earlier than needed to create buffer, which increases waste"
+      system_touchpoint_map:
+        - "nw-002 Customer Order Portal — sunset, out-of-support framework, 2650 users"
+        - "nw-007 Route Planning System — routing runs as an overnight batch"
+        - "nw-020 Field Sales Application"
+    withheld:
+      - drop_off_and_completion_data
+      - contact_and_complaint_data
+      - service_expectations
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.organization_profile
+
+expect:
+  stage_mapped_with_no_channel: "Finding out whether it will arrive in the morning window"
+  channel_for_that_stage: none
+  status: blind_spot
+  is_moment_of_truth: true
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    pain came from research with actual customers and all channels were covered, but no
+    drop-off or contact data was available
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That "finding out whether it will arrive" is a stage in its own right, carries the
+      highest effort in the journey, and touches no system on the customer's side.
+    - That the organization has no record of this stage: no portal event, no ticket, no
+      logged contact — so it appears in no report and has never been on an improvement list.
+    - That this is a finding about the organization rather than a gap in the map, and that
+      the invisibility is why the stage has not improved.
+    - That the underlying cause is a timing mismatch — the slot does not exist until the
+      overnight batch has run — rather than a portal defect, which is what the organization
+      currently believes.
+    - That customers are ordering earlier than they need to in order to create buffer, which
+      is a customer-side cost that shows up as Northwind waste and is currently attributed
+      to neither.
+    - That the Commercial Director's view — "fine apart from the portal being old" — is the
+      view produced by looking at the systems, and that the worst stage has no system in it.
+
+  must_not:
+    - Omit the stage because it has no touchpoint, or fold it into "placing the order".
+    - Score visibility as unknown or middling. Nothing is recorded; the score is at the floor
+      and the status follows from it.
+    - Recommend replacing nw-002. It is genuinely on an out-of-support framework and that is
+      a real finding, and it is not the cause of this stage.
+    - Recommend changing the nw-007 batch schedule as a conclusion. That the slot does not
+      exist yet is the cause; what to do about it is a design decision this method does not
+      own.
+
+fails_if:
+  - The journey is mapped as four stages with the phone loop noted as a comment. That map
+    would show a reasonable digital journey with an ageing portal, and would miss the stage
+    that customers named first in every interview.
+  - The finding is expressed as "the portal does not show delivery slots". It is true, it is
+    the organization's framing, and it points the fix at the system the customer can see
+    rather than at the timing that makes the information unavailable.
+
+tolerance: >
+  Whether the callback loop is modelled as one stage or three is free. Whether the cause is
+  characterised as a batch timing issue or as an information availability issue is free.
+  Mapping it as a stage with `channel: none` and status `blind_spot` is not.
+
+notes: >
+  The Commercial Director is not being careless. Every system they can look at says the
+  journey is fine, and the one visible problem — an ageing portal — is real. The stage that
+  matters most produces no data at all, which is exactly why it takes a journey map rather
+  than a dashboard to find it.

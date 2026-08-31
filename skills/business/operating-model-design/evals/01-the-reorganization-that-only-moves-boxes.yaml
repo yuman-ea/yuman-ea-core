@@ -1,0 +1,114 @@
+spec_version: "1.0"
+id: 01-the-reorganization-that-only-moves-boxes
+skill: yea.business.operating-model-design
+fixture: context/fixtures/northwind-corp
+description: >
+  A reorganization arrives fully formed as a chart, and the request is to validate it. This
+  checks that the other five dimensions are required before the structure is assessed, that
+  the management system is designed explicitly, and that the design is measured against the
+  value proposition rather than against general principles of organization design.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind's executive team has drafted a new structure. Today the four distribution
+    centres each have their own operations manager reporting to the Director of Operations,
+    with planning done locally at each site. The proposal creates a central Supply Chain
+    Planning function, moves demand forecasting and inventory planning into it, and leaves
+    the site operations managers accountable for execution only.
+
+    The chart is complete and has been socialised. What has not been discussed: what gets
+    measured after the change, who decides on a stock allocation when two sites want the same
+    pallet, where the planners physically sit, what information a central planner would need
+    that a site planner currently gets by walking onto the floor, and what happens to the
+    third-party logistics arrangement that currently reports into two of the sites.
+
+    The architect has been asked to validate the structure.
+
+  ask:
+    design_trigger: reorganization
+    centralisation_preference: centralised
+    people_constraint: role_changes_expected
+    change_appetite: significant
+    time_to_operate: twelve_months
+
+  gather:
+    provided:
+      value_proposition: "Reliable next-day delivery of perishable stock to trade accounts, with cold chain integrity evidenced end to end"
+      capability_model: "Thirty capabilities; cap-03 Supply Chain Planning with demand forecasting, supplier management, and inventory planning beneath it"
+      design_scope: "Supply chain planning and distribution centre operations. Commercial, Finance, and People held constant"
+      current_operating_arrangement:
+        - "Four distribution centres, each with an operations manager and local planning"
+        - "One cold storage facility"
+        - "Third-party logistics arrangement reporting into two sites"
+    withheld:
+      - decision_rights_map
+      - performance_measures
+      - location_footprint
+      - cost_baseline
+      - value_stream_definitions
+      - supplier_arrangements
+    available_context:
+      - context.capability_model
+      - context.organization_profile
+      - context.application_inventory
+
+expect:
+  all_six_dimensions_required: true
+  confidence: low
+  confidence_reason_must_reference: >
+    decision rights and performance measures were not supplied, so the management system
+    dimension could not be evidenced
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That the proposal answers the organization dimension and leaves work, locations,
+      information, suppliers, and the management system unanswered, and that a design in one
+      dimension is a reorganization rather than an operating model.
+    - That the management system is the dimension that will decide whether this works:
+      moving planning centrally while site managers remain measured on local execution
+      produces local behaviour regardless of the reporting line.
+    - The specific unanswered decision right — who allocates a contested pallet between two
+      sites — and that placing that decision centrally requires information a central planner
+      does not currently have.
+    - That a site planner currently gets information by walking onto the floor, and that the
+      design must say what replaces it. This is an information-dimension question that the
+      chart conceals entirely.
+    - That the third-party logistics arrangement reports into two sites and is part of the
+      operating model whether or not it appears on the chart, and that the contract has to be
+      read before the reporting line is redrawn.
+    - That the design is measured against next-day delivery of perishable stock with evidenced
+      cold chain, and not against whether centralised planning is generally a good idea.
+
+  must_not:
+    - Validate or reject the structure on the organization dimension alone.
+    - Accept "centralised planning" as a design. It is a decision about one dimension.
+    - Treat the missing dimensions as implementation detail to be worked out after the chart
+      is agreed. The chart constrains all five of them and has been drawn without them.
+    - Name individuals, or comment on which managers would gain or lose scope.
+
+fails_if:
+  - The structure is assessed as proposed and returned with organizational observations. That
+    is the request, it is what the executive team expects, and it validates a design that has
+    not answered the five dimensions that determine whether it works.
+  - The management system is listed as a gap without being designed. Naming the omission and
+    leaving it is the same outcome as not noticing it, and this is the dimension the method
+    exists to force.
+
+tolerance: >
+  Whether the recommendation is to design the missing dimensions before proceeding, or to
+  proceed with the structure while designing them in parallel, is a judgement call and both
+  are defensible. Requiring all six before the structure is validated is not.
+
+notes: >
+  The proposed structure may well be right. Centralising planning in a four-site distribution
+  business is a normal and often correct move. The point of the case is that nothing in the
+  chart tells you whether it is right here, and the five dimensions that would are the ones
+  nobody has discussed — which is also why the previous reorganization changed reporting
+  lines and no outcomes.

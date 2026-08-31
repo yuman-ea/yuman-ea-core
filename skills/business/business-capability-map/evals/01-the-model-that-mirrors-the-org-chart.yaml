@@ -1,0 +1,109 @@
+spec_version: "1.0"
+id: 01-the-model-that-mirrors-the-org-chart
+skill: yea.business.business-capability-map
+fixture: context/fixtures/northwind-corp
+description: >
+  The commonest defect in capability modelling, arriving the way it actually arrives — the
+  architect has the org chart, it is the only complete list of what the business does, and
+  starting from it is entirely reasonable. This case checks that the reorganization test is
+  applied rather than the structure being inherited, and that the capability crossing two
+  functions is not split along the reporting line.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind is refreshing its strategy. There is no capability model. What exists is an
+    org chart with seven functions — Commercial, Operations, Supply Chain, Quality, Finance,
+    People, Technology — a list of the twenty applications, and the FY2026 cost per
+    application. The architect starts from the functions because it is the only complete
+    list of what the business does that anyone has.
+
+    Cold chain integrity is the case that matters here. It is owned by Quality, executed by
+    Operations in the warehouses and by drivers on the road, evidenced against a seven-year
+    retention obligation, and it is one of the three things Northwind says it competes on.
+    On the org chart it is a line in Quality, which is a four-person function.
+
+  ask:
+    modelling_purpose: strategy_planning
+    depth_required: evidence_led
+    heat_basis: architect_judgement
+    structural_starting_point: org_structure
+    change_context: stable
+
+  gather:
+    provided:
+      business_description: "Specialty food and beverage distribution; 740m revenue, 1800 staff, 4200 trade accounts, four distribution centres and one cold storage facility"
+      scope_boundary: "The whole enterprise"
+      activity_evidence:
+        - "Seven org chart functions with headcount"
+        - "Twenty applications with the function that uses each"
+        - "FY2026 run cost per application"
+      strategic_positioning: "From the organization profile: perishable route planning, cold chain integrity, trade pricing, and demand forecasting are differentiating"
+    withheld:
+      - capability_performance_evidence
+      - capability_owners
+      - value_stream_definitions
+      - existing_capability_model
+    available_context:
+      - context.organization_profile
+      - context.application_inventory
+      - context.application_costs
+
+expect:
+  reorganization_test_applied: true
+  confidence: low
+  confidence_reason_must_reference: >
+    heat basis is architect judgement and no performance evidence was supplied
+
+  candidates_that_must_be_rewritten:
+    - candidate: "Quality"
+      failed_because: "names a function, not something the organization does"
+    - candidate: "Operations"
+      failed_because: "names a function containing several unrelated capabilities"
+    - candidate: "Technology"
+      failed_because: "names a function; the capabilities under it are Integration and Data Services, Service Desk, Collaboration, Enterprise Reporting"
+
+  cold_chain_handled_as_one_capability: true
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That the starting point was the org structure, and what was done to stop the structure
+      being inherited — naming the candidates that failed the reorganization test.
+    - That cold chain integrity is a single capability spanning Quality, Operations, and the
+      delivery fleet, and that modelling it along the reporting line would split the
+      organization's most regulated differentiating capability across three places.
+    - That capability owners were not supplied, so ownership is recorded as unassigned
+      throughout and the ownership dimension carries no information in this run.
+    - That the heat map rests on architect judgement and is a starting position for a
+      conversation with the capability owners rather than an assessment of them.
+    - That the model is not an operating model and does not imply a structure.
+
+  must_not:
+    - Produce a level 1 list of seven capabilities matching the seven functions.
+    - Split cold chain compliance into a Quality capability and an Operations capability.
+    - Score the ownership dimension as though unassigned were a middling rating. Unassigned
+      is a finding; scoring it 3 makes it disappear.
+    - Present any capability derived only from a function name as evidenced.
+
+fails_if:
+  - The seven functions appear as the seven level 1 capabilities. The result looks complete,
+    everyone in the room recognises it, and it is obsolete at the next restructure — which
+    is frequently the event that prompted the request in the first place.
+  - The reorganization test is described but not visibly applied to each candidate. Stating
+    the rule and inheriting the structure anyway is the outcome this case exists to catch.
+
+tolerance: >
+  How many level 1 capabilities result, and what they are called, is free — a reasonable
+  model here might have six or nine. What is not negotiable is that the level 1 list is not
+  the function list, that failed candidates are shown with what they were rewritten to, and
+  that cold chain integrity survives as one capability.
+
+notes: >
+  Starting from the org chart is not an error and should not be reported as one. It is
+  usually the only complete inventory of activity an organization has, and it is a
+  legitimate starting point. The defect is stopping there.

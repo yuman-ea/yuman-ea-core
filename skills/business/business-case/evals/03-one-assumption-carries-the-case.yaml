@@ -1,0 +1,119 @@
+spec_version: "1.0"
+id: 03-one-assumption-carries-the-case
+skill: yea.business.business-case
+fixture: context/fixtures/northwind-corp
+description: >
+  A large positive net present value produced almost entirely by a single unevidenced input.
+  This checks that the fragility is found and reported as the case, that the break-even is
+  given rather than the point estimate, and that the size of the return is not allowed to
+  stand in for the strength of the argument.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    A case for replacing nw-004 Demand Forecasting Tool shows a net present value of
+    2,900,000 over five years against a cost of 900,000.
+
+    Almost all of it comes from one line: a reduction in perishable waste of 1.5 percentage
+    points, applied to cost of goods, worth roughly 780,000 a year. The figure came from a
+    supplier's published case study for a different distributor in a different category. No
+    baseline waste measurement exists at Northwind — waste is known to be above target and
+    has never been measured by product group or by cause.
+
+    The remaining benefits total about 60,000 a year: planner time and fewer emergency
+    replenishment runs. Both are evidenced from internal records.
+
+    Costs are a supplier quote for licence and implementation, plus a delivery estimate for
+    integration. Run cost is quoted. The Supply Chain Director has agreed in writing to own
+    the waste benefit.
+
+  ask:
+    benefit_owner_commitment: committed_in_writing
+    benefit_type: cashable_saving
+    cost_basis: supplier_quote
+    appraisal_period: five_years
+    decision_being_supported: new_investment
+
+  gather:
+    provided:
+      investment_definition: "Replace nw-004 Demand Forecasting Tool; excludes the process, information, and governance changes identified in the capability gap assessment"
+      cost_estimate: "900,000 total — supplier quote for licence and implementation, delivery estimate for integration"
+      benefit_estimate:
+        - "1.5 percentage point reduction in perishable waste, roughly 780,000 a year, from a supplier case study for a different distributor"
+        - "Planner time and fewer emergency replenishment runs, roughly 60,000 a year, from internal records"
+      ongoing_run_cost: "Quoted by the supplier, unchanged from year two"
+      benefit_owners: "Supply Chain Director, committed in writing, for the waste benefit"
+      discount_rate: "0.08 from the organization profile"
+      do_nothing_baseline: "nw-004 run cost 226,000 a year, technical fitness 2"
+    withheld:
+      - realisation_timeline
+      - transition_and_change_cost
+      - comparable_outcomes
+    available_context:
+      - context.application_costs
+      - context.application_inventory
+      - context.organization_profile
+
+expect:
+  status: depends_on_one_assumption
+  driving_assumption: "1.5 percentage point waste reduction, from a supplier case study for a different distributor"
+  break_even_reported: true
+
+  confidence: low
+  confidence_reason_must_reference: >
+    a single assumption carries the conclusion
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That roughly 93% of the benefit comes from one line, and that the case is therefore an
+      argument about that line rather than about the investment.
+    - That the waste figure comes from a supplier case study for a different distributor in a
+      different category, which is a starting point and not evidence about Northwind.
+    - That no waste baseline exists, so the benefit cannot be measured afterwards even though
+      it has a committed owner — a written commitment to a benefit with no baseline cannot be
+      discharged or failed.
+    - The break-even: what waste reduction would have to be achieved for the case to hold,
+      expressed as the threshold rather than as the estimate.
+    - That the 60,000 of internally evidenced benefit does not support the investment on its
+      own, and that this is the only part of the case that rests on Northwind's own data.
+    - That the scope excludes the process, information, and governance changes the capability
+      gap assessment identified, so the case assumes the tool alone produces the waste
+      reduction — which is the same assumption stated a second way.
+    - That establishing a waste baseline before committing is cheap relative to 900,000 and
+      would convert the central assumption into a measurement.
+
+  must_not:
+    - Report the case as strong on the strength of a 2,900,000 net present value.
+    - Report high or medium confidence because costs are quoted, run cost is known, and the
+      benefit has a written owner. All three are true and none of them touches the input the
+      result depends on.
+    - Reject the investment. The forecasting tool may well be worth replacing, and nothing
+      here establishes that it is not.
+    - Substitute a different waste reduction figure of its own invention. Reporting the
+      break-even is the move; producing a more conservative estimate with no more evidence
+      behind it is the same error with a smaller number.
+
+fails_if:
+  - The case is reported as fundable. Every visible quality signal is good — quoted costs,
+    known run cost, a written benefit owner, a large return — and one unevidenced number from
+    somebody else's business produces almost all of the value.
+  - The break-even is not stated. Without it the board debates whether 1.5 points is
+    plausible, which nobody in the room can settle; with it they debate whether Northwind can
+    beat a stated threshold, which is a question the Supply Chain Director can answer.
+
+tolerance: >
+  Whether the recommendation is to establish a baseline first, to proceed with a staged
+  commitment, or to fund it on the strength of the capability argument rather than the waste
+  figure is free. Identifying the single-assumption dependency and reporting the break-even
+  are not.
+
+notes: >
+  This is the most dangerous shape a business case takes, because every quality marker points
+  the right way. The costs are quoted, the run cost is known, the benefit is cashable, and
+  someone has signed up to it in writing. The one weak input is also the largest, and its
+  weakness is invisible in every summary line the case produces.

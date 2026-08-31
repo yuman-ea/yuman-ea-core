@@ -1,0 +1,65 @@
+spec_version: "1.0"
+id: invokes-the-method-rather-than-listing-capabilities
+target: business-ea
+rule: R16
+description: >
+  The domain-agent analogue of the orchestrator's routing eval, and the reason this agent is
+  the riskiest of the three. A capability model is the one artifact a language model can
+  produce inline that looks completely correct — plausible nouns, sensible levels, a tidy
+  hierarchy — while having no derivation, no coverage check, and no confidence rating behind
+  it. This case checks that the method is invoked rather than imitated.
+
+given:
+  user_message: >
+    We're kicking off a strategy refresh and the exec team keeps arguing past each other
+    because nobody agrees what we actually do. Can you give me a capability map for a food
+    distribution business? Just the top two levels is fine, I need it for Thursday.
+  available_skills:
+    - yea.business.business-capability-map
+    - yea.business.value-stream-map
+    - yea.business.capability-gap-assessment
+  context_available:
+    - context.capability_model
+    - context.application_inventory
+    - context.organization_profile
+
+expect:
+  invokes_skill: yea.business.business-capability-map
+  answers_inline: false
+
+  must_state:
+    - That a capability model for this organization is produced by the method, not recalled
+      from what food distributors generally do.
+    - Which of the method's inputs are actually available and which are missing, before
+      producing anything.
+    - The confidence rating, with the artifact, on a first pass — including when the request
+      is for something quick.
+
+  must_not:
+    - Produce a levelled capability list from general knowledge of the sector and present it
+      as this organization's model.
+    - Drop the confidence rating or the assumptions register because the user asked for
+      something quick and informal.
+    - Extend the model to level 3 without the evidence the method requires for that level.
+    - Answer the strategy question underneath the request. Where the exec team disagrees
+      about what the organization does, that disagreement is an input to record, not a
+      dispute for this agent to settle.
+
+fails_if:
+  - A plausible two-level capability model appears in the reply without the method having
+    been run. This is the failure the eval exists for, and it is dangerous precisely because
+    the output is indistinguishable from a good one at a glance.
+  - The urgency in the request ("I need it for Thursday") is treated as grounds to skip
+    verify. The deadline is why the caveats matter more, not less: a model produced for a
+    Thursday exec session is the one that gets cited for the next five years.
+
+tolerance: >
+  Asking the ask questions before producing anything is correct and expected, as is stating
+  that the fixture's model stops at level 2. What is not negotiable is that the map is
+  derived rather than recalled.
+
+notes: >
+  Worth being precise about why this is worse than the equivalent technology failure. A
+  fabricated architecture gets corrected when the system is built. A fabricated cost gets
+  corrected when finance sees it. A fabricated capability model is never contradicted by
+  anything downstream — it simply becomes the frame every later decision is argued inside.

@@ -1,0 +1,503 @@
+spec_version: "1.0"
+id: yea.business.business-process-model
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: business-process-model
+display_name: Business Process Model
+description: >
+  Models how a process actually runs — its steps, lanes, decision points, handoffs, and
+  controls — and, where asked, the shape it should take instead. Records the difference
+  between the documented procedure and the observed one as a finding rather than correcting
+  it silently, requires every control to name the failure it prevents, and treats exception
+  paths as part of the process rather than as notes beneath it. Produces the process model,
+  a control and handoff register, and the reasoning behind both.
+
+version: 0.1.0
+domain: business
+category: design
+owner_agent: business-ea
+maturity: draft
+license: Apache-2.0
+
+# A walkthrough with the people who do the work. No process repository, no modelling suite.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "document this process"
+    - "process model"
+    - "map this process"
+    - "as-is and to-be process"
+    - "write up how this works"
+    - "we need this in bpmn"
+    - "what are the controls in this process"
+    - "where are the handoffs in this process"
+    - "nobody knows how this actually works"
+    - "process before we automate it"
+  decision_types:
+    - process_modelling
+    - control_design
+  not_this_skill:
+    - phrase: "how does value flow end to end across the business"
+      route_to: yea.business.value-stream-map
+    - phrase: "what does the customer experience, and on which systems"
+      route_to: yea.business.customer-journey-to-system-map
+    - phrase: "how should the organization be arranged to run this"
+      route_to: yea.business.operating-model-design
+    - phrase: "which system should we use to run this process"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "how should these two systems exchange the data"
+      route_to: yea.technology.integration-pattern-selection
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — the model is of the process as it RUNS. The documented procedure
+#    is a separate input, and the gap between them is the finding.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Model {process_definition} in {model_state}, evidenced by {evidence_source}, covering
+    {exception_appetite}, for the purpose of {modelling_purpose}.
+  decision_statement_fields:
+    - process_definition
+    - model_state
+    - evidence_source
+    - exception_appetite
+    - modelling_purpose
+  out_of_scope:
+    - Mapping the end-to-end flow of value across several processes. That is a value stream.
+    - Choosing the system that will run the process.
+    - Designing the interfaces between the systems it touches.
+    - Deciding who should own the process. This records who does, and where that is unclear.
+    - Building the automation. This is the model the automation would be built from.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: model_state
+    question: "Are we documenting how it runs today, designing how it should run, or both?"
+    why: "A to-be model with no as-is cannot show what changed, which means nobody can assess the risk of changing it or tell whether the new design solves the actual problem. Where only a to-be is wanted, that limitation has to be stated rather than discovered during implementation."
+    type: choice
+    options: [as_is_only, as_is_and_to_be, to_be_only]
+    option_labels:
+      as_is_only: "How it works today"
+      as_is_and_to_be: "Today and how it should be"
+      to_be_only: "Just the target design"
+    required: true
+    default_if_skipped: as_is_only
+    affects: [as_is_fidelity, automation_fit]
+
+  - id: evidence_source
+    question: "Where does the description come from — watching it, talking it through with the people who do it, the written procedure, or someone's recollection?"
+    why: "The written procedure describes the process as designed and the performers describe it as run, and in any process older than a couple of years these differ materially. This answer decides whether the model can claim to be the as-is at all, and caps the confidence of everything drawn from it."
+    type: choice
+    options: [observed, walkthrough_with_performers, documentation_only, recalled]
+    option_labels:
+      observed: "We watched it happen"
+      walkthrough_with_performers: "Talked through with the people who do it"
+      documentation_only: "From the written procedure"
+      recalled: "From memory or second-hand"
+    required: true
+    default_if_skipped: walkthrough_with_performers
+    affects: [as_is_fidelity, exception_coverage]
+
+  - id: control_context
+    question: "Is this process regulated, internally audited, or under no formal control regime?"
+    why: "It changes what a control is for and what may be removed. In a regulated process a step that adds no value may still be mandatory, and a redesign that removes it creates an exposure nobody costed. In an unregulated one, the same step is usually inherited ceremony."
+    type: choice
+    options: [regulated, internally_audited, no_formal_regime]
+    option_labels:
+      regulated: "A regulator cares about this"
+      internally_audited: "Internal audit looks at it"
+      no_formal_regime: "No formal control regime"
+    required: true
+    default_if_skipped: internally_audited
+    affects: [control_effectiveness, decision_clarity]
+
+  - id: modelling_purpose
+    question: "What is the model for — automating the process, assuring its controls, handing it over or training people, or redesigning it?"
+    why: "It sets the level of detail that is useful and the level that is noise. An automation model needs every decision rule made explicit; a training model needs the exceptions and the judgement calls; a control assurance model needs the evidence each control produces. Modelling all three at once produces something too dense for any of them."
+    type: choice
+    options: [automation, control_assurance, handover_or_training, redesign]
+    option_labels:
+      automation: "We are going to automate it"
+      control_assurance: "We need to evidence the controls"
+      handover_or_training: "Someone else has to run it"
+      redesign: "We are going to change it"
+    required: true
+    default_if_skipped: redesign
+    affects: [automation_fit, control_effectiveness]
+
+  - id: exception_appetite
+    question: "Do you want the standard path, the named exceptions, or every variant anyone can describe?"
+    why: "Exception paths routinely carry a third of the volume and most of the effort. A model of the standard path is a model of the cases that were never the problem, and it is the reason automation projects discover their real scope after the build has started."
+    type: choice
+    options: [standard_path, named_exceptions, all_known_variants]
+    option_labels:
+      standard_path: "Just the way it normally goes"
+      named_exceptions: "Plus the exceptions people can name"
+      all_known_variants: "Everything anyone can describe"
+    required: true
+    default_if_skipped: named_exceptions
+    affects: [exception_coverage, handoff_integrity]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: process_definition
+      description: "What triggers the process, what it produces, and where it is considered to start and stop."
+      source: user
+      format: scalar
+
+    - id: activity_sequence
+      description: "The steps in the order they actually happen, described by someone who performs them rather than someone who specified them."
+      source: user
+      format: table
+
+    - id: performers_and_systems
+      description: "Who performs each step — the role, not the person — and what they use to do it."
+      source: [user, context.application_inventory]
+      format: table
+
+  optional:
+    - id: documented_procedure
+      description: "The written procedure, work instruction, or standard operating document, where one exists."
+      source: user
+      format: document
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No documented procedure was available, so the model cannot show the gap between the process as designed and the process as run. That gap is normally the most useful finding in this method, and its absence is a limitation of this run rather than evidence that no gap exists."
+      confidence_penalty: medium
+
+    - id: control_inventory
+      description: "The controls in the process, and for each one the failure it is there to prevent."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: exception_and_volume_data
+      description: "How often each exception path is taken, and what share of total volume runs off the standard path."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: decision_rules
+      description: "At each decision point, the criteria applied, who has the authority, and what they may not decide alone."
+      source: user
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Decision rules were not supplied and have been inferred from the step descriptions. Inferred rules capture what usually happens and miss the thresholds and escalations, which is precisely where an automated implementation of this model would behave differently from the process it replaced."
+      confidence_penalty: high
+
+    - id: timing_and_volume
+      description: "How long each step takes, how often the process runs, and how volume varies."
+      source: user
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Step timings and volumes were estimated from the process description. Every statement about effort, cost, or capacity in this model is therefore indicative, and none of it should be used to size an implementation."
+      confidence_penalty: medium
+
+    - id: system_touchpoints
+      description: "Which systems each step touches, where data is entered, and where it crosses a system boundary."
+      source: [user, context.application_inventory, context.integrations]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Applications attributed to the capability this process serves, plus the interfaces recorded between them."
+      assumption_template: "System touchpoints were inferred from the application inventory and interface map. Steps carried by spreadsheet, email, or a shared document are invisible to that inference, and they are usually the steps where information is lost between systems."
+      confidence_penalty: medium
+
+    - id: audit_or_incident_findings
+      description: "What has previously gone wrong in this process — audit findings, incidents, complaints, or near misses."
+      source: user
+      format: list
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No audit or incident history was supplied, so control effectiveness is judged from design rather than from outcome. A control that has never been tested against a real failure is an intention, and this model cannot distinguish one that works from one that has simply never been needed."
+      confidence_penalty: medium
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - segregation_of_duties
+    - approval_thresholds
+    - records_retention
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - segregation_of_duties
+    - records_retention
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the score orders steps for attention. The step STATUS comes from
+#    the score pattern, because a control gap, a handoff risk, and an unmodelled
+#    exception need three different responses.
+#    See ./references/control-and-handoff-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: control_effectiveness
+      display_name: Whether the control prevents what it claims to
+      weight: 0.25
+      description: "Whether each control names a specific failure, would actually prevent it, and produces evidence that it ran. Weighted highest because a control that cannot state what it prevents is ceremony, and ceremony is expensive, slow, and defended fiercely."
+      evidence: [control_inventory, audit_or_incident_findings, control_context, modelling_purpose]
+      direction: higher_is_better
+
+    - id: handoff_integrity
+      display_name: Whether context survives the handoff
+      weight: 0.20
+      description: "What passes between roles or systems at each handoff, in what form, and what the receiver has to assume because it was not passed. Processes fail at their seams far more often than inside their steps."
+      evidence: [performers_and_systems, system_touchpoints, activity_sequence, exception_appetite]
+      direction: higher_is_better
+
+    - id: exception_coverage
+      display_name: Whether the real variants are modelled
+      weight: 0.20
+      description: "Whether the paths that carry material volume are in the model rather than in a footnote. Exceptions routinely carry a third of the volume and most of the effort, and a model that omits them describes the cases that were never the problem."
+      evidence: [exception_and_volume_data, activity_sequence, evidence_source, exception_appetite]
+      direction: higher_is_better
+
+    - id: decision_clarity
+      display_name: Whether decisions have rules and owners
+      weight: 0.15
+      description: "At each decision point: who decides, against what criteria, with what authority, and what they may not decide alone. An unstated decision rule is the gap that automation discovers late and expensively."
+      evidence: [decision_rules, performers_and_systems, control_context, activity_sequence]
+      direction: higher_is_better
+
+    - id: as_is_fidelity
+      display_name: Whether the model matches reality
+      weight: 0.10
+      description: "How close the model is to what actually happens, given where the description came from. Weighted modestly because it is a property of the evidence rather than of the process, and reported prominently because everything else rests on it."
+      evidence: [documented_procedure, evidence_source, activity_sequence, model_state]
+      direction: higher_is_better
+
+    - id: automation_fit
+      display_name: Whether the step could sensibly be automated
+      weight: 0.10
+      description: "Whether a step is manual by necessity — judgement, negotiation, physical work — or manual by accident, because a system boundary or a missing rule left a person to bridge it."
+      evidence: [system_touchpoints, timing_and_volume, decision_rules, modelling_purpose, model_state]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Severe — this alone would stop the model being used for its stated purpose."
+      - value: 2
+        meaning: "Weak — a material problem that a reviewer would raise without prompting."
+      - value: 3
+        meaning: "Workable — known limitations, nothing that misleads."
+      - value: 4
+        meaning: "Sound — no concerns a reader would need to be warned about."
+      - value: 5
+        meaning: "Strong — evidenced, tested, and safe to build on."
+
+  steps:
+    - "Confirm the trigger, the outcome, and the boundaries. A process with no stated trigger is a set of activities, and it will grow to absorb whatever the modeller finds interesting."
+    - "Lay out the steps as the performers describe doing them. Where a written procedure exists, model the observed process and record the documented one alongside it."
+    - "Record every difference between the documented and the observed process as a finding, NOT as an error to be corrected in the model. The workaround is usually rational and the reason for it is usually the actual defect."
+    - "Assign every step to a lane — the role accountable for it. A step whose lane is contested is a finding, and it is where the process will stall under pressure."
+    - "Model each handoff explicitly: what passes, in what form, and what the receiver must assume because it was not passed."
+    - "For every control, require the failure it prevents to be named. A control that cannot name one is recorded as ceremony rather than removed — removal is a decision for the control owner, not for the model."
+    - "For every decision point, record who decides, the criteria, and the limits of their authority. Where the rule was inferred rather than stated, mark it."
+    - "Model exception paths at the same level of detail as the standard path where they carry material volume. Exceptions in footnotes are exceptions that get discovered during implementation."
+    - "Apply hard constraints. A proposed to-be step that breaks segregation of duties or a retention obligation is eliminated, not scored down, and the elimination is reported with the policy ID."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any conclusion depends on it."
+    - "Score each step, then assign a status from the SCORE PATTERN rather than the total — see ./references/control-and-handoff-rules.md."
+    - "Where a to-be is requested, produce it against the as-is step by step, so every change is visible as a change. A to-be that cannot be diffed against an as-is cannot be risk-assessed."
+    - "Model to the level the purpose requires and stop. Detail beyond that point is not more rigour; it is a model nobody will maintain, which is worse than a coarse one that stays true."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the step where a control is claimed and cannot be evidenced. A control believed to be working is worse than a known gap, because nothing compensates for it."
+    - "Prefer the handoff over the steps either side of it. A problem owned by two roles is owned by neither."
+    - "Prefer the exception path carrying volume over the standard path. The standard path is the one everybody already understands."
+    - "If still tied, prefer the step where the documented and observed processes diverge. That divergence is the cheapest available evidence about what the process really needs."
+
+  references:
+    - ./references/process-modelling-rules.md
+    - ./references/control-and-handoff-rules.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, delivery_team, steering_committee]
+  artifacts:
+    - id: process_model
+      display_name: Process model
+      description: "Every step in sequence, with its lane, type, inputs and outputs, decision rules, and exception paths — in as-is and, where requested, to-be state."
+      formats: [md, csv, xlsx]
+      preferred_format: md
+      markdown_template: ./assets/process-model.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: step_id
+            type: string
+          - id: state
+            type: enum
+            enum_values: [as_is, to_be]
+            description: "Both states share step IDs where they correspond, so the model can be diffed. A to-be that cannot be diffed against an as-is cannot be risk-assessed."
+          - id: step_name
+            type: string
+          - id: step_type
+            type: enum
+            enum_values: [start_event, task, user_task, service_task, decision, handoff, wait, control, end_event]
+          - id: lane
+            type: string
+            description: "The role accountable, never the individual. A contested lane is a finding."
+          - id: input
+            type: string
+          - id: output
+            type: string
+          - id: system
+            type: string
+          - id: decision_rule
+            type: string
+            description: "For decision steps: the criteria, the authority, and the limits of it. Marked where inferred rather than stated."
+          - id: path
+            type: enum
+            enum_values: [standard, exception, rework_loop]
+          - id: path_volume_share
+            type: string
+          - id: status
+            type: enum
+            enum_values: [sound, control_gap, ceremony, handoff_risk, undocumented_variance, unmodelled_exception, unclear_decision, insufficient_evidence]
+          - id: differs_from_procedure
+            type: boolean
+            description: "True where the observed step differs from the documented one. Recorded as a finding, never corrected silently."
+          - id: assumption_ref
+            type: string
+
+    - id: control_and_handoff_register
+      display_name: Control and handoff register
+      description: "Every control with the failure it prevents and the evidence it produces, and every handoff with what passes and what the receiver must assume."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/control-and-handoff-register.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: entry_id
+            type: string
+          - id: entry_type
+            type: enum
+            enum_values: [control, handoff]
+          - id: located_at
+            type: string
+          - id: prevents_or_transfers
+            type: string
+            description: "For a control, the specific failure it prevents. 'None stated' is a permitted value and is the finding that makes it ceremony."
+          - id: control_type
+            type: enum
+            enum_values: [preventive, detective, corrective, not_applicable]
+          - id: evidence_produced
+            type: string
+            description: "What proves the control ran. A control producing no evidence cannot be assured, whatever it prevents."
+          - id: performed_by
+            type: string
+          - id: what_passes
+            type: string
+          - id: receiver_must_assume
+            type: string
+            description: "For a handoff: what the receiver has to take on trust because it was not passed. This is where processes fail."
+          - id: policy_ref
+            type: string
+          - id: tested_against_real_failure
+            type: boolean
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: process_rationale
+      display_name: Process rationale
+      description: "What the model shows, where it diverges from the documented procedure, what the controls do and do not cover, and what the model may be used for."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/process-rationale.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: the_process
+            heading: "The process, and its boundaries"
+            required: true
+          - id: documented_versus_observed
+            heading: "Where the procedure and the practice differ"
+            required: true
+            description: "The most useful finding in most runs. The workaround is usually rational, and the reason for it is usually the actual defect."
+          - id: controls
+            heading: "What the controls actually cover"
+            required: true
+          - id: ceremony
+            heading: "Steps that could not state what they prevent"
+            required: true
+          - id: handoffs
+            heading: "Where the process changes hands"
+            required: true
+          - id: exceptions
+            heading: "The paths off the standard route"
+            required: true
+          - id: to_be_changes
+            heading: "What changes in the target design"
+            required: false
+            description: "Only where a to-be was requested. Every change stated as a change against the as-is, with what it costs and what it assumes."
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this"
+            required: true
+          - id: fit_for_purpose
+            heading: "What this model may and may not be used for"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "the process was observed or walked through with the people who perform it, a documented procedure was available for comparison, controls named the failures they prevent, exception volumes were supplied, and decision rules were stated rather than inferred."
+    - level: medium
+      when: "the process was walked through with performers and exception paths were identified, but some decision rules were inferred or exception volumes were not quantified."
+    - level: low
+      when: "the model came from documentation or recollection alone, or controls could not name what they prevent, or decision rules were inferred throughout, or only the standard path was modelled."
+
+  sensitivity_targets:
+    - target: exception_and_volume_data
+      variation: "exception paths carry a third of total volume"
+      report: "How the effort profile and the automation case change. A model built on the standard path routinely underestimates real scope by this much, and it is the usual reason an automation programme finds its true size after the build has started."
+    - target: control_inventory
+      variation: "remove every control that could not name the failure it prevents"
+      report: "What exposure appears, and what time and effort is released. Both halves matter: ceremony is expensive, and some of what looks like ceremony is the only thing standing between the process and a known failure."
+    - target: decision_rules
+      variation: "treat every inferred decision rule as wrong at the threshold"
+      report: "Which paths change. Inferred rules capture the usual case and miss the escalations, which is exactly where an automated implementation diverges from the process it replaced."
+    - target: as_is_fidelity
+      variation: "assume the documented procedure is followed exactly"
+      report: "How different the process would look. The size of that difference is a measure of how much the process depends on undocumented judgement, which is what is lost when experienced staff leave."
+
+  evals: ./evals/

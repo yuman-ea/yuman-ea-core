@@ -1,0 +1,119 @@
+spec_version: "1.0"
+id: 01-level-five-everywhere
+skill: yea.business.capability-gap-assessment
+fixture: context/fixtures/northwind-corp
+description: >
+  Targets set at the top of the scale for every capability, including the ones the
+  organization has explicitly said it does not compete on. This checks that over-targeting is
+  caught before gaps are sized, that it is reported as its own finding, and that the
+  correction is offered as free rather than as a reduction in ambition.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind's executive team has asked for a capability maturity assessment to support the
+    strategy refresh. The brief supplied a target of level 5 for all thirty capabilities, on
+    the reasoning that the organization should be excellent at everything it does.
+
+    The organization profile says otherwise, and says it plainly. Perishable route planning,
+    cold chain integrity, trade pricing, and demand forecasting are differentiating. Order
+    capture, warehouse operations, and product information are parity. Finance, payroll,
+    human resources administration, collaboration, service desk, and workforce scheduling are
+    commodity.
+
+    Finance already consumes 2,126,000 of the 9,995,500 technology run cost. Nothing in the
+    strategy commits to anything that requires finance capability to be measured and
+    continuously improved.
+
+  ask:
+    target_source: aspiration
+    assessment_basis: self_assessed_by_owners
+    strategy_horizon: twenty_four_months
+    investment_context: being_competed_for
+    gap_appetite: close_strategic_only
+
+  gather:
+    provided:
+      capability_model: "Thirty capabilities, levels 1 and 2, from the existing model"
+      strategic_requirements: "Strategy refresh commits to next-day delivery reliability, trade pricing agility, and reduced perishable waste. No commitment references finance, payroll, or human resources capability"
+      current_maturity_evidence:
+        - "Ratings supplied by each capability owner against a five-level scale"
+        - "Finance rated 3, payroll 3, human resources administration 3"
+        - "Demand forecasting rated 2, route planning 2, cold chain compliance 2"
+      capability_owners: "Named for all thirty capabilities"
+      target_maturity_definitions: "Level 5 for all thirty capabilities, no requirement stated per capability"
+    withheld:
+      - prior_assessments
+      - benchmark_data
+      - capacity_and_funding
+      - intervention_options
+    available_context:
+      - context.capability_model
+      - context.organization_profile
+      - context.application_costs
+
+expect:
+  over_targeted_identified: true
+  over_targeted_includes:
+    - "Financial Accounting"
+    - "Billing and Receivables"
+    - "Payroll"
+    - "Human Resources Administration"
+    - "Collaboration and Productivity"
+    - "Service Desk"
+    - "Workforce Scheduling"
+
+  confidence: low
+  confidence_reason_must_reference: >
+    targets came from aspiration rather than being derived from strategic requirements
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That a level 5 target for every capability is the absence of a target rather than an
+      ambitious one, and that no strategic requirement was stated behind any of them.
+    - That the commodity capabilities are over-targeted, naming them, and that correcting a
+      target costs nothing while closing a gap costs money.
+    - What target each commodity capability's position actually supports — reliable
+      operation rather than measured continuous improvement — and that several are already
+      at or near it.
+    - That ranking by gap size would put commodity capabilities near the top of the backlog,
+      and that ranking by strategic dependency does not.
+    - That Finance already consumes roughly a fifth of the technology run cost for
+      capabilities nothing in the strategy depends on, so a level 5 target there would add
+      investment to the largest existing line.
+    - That the correction is not a reduction in ambition. The differentiating capabilities
+      keep high targets and the effort released moves toward them.
+
+  must_not:
+    - Produce a gap backlog against level 5 targets and note the over-targeting as a caveat.
+    - Size or prioritise gaps on commodity capabilities before the targets have been
+      challenged.
+    - Report medium or high confidence because current-state ratings were supplied by owners
+      for every capability. The ratings are the strong half; the targets are the half the
+      gaps are measured from.
+    - Treat "we should be excellent at everything" as a strategic requirement.
+
+fails_if:
+  - The assessment produces thirty gaps against level 5. It would be internally consistent,
+    would answer the brief exactly as given, and would generate real, fundable, well-scoped
+    work on capabilities nobody competes on — which is money spent before anyone notices the
+    error.
+  - Over-targeting is reported only for the commodity capabilities and the parity ones are
+    left at 5. Parity capabilities have a defensible target of 3, and the same reasoning
+    applies with a smaller number attached.
+
+tolerance: >
+  Exactly which target each commodity capability should carry — 2 or 3 — is a judgement call
+  and either is defensible. Whether workforce scheduling is treated as commodity or parity is
+  arguable. Identifying the over-targeting before sizing the gaps is not.
+
+notes: >
+  The executive brief is not unreasonable and should not be characterised as an error. "We
+  should be excellent at everything we do" is a normal thing for an executive team to say,
+  and it becomes expensive only when it is converted into targets without anyone asking what
+  each level requires. That conversion is where this method intervenes.

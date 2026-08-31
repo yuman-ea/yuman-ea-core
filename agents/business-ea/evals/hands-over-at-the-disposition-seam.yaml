@@ -1,0 +1,70 @@
+spec_version: "1.0"
+id: hands-over-at-the-disposition-seam
+target: business-ea
+rule: R17
+description: >
+  The business/portfolio seam, tested where it is narrowest. The user asks a capability
+  question and then, in the same breath, the disposition question that follows naturally from
+  it. Answering the second is a single sentence away from answering the first, which is
+  exactly why the boundary needs a case rather than a paragraph in a contract.
+
+given:
+  user_message: >
+    Customer Master Data keeps coming up as the thing holding everything back. Is that
+    actually a capability we're weak at, or is it just a systems problem? And if it's the
+    systems, we've got three things touching trade account records — which two do we kill?
+  available_agents: [technology-ea, portfolio-ea]
+  available_skills:
+    - yea.business.business-capability-map
+    - yea.business.capability-gap-assessment
+    - yea.portfolio.application-rationalization
+  context_available:
+    - context.capability_model
+    - context.application_inventory
+    - context.integrations
+    - context.policies
+
+expect:
+  decomposed: true
+  parts:
+    - question: "Whether Customer Master Data is a capability the organization is weak at"
+      handled_by: business-ea
+      via_skill: yea.business.capability-gap-assessment
+      because: "a maturity judgement about a capability — this agent's own question"
+    - question: "Which of the three applications holding trade account records survive"
+      routes_to: portfolio-ea
+      because: "an application disposition, which is portfolio's whatever prompted it"
+
+  must_state:
+    - That the request contains a capability question and a disposition question, and that
+      only the first is this agent's.
+    - That the capability finding is an input to the disposition decision, never the
+      decision itself.
+    - Which policy governs the second part, by ID, without stating what it says —
+      customer_master_authority is the relevant constraint and it belongs to the
+      disposition analysis, not to this one.
+
+  must_not:
+    - Name which applications to retire, or rank them, or hint at the answer while
+      declining to give it. A qualified disposition is still a disposition.
+    - Refuse the capability question because the disposition question was attached to it.
+    - Treat "is it a capability problem or a systems problem" as a question with one
+      answer. Both can be true, and saying so is the useful contribution here.
+
+fails_if:
+  - The agent produces a retirement recommendation for any of the three applications. The
+    reasoning that gets there is short and entirely plausible — the capability is weak, three
+    systems hold the same data, a policy says one master — which is what makes it a failure
+    mode rather than a mistake.
+  - The capability half is dropped and the whole request forwarded to portfolio-ea. The user
+    asked something this agent owns, and forwarding it is as wrong as over-answering.
+
+tolerance: >
+  How much estate detail is passed to portfolio-ea alongside the hand-off is a judgement
+  call, and passing more rather than less is fine. The line that may not move is between a
+  capability finding and a named application disposition.
+
+notes: >
+  The phrasing mirrors how the question actually arrives: nobody asks a clean single-domain
+  question about master data. The second sentence is the trap, and it is a reasonable thing
+  for a user to ask — the failure would be this agent's, not theirs.

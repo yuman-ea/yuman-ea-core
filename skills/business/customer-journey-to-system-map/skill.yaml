@@ -1,0 +1,497 @@
+spec_version: "1.0"
+id: yea.business.customer-journey-to-system-map
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: customer-journey-to-system-map
+display_name: Customer Journey to System Map
+description: >
+  Maps what a customer is trying to do at each stage of a journey onto the systems that
+  stage actually touches, and locates the pain between them. Names stages for the customer's
+  intent rather than the organization's process, scores whether the organization can even
+  see what happens at each stage, and treats the stages with no system and no record as
+  findings rather than gaps in the data. Produces the journey-to-system map, a pain point
+  register, and the reasoning behind both.
+
+version: 0.1.0
+domain: business
+category: discover
+owner_agent: business-ea
+maturity: draft
+license: Apache-2.0
+
+# A journey outline and whatever customer evidence exists. No analytics platform required.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "customer journey map"
+    - "map the customer journey"
+    - "which systems does the customer actually touch"
+    - "customer experience is bad and we do not know why"
+    - "journey to system map"
+    - "where does the customer drop off"
+    - "digital experience review"
+    - "why do customers keep calling us"
+    - "customer pain points"
+    - "map the onboarding experience"
+  decision_types:
+    - journey_mapping
+    - experience_diagnosis
+  not_this_skill:
+    - phrase: "how does work flow end to end inside the business"
+      route_to: yea.business.value-stream-map
+    - phrase: "document this process with its controls"
+      route_to: yea.business.business-process-model
+    - phrase: "which of these systems should we replace"
+      route_to: yea.portfolio.application-rationalization
+    - phrase: "what should the replacement portal be built on"
+      route_to: yea.technology.high-level-architecture
+    - phrase: "does replacing this stack pay for itself"
+      route_to: yea.business.business-case
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — the journey belongs to the customer. A map whose stages are named
+#    for the organization's process has already decided that the organization's
+#    view is the true one, and every finding after that is inside-out.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Map the {journey_scope} journey for {customer_segment} across {channel_coverage},
+    including {include_failure_paths}, onto the systems each stage touches, with pain
+    evidenced by {pain_evidence}.
+  decision_statement_fields:
+    - journey_scope
+    - customer_segment
+    - channel_coverage
+    - include_failure_paths
+    - pain_evidence
+  out_of_scope:
+    - Deciding which systems to replace, consolidate, or retire.
+    - Designing the replacement experience or the architecture behind it.
+    - Mapping how work flows internally between the teams the customer never sees.
+    - Building the funding case for fixing what this finds.
+    - Judging whether a pain point is worth fixing. This says what it costs the customer.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: journey_scope
+    question: "Which journey — finding and choosing you, getting set up, day-to-day dealing with you, getting help when something goes wrong, or deciding whether to stay?"
+    why: "Each journey has a different definition of a good outcome and a different moment that decides the relationship. Mapping several at once produces a map with no shape, because a stage that is trivial in one journey is the whole thing in another."
+    type: choice
+    options: [acquire, onboard, transact, support, renew_or_leave]
+    option_labels:
+      acquire: "Finding and choosing us"
+      onboard: "Getting set up"
+      transact: "Day-to-day dealing with us"
+      support: "Getting help when it goes wrong"
+      renew_or_leave: "Deciding whether to stay"
+    required: true
+    default_if_skipped: transact
+    affects: [moment_criticality, customer_effort]
+
+  - id: customer_segment
+    question: "Which customers — one segment, or all of them together?"
+    why: "Journeys differ by segment more than organizations expect, and an averaged journey describes nobody. A large account with a named representative and a small account using self-service are having two different experiences of the same organization, and the average conceals both."
+    type: choice
+    options: [single_segment, several_named_segments, all_customers]
+    option_labels:
+      single_segment: "One segment"
+      several_named_segments: "A few named segments, mapped separately"
+      all_customers: "Everyone together"
+    required: true
+    default_if_skipped: single_segment
+    affects: [customer_effort, moment_criticality]
+
+  - id: pain_evidence
+    question: "Where does the evidence about pain come from — measured, research with actual customers, internal opinion, or nothing yet?"
+    why: "Internally inferred pain is wrong in a predictable direction: the organization knows about the problems it has been told about and is blind to the ones customers work around silently or leave over. This answer caps the confidence of every pain finding in the run."
+    type: choice
+    options: [measured, research_with_customers, inferred_internally, none]
+    option_labels:
+      measured: "We have data on it"
+      research_with_customers: "We asked customers"
+      inferred_internally: "Our own view of it"
+      none: "Nothing yet"
+    required: true
+    default_if_skipped: inferred_internally
+    affects: [customer_effort, recovery_capability]
+
+  - id: channel_coverage
+    question: "Digital channels only, or every way the customer reaches you including phone, email, and people?"
+    why: "A digital-only map finds a coherent journey and misses the stages where the customer gave up on the digital channel and phoned somebody. Those stages carry the effort, produce no system record, and are the reason the digital metrics look better than the relationship."
+    type: choice
+    options: [digital_only, all_channels]
+    option_labels:
+      digital_only: "Digital channels"
+      all_channels: "Every channel, including phone, email, and people"
+    required: true
+    default_if_skipped: all_channels
+    affects: [system_coherence, visibility_to_organization]
+
+  - id: include_failure_paths
+    question: "Do you want the journey when it works, or including the points where customers abandon, complain, or leave?"
+    why: "A journey with no failure paths is a brochure. The stages where customers give up are the ones that decide revenue, and they are systematically absent from maps drawn by the people who designed the intended journey."
+    type: choice
+    options: [intended_journey, include_failure_paths]
+    option_labels:
+      intended_journey: "The journey as intended"
+      include_failure_paths: "Including abandonment, complaints, and leaving"
+    required: true
+    default_if_skipped: include_failure_paths
+    affects: [recovery_capability, visibility_to_organization]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: journey_definition
+      description: "Who the customer is, what they are trying to achieve across this journey, and where it starts and ends from their point of view rather than the organization's."
+      source: user
+      format: scalar
+
+    - id: journey_stages
+      description: "The stages as the customer would describe them — what they are trying to do at each point, named for their intent rather than for the organization's process."
+      source: user
+      format: table
+
+    - id: customer_touchpoints
+      description: "Every point of contact at each stage, across whichever channels are in scope: screens, forms, documents, calls, emails, people, and physical interactions."
+      source: user
+      format: table
+
+  optional:
+    - id: customer_research
+      description: "What customers actually say — interviews, surveys, usability sessions, verbatim complaints, exit reasons."
+      source: user
+      format: list
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: system_touchpoint_map
+      description: "Which systems each touchpoint reads from and writes to, including the ones behind a screen the customer never sees named."
+      source: [user, context.application_inventory, context.integrations]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Applications attributed to the capabilities the stage relies on, plus the interfaces recorded between them."
+      assumption_template: "System touchpoints were inferred from the application inventory and interface map. Anything a customer reaches by phone, email, or a person is invisible to that inference, and those are precisely the stages where the organization already has no record."
+      confidence_penalty: medium
+
+    - id: drop_off_and_completion_data
+      description: "How many customers reach each stage, how many complete it, and where they stop."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: contact_and_complaint_data
+      description: "What customers contact the organization about at each stage, through which channel, and how often."
+      source: user
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Contact volumes by theme where available at all, treated as an indicator of which stages are failing rather than of how badly."
+      assumption_template: "Contact and complaint data was not available, so failing stages were identified from where the organization hears about problems. Customers who work around a problem silently or leave without saying why are absent from that view, and they are the majority."
+      confidence_penalty: medium
+
+    - id: service_expectations
+      description: "What the customer has been led to expect at each stage — published service levels, commitments made in sales, or the norm in this market."
+      source: [user, context.organization_profile]
+      format: table
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No stated service expectations were available, so effort and delay at each stage are reported in absolute terms rather than against what the customer was led to expect. A two-day wait is acceptable or outrageous depending entirely on what was promised."
+      confidence_penalty: medium
+
+    - id: segment_definitions
+      description: "How customers are segmented and what distinguishes the segments in how they deal with the organization."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: single_undifferentiated
+      assumption_template: "Customers were treated as one undifferentiated group. Journeys differ by segment more than organizations expect, so this map describes an average customer who may not exist, and it will understate the experience of both the largest and the smallest accounts."
+      confidence_penalty: medium
+
+    - id: internal_process_view
+      description: "What the organization does internally behind each stage, where that has already been mapped."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No internal process view was supplied, so the map records what the customer experiences without what produces it. Where a stage is slow, this map can say that it is slow and not why."
+      confidence_penalty: low
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - data_residency
+    - customer_master_authority
+    - accessibility_standard
+    - service_level_commitments
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - data_residency
+    - accessibility_standard
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the score orders stages for attention. The stage STATUS comes
+#    from the score pattern: a high-effort stage, a stage the organization
+#    cannot see, and a stage with no recovery need three different responses.
+#    See ./references/journey-analysis-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: customer_effort
+      display_name: How much work the customer has to do
+      weight: 0.25
+      description: "What the customer has to supply, repeat, chase, or work out for themselves to get through this stage. Weighted highest because effort predicts abandonment and defection better than satisfaction does — customers tolerate a great deal and leave over having to ask twice."
+      evidence: [customer_research, customer_touchpoints, drop_off_and_completion_data, journey_scope, customer_segment, pain_evidence]
+      direction: lower_is_better
+
+    - id: moment_criticality
+      display_name: How much this stage decides the relationship
+      weight: 0.20
+      description: "Whether this is a stage where the relationship is won or lost, or one the customer passes through without forming a view. Attention spread evenly across a journey is attention wasted, because a few stages carry most of the outcome."
+      evidence: [journey_definition, customer_research, journey_scope, customer_segment]
+      direction: lower_is_better
+
+    - id: system_coherence
+      display_name: Whether the systems present one organization
+      weight: 0.20
+      description: "Whether the customer experiences one organization or several — being asked for the same information again, seeing different answers in different places, or having to know which channel holds which truth. The customer does not care about the seams, and the seams are where the pain is."
+      evidence: [system_touchpoint_map, customer_touchpoints, contact_and_complaint_data, channel_coverage]
+      direction: higher_is_better
+
+    - id: visibility_to_organization
+      display_name: Whether the organization can see this stage at all
+      weight: 0.20
+      description: "Whether anything the customer does here leaves a record. A stage carried by phone, email, or a person produces no data, appears in no dashboard, and is therefore never on any improvement list — which is why it stays broken."
+      evidence: [system_touchpoint_map, contact_and_complaint_data, drop_off_and_completion_data, channel_coverage, include_failure_paths]
+      direction: higher_is_better
+
+    - id: recovery_capability
+      display_name: What happens when it goes wrong here
+      weight: 0.15
+      description: "Whether a customer who hits a problem at this stage can get it resolved, and what it costs them to do so. Recovery quality shapes the relationship more than whether the failure happened, and it is the least mapped part of any journey."
+      evidence: [customer_research, contact_and_complaint_data, service_expectations, include_failure_paths, pain_evidence]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Severe — customers abandon, complain, or leave over this stage."
+      - value: 2
+        meaning: "Poor — a stage customers would name unprompted as a reason to be frustrated."
+      - value: 3
+        meaning: "Tolerable — irritating, worked around, not a reason to leave."
+      - value: 4
+        meaning: "Good — the customer gets through without noticing anything."
+      - value: 5
+        meaning: "Excellent — a stage customers mention positively when asked about the relationship."
+
+  steps:
+    - "Restate the journey from the CUSTOMER's point of view: who they are, what they are trying to achieve, and where it starts and ends for them. A journey that starts where the organization's process starts has excluded everything the customer did to arrive."
+    - "Name every stage for the customer's intent, never for the organization's process. 'Finding out whether it will arrive in time' is a stage; 'Order status enquiry handling' is the organization's name for the same moment and it embeds the organization's view of it."
+    - "Include the stages with no system, no channel, and no record — waiting, chasing, asking someone else, working out what to do next. They are stages, they carry effort, and they are absent from every map drawn from system data."
+    - "Map each stage to the systems it touches, including the ones behind the screen that the customer never sees named. A stage the customer experiences as one action frequently touches several."
+    - "Score visibility explicitly. A stage the organization cannot see is not a data gap in this map; it is a finding about the organization, and it is why that stage has never been on an improvement list."
+    - "Locate pain BETWEEN stages as well as within them — re-entering information already given, being handed between channels, having to know which system holds the truth."
+    - "Apply hard constraints. A stage that cannot satisfy the accessibility standard or the data residency constraint is reported as non-conforming with the policy ID, never quietly rated as merely poor."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any conclusion depends on it."
+    - "Where failure paths are in scope, map abandonment, complaint, and exit as journeys in their own right. These stages decide revenue and are systematically missing from maps drawn by the people who designed the intended journey."
+    - "Score each stage on all five criteria separately, then assign a status from the SCORE PATTERN rather than the total — see ./references/journey-analysis-rules.md."
+    - "Identify the moments of truth — the small number of stages that carry most of the outcome. Attention spread evenly across a journey is attention wasted."
+    - "Attribute pain to a stage and a cause, never to a system as a disposition. That a system is involved in a painful stage is a finding; whether it should be replaced is a portfolio decision made on evidence this method never sees."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the stage the organization cannot see. Everything else is already on somebody's list; that one is not, and it will not appear on one by itself."
+    - "Prefer the moment of truth over a stage of equal pain that customers pass through without forming a view."
+    - "Prefer the stage where recovery fails over the stage where the failure occurs. Customers forgive failures and leave over how they were handled."
+    - "If still tied, prefer the stage nearest a point where customers abandon. Effort spent earlier in the journey is wasted if they stop there."
+
+  references:
+    - ./references/journey-mapping-rules.md
+    - ./references/journey-analysis-rules.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, delivery_team]
+  artifacts:
+    - id: journey_system_map
+      display_name: Journey to system map
+      description: "Every stage as the customer experiences it, the channels and systems it touches, whether the organization can see it, and its status."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/journey-system-map.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: stage_id
+            type: string
+          - id: stage_name
+            type: string
+            description: "Named for what the customer is trying to do. Never for the organization's process."
+          - id: customer_intent
+            type: string
+          - id: channel
+            type: enum
+            enum_values: [self_service, mobile, email, phone, in_person, document, none]
+            description: "'none' is a real value — the stages where the customer is waiting, chasing, or working something out are stages, and they carry effort."
+          - id: systems_touched
+            type: string
+            description: "Including systems behind the screen the customer never sees named. A stage experienced as one action frequently touches several."
+          - id: customer_effort
+            type: score
+          - id: moment_criticality
+            type: score
+          - id: system_coherence
+            type: score
+          - id: visibility_to_organization
+            type: score
+          - id: recovery_capability
+            type: score
+          - id: status
+            type: enum
+            enum_values: [smooth, high_effort, fragmented, blind_spot, no_recovery, moment_of_truth, non_conforming, insufficient_evidence]
+          - id: driving_criterion
+            type: string
+          - id: is_moment_of_truth
+            type: boolean
+          - id: drop_off_rate
+            type: string
+          - id: evidence_basis
+            type: enum
+            enum_values: [measured, research_with_customers, inferred_internally, none]
+          - id: assumption_ref
+            type: string
+
+    - id: pain_point_register
+      display_name: Pain point register
+      description: "Every pain point, what it costs the customer, whether the organization knows about it, and where the cause sits."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/pain-point-register.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: pain_id
+            type: string
+          - id: located_at
+            type: string
+            description: "A stage, or a transition between two stages. Pain between stages — re-entering information, being handed between channels — is recorded at the transition."
+          - id: pain_type
+            type: enum
+            enum_values: [repeated_information, waiting, chasing, conflicting_answers, dead_end, unclear_next_step, channel_handoff, no_recovery_path, accessibility_barrier]
+          - id: customer_cost
+            type: string
+            description: "In the customer's terms — time, calls, uncertainty, risk to their own operation. Not in the organization's terms."
+          - id: evidence
+            type: string
+          - id: evidence_basis
+            type: enum
+            enum_values: [measured, research_with_customers, inferred_internally, none]
+          - id: organization_aware
+            type: boolean
+            description: "Whether this appears anywhere in the organization's own view. Where false, the pain has never been on an improvement list and will not appear on one by itself."
+          - id: systems_involved
+            type: string
+            description: "A finding, never a disposition. Whether a system should be replaced is a portfolio decision."
+          - id: policy_ref
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: journey_rationale
+      display_name: Journey rationale
+      description: "What the map shows, where the moments of truth are, what the organization cannot see, and what the analysis does and does not support."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/journey-rationale.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: the_journey
+            heading: "The journey, from the customer's side"
+            required: true
+          - id: moments_of_truth
+            heading: "Where the relationship is decided"
+            required: true
+          - id: where_it_hurts
+            heading: "Where it hurts, and what it costs the customer"
+            required: true
+          - id: blind_spots
+            heading: "What the organization cannot see"
+            required: true
+            description: "Stages producing no record. Not a data gap in this map — a finding about the organization, and the reason those stages have never been on an improvement list."
+          - id: fragmentation
+            heading: "Where the customer meets more than one organization"
+            required: true
+          - id: recovery
+            heading: "What happens when it goes wrong"
+            required: true
+          - id: segment_differences
+            heading: "Where segments differ"
+            required: false
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "pain was measured or researched with actual customers, drop-off data was supplied per stage, all channels were covered, failure paths were mapped, and system touchpoints were confirmed rather than inferred."
+    - level: medium
+      when: "pain evidence came from customer research or contact data, all channels were covered, and failure paths were mapped, but drop-off data or system touchpoints were inferred."
+    - level: low
+      when: "pain was inferred internally or no evidence exists, or only digital channels were covered, or failure paths were excluded, or drop-off data was not supplied."
+
+  sensitivity_targets:
+    - target: pain_evidence
+      variation: "assume the stages customers work around silently are the worst ones"
+      report: "How the ranking changes. Internally inferred pain is wrong in a predictable direction — the organization knows about what it has been told about — and this makes the direction of that bias visible rather than leaving it implicit."
+    - target: channel_coverage
+      variation: "remove every stage carried by phone, email, or a person"
+      report: "What the journey looks like on digital evidence alone, and how much better it appears. This is the map the organization's own analytics produce, and the gap between the two is the argument for the wider one."
+    - target: customer_segment
+      variation: "map the largest and the smallest account separately"
+      report: "Whether they are having the same journey. Where segment definitions were not supplied, this states what the averaged map is concealing rather than implying it conceals nothing."
+    - target: customer_effort
+      variation: "weight +/- 0.10"
+      report: "Whether the moments of truth change. If a small weight change reorders them, report a set of candidate moments rather than a ranked list."
+
+  evals: ./evals/

@@ -1,0 +1,124 @@
+spec_version: "1.0"
+id: 03-the-exception-that-carries-the-volume
+skill: yea.business.business-process-model
+fixture: context/fixtures/northwind-corp
+description: >
+  The model is being built to scope an automation. The standard path is clean, well
+  understood, and covers two thirds of volume. This checks that the exception paths are
+  modelled at the same depth rather than noted beneath, that inferred decision rules are
+  marked, and that the automation scope is not stated against the happy path.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind wants to automate order capture. The standard path is four steps and takes
+    minutes: order raised, priced, stock confirmed, accepted.
+
+    The volume tells a different story. Of orders raised last quarter, 68% ran the standard
+    path. The remaining 32% went one of four ways: 14% needed a price or product query
+    resolved by email between the customer, a representative, and Commercial; 9% were for a
+    delivery site not recorded against the account; 6% were substitutions where the product
+    ordered was unavailable within its shelf life; 3% were manual promotional pricing
+    applied outside nw-003 Pricing Engine.
+
+    Nobody has written the rules for any of the four. The substitution decision in
+    particular is described by the representatives as "you know what they will take", and it
+    depends on the account, the product, the remaining shelf life, and the delivery date.
+
+    The automation business case has been drafted against the four-step path.
+
+  ask:
+    model_state: as_is_and_to_be
+    evidence_source: walkthrough_with_performers
+    control_context: internally_audited
+    modelling_purpose: automation
+    exception_appetite: all_known_variants
+
+  gather:
+    provided:
+      process_definition: "Triggered when a trade customer places an order; ends when the order is accepted into the warehouse queue"
+      activity_sequence:
+        - "Order raised"
+        - "Priced"
+        - "Stock confirmed"
+        - "Accepted"
+      performers_and_systems:
+        - "Representative — nw-002 Customer Order Portal, nw-020 Field Sales Application"
+        - "Pricing — nw-003 Pricing Engine"
+        - "Stock — nw-006 Warehouse Management System"
+      exception_and_volume_data:
+        - "68% standard path"
+        - "14% price or product query resolved by email"
+        - "9% delivery site not recorded against the account"
+        - "6% substitution where the product cannot be delivered within shelf life"
+        - "3% manual promotional pricing outside nw-003"
+    withheld:
+      - decision_rules
+      - control_inventory
+      - documented_procedure
+      - timing_and_volume
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.organization_profile
+
+expect:
+  exception_paths_modelled_at_same_depth: true
+  confidence: low
+  confidence_reason_must_reference: >
+    decision rules were inferred throughout, and this model is being built for automation
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That 32% of volume runs off the standard path, and that an automation scoped against
+      the four-step path covers roughly two thirds of orders and none of the difficult ones.
+    - That all four exception paths are modelled as paths, with their volume shares, rather
+      than as notes beneath the standard route.
+    - That every decision rule in this model was inferred rather than stated, that inferred
+      rules are marked as such, and that this matters more here than in any other purpose —
+      an inferred rule and a stated one look identical in a model and behave completely
+      differently in an implementation.
+    - That the substitution decision is judgement rather than a rule: it depends on the
+      account, the product, the remaining shelf life, and the delivery date, and "you know
+      what they will take" is not a specification. Automating it requires the rule to be
+      written first, by someone with the authority to be wrong about it.
+    - That the 14% email query loop is invisible to any system-derived analysis, because it
+      is carried by email between three parties and touches no system until it resolves.
+    - That the drafted business case is stated against the standard path and that its scope
+      is therefore understated.
+
+  must_not:
+    - Model the four exception paths as annotations, footnotes, or a single "exceptions"
+      branch. Collapsing four distinct paths into one is how their combined complexity
+      becomes invisible.
+    - Present a to-be automation design covering the standard path as a complete design.
+    - Infer the substitution rule and present it as the decision rule. Producing a plausible
+      rule for a judgement nobody has written down is the specific failure that makes an
+      automated process wrong in exactly the cases that mattered.
+    - Report medium or high confidence because the volume data is good. The volumes are the
+      one thing well evidenced here; nothing else is.
+
+fails_if:
+  - The model is produced against the standard path with exceptions noted. The result is
+    clean, matches how everyone describes the process, and would be used to scope a build
+    that discovers a third of its real work after it starts — which is the ordinary way
+    automation programmes overrun.
+  - Decision rules appear unmarked. In an automation model this is the difference between a
+    specification and a guess, and the two are indistinguishable once written down.
+
+tolerance: >
+  How the substitution path is characterised — as requiring a documented rule, as remaining
+  manual, or as needing a decision from Commercial before it can be scoped — is free, and
+  all three are defensible. Modelling the four paths as paths, and marking the inferred
+  rules, are not.
+
+notes: >
+  The 68% figure is the trap and it is a good number. The standard path genuinely works, it
+  genuinely covers most orders, and the people describing it are describing it accurately.
+  What makes it misleading is that the automation value is concentrated in the 32%, where
+  the effort is — and that is also where the rules do not exist.

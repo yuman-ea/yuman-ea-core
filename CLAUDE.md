@@ -162,11 +162,13 @@ Classify intent · decompose · assemble context · arbitrate conflicts between 
 
 **Add a skill whenever you have one.** No ADR, no RFC, no demand evidence. It enters at `maturity: draft` and may not self-declare higher. Every quality rule still binds — seven phases, schema-valid, three evals, `verify` emitting all three items, `on_missing` on every optional input, no real data, no vendor names, triggers strong enough to be found conversationally. **Removing the scarcity did not remove the bar; it moved it from how many skills exist to what each one may claim about itself.**
 
-**Shipped agents:** `orchestrator`, `technology-ea`, `portfolio-ea` (ADR-0004).
+**Shipped agents:** `orchestrator`, `technology-ea`, `portfolio-ea` (ADR-0004), `business-ea` (ADR-0005).
 
-**Still gated, still deferred:** `business-ea`, `risk-ea`, `assurance-ea` (new agents require an ADR each), the CLI, connectors beyond CSV, the artifact renderer, and `registry.json`. Do not add these because they seem obviously needed — each is justified only by evidence the project hasn't produced yet. Agent proliferation is a worse failure than skill proliferation, because an agent that answers badly poisons the routing for everything beneath it.
+**Still gated, still deferred:** `risk-ea`, `assurance-ea` (new agents require an ADR each), the CLI, connectors beyond CSV, the artifact renderer, and `registry.json`. Do not add these because they seem obviously needed — each is justified only by evidence the project hasn't produced yet. Agent proliferation is a worse failure than skill proliferation, because an agent that answers badly poisons the routing for everything beneath it.
 
-**A skill does not entitle its domain to an agent.** ADR-0004 shipped `portfolio-ea` because a merged skill was unreachable without it, not because the domain existed. A domain with no skills has no equivalent argument — nothing is broken by its absence.
+**A skill does not entitle its domain to an agent.** ADR-0004 shipped `portfolio-ea` because a merged skill was unreachable without it, not because the domain existed. ADR-0005 shipped `business-ea` on a different argument — that three shipped agents were all refusing capability questions into a void, and that no skill in the repository produced the capability model three existing skills consume. A domain with no skills has no equivalent argument; nothing is broken by its absence.
+
+**Three L1 agents means three seams, and the narrowest is business/portfolio.** `business-ea` reasons about capability and value, `technology-ea` about fitness and sourcing, `portfolio-ea` about disposition and sequence. "Does this investment stand up as a case" and "which investment do we fund first" are one rephrasing apart, and an acquisition question spans the seam by nature. R17 checks `owns_questions` for overlap; it cannot check for a skill quietly answering across the boundary.
 
 **How this is judged:** promotion rate, not skill count. `proven` still requires a real decision reported by someone outside the maintainer group — ten practising EAs run a skill on a real decision and at least two return unprompted. Four `proven` skills and six `draft` is healthy. Thirty `draft` and none promoted is a directory, not a product.
 

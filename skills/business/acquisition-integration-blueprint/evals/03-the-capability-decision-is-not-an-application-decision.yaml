@@ -1,0 +1,120 @@
+spec_version: "1.0"
+id: 03-the-capability-decision-is-not-an-application-decision
+skill: yea.business.acquisition-integration-blueprint
+fixture: context/fixtures/northwind-corp
+description: >
+  The business/portfolio seam, tested where an acquisition makes it hardest to hold. Both
+  organizations have an order capture system, consolidation is clearly right, and the request
+  is to say which system survives. This checks the capability decision is made and the
+  application disposition is routed.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Both organizations capture orders. Consolidating to one is not in dispute — the combined
+    business will serve overlapping customers, and two order books with two sets of trade
+    account records is the duplication the acquisition should resolve.
+
+    Northwind runs nw-001 Order Capture System: built in 2009, extended continuously,
+    technical fitness 2, business criticality critical, 310 users, 800,000 a year to run, and
+    two of the four engineers who understood it have left. Almost everything in the estate
+    integrates with it.
+
+    The acquired business runs a newer purchased system with 90 users. Its run cost is not
+    known. Its contract has not been checked for change-of-control terms. Nobody has assessed
+    what it integrates with.
+
+    The integration steering group has asked the architect to confirm that the acquired system
+    is retired and its users move onto nw-001, on the grounds that nw-001 carries ten times
+    the estate's integrations and moving it is unthinkable.
+
+  ask:
+    deal_rationale: market_access
+    integration_ambition: full_absorption
+    separation_arrangement: fully_standalone
+    close_date_certainty: signed_with_date
+    access_to_target_information: limited
+
+  gather:
+    provided:
+      deal_definition: "Acquisition of a regional specialty distributor for access to their customer base"
+      acquirer_capability_model: "cap-02-01 Order Capture, supported by nw-001 — fitness 2, critical, 310 users, 800,000 a year, extensive integration"
+      target_capability_view: "Order capture on a newer purchased system, 90 users; run cost unknown, contract unchecked, integrations unassessed"
+    withheld:
+      - target_contracts
+      - target_cost_base
+      - target_application_inventory
+      - day_one_obligations
+      - integration_capacity
+    available_context:
+      - context.capability_model
+      - context.application_inventory
+      - context.application_costs
+      - context.integrations
+      - context.policies
+
+expect:
+  capability_disposition_made: true
+  capability_disposition: consolidate_later
+  application_disposition_made: false
+  routes_application_decision_to: yea.portfolio.application-rationalization
+
+  confidence: low
+  confidence_reason_must_reference: >
+    access was limited, contracts have not been checked for change-of-control terms, and the
+    acquired cost base is unknown
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That order capture consolidates — the capability decision — and that which named system
+      survives is a portfolio disposition made on run cost, contract position, dependency
+      load, and technical fitness.
+    - What evidence the disposition needs that this method does not hold, listed specifically,
+      and which of it is currently missing on the acquired side: run cost, change-of-control
+      terms, and what the system integrates with.
+    - That the steering group's argument is about migration cost rather than about which
+      system is better, and that those are different questions with the same apparent answer.
+    - That nw-001 has a technical fitness of 2, is critical, and has lost two of the four
+      engineers who understood it — so consolidating onto it increases concentration on a
+      system already carrying known risk.
+    - That customer_master_authority applies to the combined trade account records, by policy
+      ID, without restating what it says.
+    - That the day-one answer for both systems is unchanged, and that this consolidation is a
+      day-hundred-and-beyond question rather than an urgent one.
+    - That deciding this in month one on capability evidence is worse than deciding it in
+      month four with the portfolio evidence, and that nothing forces the earlier decision.
+
+  must_not:
+    - Confirm that the acquired system is retired, or that its users move onto nw-001.
+    - Rank the two systems, or hint at the answer while declining to give it.
+    - Recommend retiring nw-001 either. The seam is about who decides, not about which way
+      the decision goes.
+    - Treat the acquisition as a reason to make the disposition faster or with less evidence.
+
+fails_if:
+  - The blueprint confirms nw-001 survives. It is the expected answer, the migration argument
+    is genuinely strong, and it would be a portfolio disposition made on capability evidence
+    alone — consolidating onto a critical system with fitness 2 that has lost half the people
+    who understood it, without the run cost or contract position of the alternative ever
+    being looked at.
+  - The capability decision is deferred along with the application one. Consolidation of the
+    capability is not in dispute and saying so is this method's contribution.
+
+tolerance: >
+  Whether the acquired system is characterised as a candidate worth assessing or simply as
+  unassessed is free. Making the capability decision, refusing the application decision, and
+  naming the evidence the disposition needs are not.
+
+notes: >
+  "Nine hundred integrations point at ours, so ours wins" is usually correct and it is an
+  argument about the cost of moving rather than about which system is better. Those coincide
+  often enough that the distinction feels academic — until the case where they do not, and
+  the organization has consolidated onto the weaker system because nobody separated the two
+  questions. An acquisition is where that separation is hardest to hold and where it matters
+  most, because the decision gets made once and quickly.

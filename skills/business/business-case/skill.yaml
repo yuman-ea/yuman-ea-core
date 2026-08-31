@@ -1,0 +1,503 @@
+spec_version: "1.0"
+id: yea.business.business-case
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: business-case
+display_name: Business Case
+description: >
+  Builds the funding argument for one investment — whole-life costs against benefits, with
+  net present value, payback, and the assumptions the result rests on. Costs the do-nothing
+  option rather than comparing against zero, separates benefits that reduce a budget from
+  benefits that do not, refuses to record a benefit with no named owner and no date, and
+  reports what would have to be true rather than only what the numbers currently say.
+  Produces the cost and benefit model, a benefit realisation plan, and the case itself.
+
+version: 0.1.0
+domain: business
+category: prioritize
+owner_agent: business-ea
+maturity: draft
+license: Apache-2.0
+
+# Costs, benefits, and a discount rate. Usable from a spreadsheet and a conversation.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "business case"
+    - "does this pay for itself"
+    - "cost benefit analysis"
+    - "what is the payback"
+    - "net present value"
+    - "we need a funding paper"
+    - "justify this investment"
+    - "board paper for this spend"
+    - "what is the return on this"
+    - "make the case for this"
+  decision_types:
+    - investment_appraisal
+    - funding_decision
+  not_this_skill:
+    - phrase: "should we build it or buy it"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "which supplier and which product should we choose"
+      route_to: yea.portfolio.vendor-product-selection
+    - phrase: "which of these investments should we fund first"
+      route_to: portfolio-ea
+    - phrase: "in what order should we deliver these"
+      route_to: yea.portfolio.roadmap-sequencing
+    - phrase: "which applications should we retire to save money"
+      route_to: yea.portfolio.application-rationalization
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — this argues for ONE investment. It does not choose between
+#    options, and it does not rank investments against each other.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Build the case for {investment_definition} over {appraisal_period}, supporting a
+    {decision_being_supported} decision, with benefits of type {benefit_type} whose owners
+    are {benefit_owner_commitment}, against costs whose basis is {cost_basis}.
+  decision_statement_fields:
+    - investment_definition
+    - appraisal_period
+    - decision_being_supported
+    - benefit_type
+    - benefit_owner_commitment
+    - cost_basis
+  out_of_scope:
+    - Choosing between sourcing options. That is build-vs-buy, and it runs first.
+    - Choosing between suppliers or products.
+    - Ranking this investment against others competing for the same money.
+    - Sequencing delivery against capacity.
+    - Deciding whether to fund it. This makes the argument; someone else decides.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: benefit_owner_commitment
+    question: "Has anyone agreed to be accountable for actually delivering these benefits — in writing, verbally, or has it not been discussed?"
+    why: "A benefit nobody owns is never measured, and a benefit never measured cannot fail. This is the single strongest predictor of whether a case's benefits materialise, and it is almost never asked before the money is committed."
+    type: choice
+    options: [committed_in_writing, verbally_agreed, not_discussed]
+    option_labels:
+      committed_in_writing: "Someone has signed up to them"
+      verbally_agreed: "Agreed in conversation"
+      not_discussed: "Not discussed"
+    required: true
+    default_if_skipped: not_discussed
+    affects: [benefit_ownership, deliverability]
+
+  - id: benefit_type
+    question: "What kind of benefit — money that comes out of a budget, effort released without a headcount change, revenue, or risk avoided?"
+    why: "Only the first reduces what the organization spends. Effort released across several teams is real and is not a saving unless somebody's budget falls, and presenting it as one is the most common way a case that delivered gets remembered as a case that failed."
+    type: choice
+    options: [cashable_saving, released_effort, revenue, risk_avoidance]
+    option_labels:
+      cashable_saving: "Money that comes out of a budget"
+      released_effort: "Time freed up, no headcount change"
+      revenue: "New or protected revenue"
+      risk_avoidance: "A cost or loss avoided"
+    required: true
+    default_if_skipped: cashable_saving
+    affects: [benefit_evidence, benefit_ownership]
+
+  - id: cost_basis
+    question: "Where do the costs come from — a supplier quote, a delivery team estimate, comparison with something similar, or guesswork?"
+    why: "Cost basis determines how much the case can claim and how wide the sensitivity has to be. Delivery estimates made before scope is settled are consistently low, and an analogous estimate from a different organization is a starting point rather than a figure."
+    type: choice
+    options: [supplier_quote, delivery_team_estimate, analogous_comparison, unknown]
+    option_labels:
+      supplier_quote: "A supplier has quoted"
+      delivery_team_estimate: "Our delivery team estimated it"
+      analogous_comparison: "Compared to something similar"
+      unknown: "Largely guesswork"
+    required: true
+    default_if_skipped: delivery_team_estimate
+    affects: [cost_completeness, deliverability]
+
+  - id: appraisal_period
+    question: "Over how long — three years, five, or ten?"
+    why: "The period decides the answer more than almost any other input. A short period penalises anything with a long build and rewards short-lived fixes; a long one flatters investments whose benefits are furthest out and least certain. It has to be a stated choice rather than a default."
+    type: choice
+    options: [three_years, five_years, ten_years]
+    option_labels:
+      three_years: "Three years"
+      five_years: "Five years"
+      ten_years: "Ten years"
+    required: true
+    default_if_skipped: five_years
+    affects: [cost_completeness, sensitivity_robustness]
+
+  - id: decision_being_supported
+    question: "What is being decided — starting something new, continuing or stopping something running, or renewing an existing arrangement?"
+    why: "It sets what the do-nothing option actually is. For a new investment, doing nothing costs what it costs today; for a renewal, doing nothing may mean a system stops. Getting the counterfactual wrong is the fastest way to build a case that is arithmetically correct and wrong."
+    type: choice
+    options: [new_investment, continue_or_stop, renewal]
+    option_labels:
+      new_investment: "Starting something new"
+      continue_or_stop: "Continuing or stopping something"
+      renewal: "Renewing an existing arrangement"
+    required: true
+    default_if_skipped: new_investment
+    affects: [counterfactual_rigour, benefit_evidence]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: investment_definition
+      description: "What is being funded, what it delivers, and what is explicitly not included. The scope the costs and benefits both refer to."
+      source: user
+      format: document
+
+    - id: cost_estimate
+      description: "What it costs — build or purchase, implementation, and whatever is known about running it afterwards."
+      source: [user, context.application_costs]
+      format: table
+
+    - id: benefit_estimate
+      description: "What the organization gets, quantified where possible and described where not. Benefits that cannot be quantified are stated rather than omitted."
+      source: user
+      format: table
+
+  optional:
+    - id: do_nothing_baseline
+      description: "What it costs to carry on as things are, over the same period, including costs that rise if nothing changes."
+      source: [user, context.application_costs]
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: benefit_owners
+      description: "Who is accountable for each benefit, by name, and what they have agreed to."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: ongoing_run_cost
+      description: "What the thing costs to run each year after it is delivered — licence, hosting, support, and the people who operate it."
+      source: [user, context.application_costs]
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Ongoing run cost was not supplied and has been estimated from comparable systems in the estate. Over a five-year appraisal the run cost is routinely larger than the build cost, so a case that stops at go-live has omitted its largest number."
+      confidence_penalty: high
+
+    - id: discount_rate
+      description: "The rate used to bring future costs and benefits to present value."
+      source: [user, context.organization_profile]
+      format: scalar
+      on_missing: use_default_value
+      default_value: undiscounted_with_note
+      assumption_template: "No discount rate was supplied, so figures are undiscounted and stated as such. Undiscounted comparisons favour options whose costs fall late and whose benefits fall early, which describes most investment cases as they are written."
+      confidence_penalty: medium
+
+    - id: realisation_timeline
+      description: "When each benefit starts, how long it takes to reach full run rate, and what has to happen first."
+      source: user
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Benefit timing was not supplied and has been estimated. Benefits are consistently assumed to start at go-live and reliably start later, so the early years of the model are the optimistic part and they are also the years the payback calculation depends on most."
+      confidence_penalty: medium
+
+    - id: transition_and_change_cost
+      description: "What it costs to get there — parallel running, training, data migration, temporary capacity, and the disruption while it happens."
+      source: user
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Transition and change costs were not supplied and have been estimated. These are the costs most consistently omitted from investment cases, and parallel running in particular is rarely optional and almost never as short as planned."
+      confidence_penalty: medium
+
+    - id: comparable_outcomes
+      description: "What happened when this organization, or a comparable one, did something similar — what was claimed and what was realised."
+      source: user
+      format: list
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No comparable outcomes were available, so the benefit estimates have nothing to calibrate against. Organizations that have never measured a completed case against its claims have no basis for knowing how optimistic their cases usually are, which is itself worth stating."
+      confidence_penalty: medium
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - investment_thresholds
+    - budget_ceiling
+    - benefit_realisation_standard
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - budget_ceiling
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the criteria score the STRENGTH OF THE CASE, not the size of the
+#    return. A case can have a large net present value and be worthless because
+#    one unevidenced assumption carries all of it.
+#    See ./references/case-strength-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: benefit_evidence
+      display_name: How well evidenced the benefits are
+      weight: 0.25
+      description: "Where each benefit figure came from, and whether anything independent supports it. Weighted highest because the benefit side is where cases fail — costs are estimated badly and benefits are frequently asserted, and only one of those two gets checked before the money is spent."
+      evidence: [benefit_estimate, comparable_outcomes, benefit_type, decision_being_supported]
+      direction: higher_is_better
+
+    - id: benefit_ownership
+      display_name: Whether anyone is accountable for delivering them
+      weight: 0.20
+      description: "Whether each benefit has a named owner, a date, and a measure. A benefit nobody owns is never measured, and a benefit never measured cannot fail — which is why unowned benefits are the ones that survive scrutiny and never arrive."
+      evidence: [benefit_owners, realisation_timeline, benefit_owner_commitment, benefit_type]
+      direction: higher_is_better
+
+    - id: cost_completeness
+      display_name: Whether the whole cost is in there
+      weight: 0.20
+      description: "Whether the model includes run cost after go-live, transition and change cost, and the cost of the capacity this consumes. Over a five-year period the run cost is routinely larger than the build, and a case that stops at go-live has omitted its largest number."
+      evidence: [cost_estimate, ongoing_run_cost, transition_and_change_cost, cost_basis, appraisal_period]
+      direction: higher_is_better
+
+    - id: counterfactual_rigour
+      display_name: Whether doing nothing has been costed
+      weight: 0.15
+      description: "Whether the comparison is against a costed do-nothing option rather than against zero. Doing nothing is never free and its cost frequently rises, and a case compared against zero flatters itself by exactly the amount the baseline was worth."
+      evidence: [do_nothing_baseline, decision_being_supported, cost_estimate, appraisal_period]
+      direction: higher_is_better
+
+    - id: sensitivity_robustness
+      display_name: Whether the case survives being wrong
+      weight: 0.10
+      description: "Whether the conclusion holds when the main inputs move by a realistic margin, or whether it rests on a single assumption. A case that flips on a 15% cost variance is not a weak case with a good number; it is a bet."
+      evidence: [cost_estimate, benefit_estimate, discount_rate, appraisal_period, cost_basis]
+      direction: higher_is_better
+
+    - id: deliverability
+      display_name: Whether the organization can actually realise it
+      weight: 0.10
+      description: "Whether the benefits require changes the organization is in a position to make — decisions, behaviour, headcount, process. A benefit requiring a decision nobody has agreed to take is not yet a benefit."
+      evidence: [realisation_timeline, benefit_owners, transition_and_change_cost, benefit_owner_commitment, cost_basis]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Severe — this alone means the case cannot be relied on."
+      - value: 2
+        meaning: "Weak — a finance reviewer would raise this without prompting."
+      - value: 3
+        meaning: "Adequate — normal for a case at this stage, with stated limitations."
+      - value: 4
+        meaning: "Strong — well evidenced and would survive challenge."
+      - value: 5
+        meaning: "Very strong — independently corroborated and owned."
+
+  steps:
+    - "Restate what is being funded and what is explicitly excluded. Costs and benefits must refer to the same scope, and the commonest arithmetic error in a case is that they do not."
+    - "Establish the do-nothing option and COST IT over the same period. Doing nothing is never free, its cost often rises, and for a renewal it may mean something stops working entirely."
+    - "Build the whole-life cost: build or purchase, transition and change, and run cost for every year of the appraisal period. A case that stops at go-live has omitted its largest number."
+    - "Classify every benefit as cashable, released effort, revenue, or risk avoided. Report them SEPARATELY and never total them into a single savings figure — only cashable benefits reduce what the organization spends."
+    - "For released effort, state plainly whether any budget falls. Half a person released across eight teams is eight fractions of a person and no reduction in cost unless somebody's headcount changes."
+    - "Require a named owner, a date, and a measure for every benefit. Record a benefit with none of these as unowned rather than omitting it — an unowned benefit that stays in the total is the mechanism by which cases pass and fail."
+    - "Apply the discount rate and state it. Where none exists, present undiscounted figures and say so — undiscounted comparisons favour options whose costs fall late and whose benefits fall early."
+    - "Calculate net present value, payback period, and internal rate of return where the cash flow pattern supports one. Where it does not, say why rather than producing a figure the pattern cannot bear."
+    - "Apply hard constraints. Where a budget ceiling is declared and the investment exceeds it, report that with the policy ID rather than adjusting the case to fit."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any figure depends on it."
+    - "Identify whether one assumption carries the result. Where removing a single input flips the conclusion, that is the case — and the argument should be conducted about that assumption rather than about the net present value."
+    - "Report the BREAK-EVEN as well as the estimate: what the benefit would have to be, or the cost would have to be, for the decision to change. That sentence survives a finance review; a point estimate does not."
+    - "Score the strength of the case itself, then assign a status from the SCORE PATTERN rather than from the size of the return — see ./references/case-strength-rules.md."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the case whose benefits are owned. Between two cases with the same number, the one with a named accountable owner is the one that delivers."
+    - "Prefer the case with the costed counterfactual. Without one, the return is overstated by an unknown amount rather than by a stated one."
+    - "Prefer the case that survives its own sensitivity. A robust modest return beats a fragile large one at the point where somebody has to commit."
+    - "If still tied, prefer the case with the shorter payback. Not because early money is worth more — the discount rate handles that — but because a shorter payback means fewer years of assumptions have to hold."
+
+  references:
+    - ./references/appraisal-rules.md
+    - ./references/case-strength-rules.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, finance]
+  artifacts:
+    - id: cost_benefit_model
+      display_name: Cost and benefit model
+      description: "Every cost and benefit line by year, with its source and basis, against a costed do-nothing baseline."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/cost-benefit-model.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: line_id
+            type: string
+          - id: line_type
+            type: enum
+            enum_values: [build_cost, purchase_cost, transition_cost, run_cost, cashable_benefit, released_effort, revenue, risk_avoidance, do_nothing_cost]
+            description: "Benefit types are never totalled together. Only cashable benefits reduce what the organization spends."
+          - id: description
+            type: string
+          - id: year_0
+            type: currency
+          - id: year_1
+            type: currency
+          - id: year_2
+            type: currency
+          - id: year_3
+            type: currency
+          - id: year_4
+            type: currency
+          - id: source
+            type: string
+            description: "Where the figure came from. A number with nothing here is the defect this whole method exists to prevent."
+          - id: basis
+            type: enum
+            enum_values: [supplier_quote, delivery_team_estimate, analogous_comparison, measured_from_estate, assumed, unknown]
+          - id: reduces_a_budget
+            type: boolean
+            description: "For benefit lines. Effort released across several teams is real and is not a saving unless somebody's budget falls."
+          - id: assumption_ref
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: benefit_realisation_plan
+      display_name: Benefit realisation plan
+      description: "Every benefit with its owner, its measure, when it starts, and what has to happen for it to arrive."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/benefit-realisation-plan.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: benefit_id
+            type: string
+          - id: benefit
+            type: string
+          - id: benefit_type
+            type: enum
+            enum_values: [cashable_saving, released_effort, revenue, risk_avoidance]
+          - id: annual_value
+            type: currency
+          - id: owner
+            type: string
+            description: "A named person. 'Unowned' is a permitted value and is the most important finding this table produces."
+          - id: commitment
+            type: enum
+            enum_values: [committed_in_writing, verbally_agreed, not_discussed]
+          - id: measure
+            type: string
+            description: "How anyone will know it arrived. A benefit with no measure cannot fail, which is why it survives scrutiny and never arrives."
+          - id: baseline_value
+            type: string
+            description: "What the measure reads today. Without it the benefit cannot be demonstrated afterwards even if it is delivered."
+          - id: starts
+            type: date
+          - id: full_run_rate
+            type: date
+          - id: depends_on
+            type: string
+            description: "The decision, behaviour change, or headcount change the benefit requires. A benefit needing a decision nobody has agreed to take is not yet a benefit."
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: business_case_summary
+      display_name: Business case
+      description: "The argument, in business language: what is being asked for, what it returns, what it rests on, and what would change the answer."
+      formats: [md, docx, pptx]
+      preferred_format: md
+      markdown_template: ./assets/business-case-summary.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: the_ask
+            heading: "What we are asking for"
+            required: true
+          - id: the_case
+            heading: "The case in one paragraph"
+            required: true
+          - id: doing_nothing
+            heading: "What doing nothing costs"
+            required: true
+            description: "Never zero. For a renewal it may mean something stops working."
+          - id: the_numbers
+            heading: "The numbers"
+            required: true
+            description: "Net present value, payback, and internal rate of return where the cash flow supports one — with the discount rate stated."
+          - id: benefits
+            heading: "What we get, and who is accountable for it"
+            required: true
+            description: "Cashable and non-cashable reported separately and never totalled together."
+          - id: what_it_rests_on
+            heading: "What this case rests on"
+            required: true
+            description: "Where one assumption carries the result, say so here. That is the argument worth having."
+          - id: break_even
+            heading: "What would have to be true"
+            required: true
+            description: "The break-even, not the estimate. This is the sentence that survives a finance review."
+          - id: risks_to_realisation
+            heading: "What would stop the benefits arriving"
+            required: true
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "costs come from a supplier quote or a settled delivery estimate including run and transition cost, benefits are evidenced and owned in writing with measures and baselines, the do-nothing option is costed, and the conclusion survives the sensitivity range."
+    - level: medium
+      when: "costs are a delivery team estimate covering run and transition, benefits are owned at least verbally with measures, and a do-nothing baseline exists — but benefit values are not independently corroborated."
+    - level: low
+      when: "benefit ownership was not discussed, or no do-nothing baseline was supplied, or run cost was estimated rather than known, or the cost basis is unknown, or a single assumption carries the conclusion."
+
+  sensitivity_targets:
+    - target: cost_estimate
+      variation: "costs 30% higher"
+      report: "Whether the case still stands, and what the payback becomes. Delivery estimates made before scope is settled are low by about this much often enough that it should be the first line of the sensitivity rather than the last."
+    - target: benefit_estimate
+      variation: "benefits 50% lower, and arriving a year later"
+      report: "Whether the case still stands. Both directions are applied together because they are correlated in practice — benefits that are overstated are usually also late, for the same underlying reason."
+    - target: benefit_estimate
+      variation: "count only benefits that reduce a budget"
+      report: "What the case looks like on cashable benefits alone. This is the number the finance function will construct independently, and constructing it first is how the case survives the meeting rather than being rebuilt in it."
+    - target: discount_rate
+      variation: "rate +/- 2 percentage points"
+      report: "Whether the conclusion changes. Where it does, the case depends on the cost of capital rather than on the merits of the investment, and the argument should be conducted on that basis."
+
+  evals: ./evals/

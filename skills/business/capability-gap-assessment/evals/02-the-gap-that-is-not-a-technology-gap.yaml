@@ -1,0 +1,124 @@
+spec_version: "1.0"
+id: 02-the-gap-that-is-not-a-technology-gap
+skill: yea.business.capability-gap-assessment
+fixture: context/fixtures/northwind-corp
+description: >
+  Everyone involved describes the gap as a tool problem, and the tool is genuinely poor. The
+  five-dimension breakdown shows most of the gap is process, information, and people. This
+  checks that the gap statement is a change rather than a distance, and that the technology
+  dimension is not allowed to absorb the whole finding.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Demand Forecasting is one of the four capabilities Northwind says it competes on, and it
+    is the one the executive team is least happy with. Perishable waste is above target and
+    the forecast is widely described as unreliable.
+
+    The supporting application, nw-004 Demand Forecasting Tool, has a technical fitness of 2
+    and 24 users, and every conversation about the capability begins with replacing it. A
+    supplier demonstration has already been arranged.
+
+    The evidence around the capability says something different. There is no defined
+    forecasting process — two planners each have their own method, neither written down.
+    Forecast accuracy has never been measured, so nobody can say whether the tool's output is
+    poor or whether it is overridden badly. Promotional plans reach the planners by email
+    from Commercial, typically after the forecast has been run. Supplier lead times are held
+    in nw-005 Supplier Portal and are not used in the forecast at all. No one owns forecast
+    accuracy as an outcome.
+
+  ask:
+    target_source: derived_from_strategy
+    assessment_basis: independently_assessed
+    strategy_horizon: twenty_four_months
+    investment_context: being_competed_for
+    gap_appetite: close_strategic_only
+
+  gather:
+    provided:
+      capability_model: "cap-03-01 Demand Forecasting, level 2 under Supply Chain Planning"
+      strategic_requirements: "Reduce perishable waste; the strategy requires forecasting to be measured and managed against evidence rather than run on judgement"
+      current_maturity_evidence:
+        - "No documented forecasting process; two planners with individual methods"
+        - "Forecast accuracy never measured"
+        - "Promotional plans arrive by email after the forecast run"
+        - "Supplier lead times held in nw-005 and not used in the forecast"
+        - "No owner for forecast accuracy as an outcome"
+      target_maturity_definitions: "Target 4 — measured and managed against evidence, derived from the waste reduction commitment"
+      capability_owners: "Supply Chain Director owns Demand Forecasting; nobody owns forecast accuracy"
+      intervention_options: "A supplier demonstration for a replacement forecasting tool has been arranged"
+    withheld:
+      - prior_assessments
+      - benchmark_data
+      - capacity_and_funding
+    available_context:
+      - context.capability_model
+      - context.application_inventory
+      - context.application_costs
+      - context.organization_profile
+
+expect:
+  current_level: 1
+  target_level: 4
+  gap_dimensions_populated:
+    process: true
+    people: true
+    information: true
+    technology: true
+    governance: true
+  dominant_dimensions: [process, information, governance]
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    independently assessed against a defined scale with targets derived from strategy, but no
+    prior assessment or benchmark exists
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That the current level is 1 rather than 2: the capability runs on particular people's
+      individual methods, which is the level 1 anchor, and no defined way of working exists.
+    - That the gap is stated as what has to change across all five dimensions, not as a
+      movement from one number to another.
+    - That most of the gap is process, information, and governance — a defined method,
+      promotional plans available before the run rather than after, lead times fed in, and
+      somebody accountable for forecast accuracy as an outcome.
+    - That forecast accuracy has never been measured, so there is currently no evidence that
+      the tool is the problem, and no baseline against which a replacement could be judged.
+    - That replacing the tool without the other four dimensions would move the capability
+      from level 1 to level 1 with better software.
+    - That measurement is a prerequisite rather than an outcome here: without a baseline,
+      neither the current failure nor any improvement can be attributed.
+
+  must_not:
+    - Report the gap as a technology gap, or let the technology dimension carry the finding.
+    - Recommend for or against replacing nw-004. Whether to replace it is a sourcing and
+      disposition question; what the capability needs is this one.
+    - Rate the capability at 2 because a process exists in practice. Two planners with
+      individual undocumented methods is the level 1 description.
+    - Omit the governance dimension. That nobody owns forecast accuracy is the reason the
+      other four have persisted.
+
+fails_if:
+  - The gap statement reduces to "replace the forecasting tool". Everyone in the scenario
+    already believes this, a demonstration is booked, and the assessment would confirm a
+    conclusion the evidence does not support — while the four non-technology changes remain
+    undone and the capability stays at level 1.
+  - The five dimensions are listed but the finding is not stated. Filling the columns and
+    then summarising as a tool problem is the same failure with more formatting.
+
+tolerance: >
+  Whether the current rating is 1 or 2 is arguable and a defended 2 is acceptable if the
+  reasoning addresses the undocumented individual methods. The distribution of the gap across
+  dimensions, and the statement that the technology change alone would not move the level,
+  are not negotiable.
+
+notes: >
+  The tool really is poor — fitness 2 is not a good rating and replacing it may well be part
+  of the answer. The failure this case guards against is not recommending a replacement; it
+  is letting the visible, purchasable, well-scoped part of the gap stand in for the whole of
+  it, because that part has a supplier who will help you write the business case.

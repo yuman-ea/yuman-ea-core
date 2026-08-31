@@ -42,7 +42,8 @@ refuses:
     route_to: portfolio-ea
   - question: "What business capability is this, and what value stream does it serve?"
     route_to: business-ea
-    available: false
+  - question: "Does this investment stand up as a business case?"
+    route_to: business-ea
   - question: "What is our concentration risk if this supplier fails?"
     route_to: risk-ea
     available: false

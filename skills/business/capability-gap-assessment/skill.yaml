@@ -1,0 +1,524 @@
+spec_version: "1.0"
+id: yea.business.capability-gap-assessment
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: capability-gap-assessment
+display_name: Capability Gap Assessment
+description: >
+  Assesses where capability maturity stands against what the strategy actually requires, and
+  turns the difference into a backlog of things that have to change. Derives each target from
+  a stated strategic requirement rather than defaulting to the top of the scale, records the
+  assessor and the evidence behind every rating, and expresses a gap as the process, people,
+  information, and governance changes that close it rather than as the distance between two
+  numbers. Produces the maturity assessment, the gap backlog, and the reasoning behind both.
+
+version: 0.1.0
+domain: business
+category: assess
+owner_agent: business-ea
+maturity: draft
+license: Apache-2.0
+
+# A capability list, a strategy, and someone willing to rate honestly. No assessment tooling.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "capability gap assessment"
+    - "current versus target maturity"
+    - "where are we against where we need to be"
+    - "capability maturity"
+    - "what has to change to deliver the strategy"
+    - "gap analysis"
+    - "strategy to execution"
+    - "can we actually deliver this strategy"
+    - "maturity assessment"
+    - "what capabilities do we need to build"
+  decision_types:
+    - capability_assessment
+    - strategy_execution_gap
+  not_this_skill:
+    - phrase: "what does the organization do, as capabilities"
+      route_to: yea.business.business-capability-map
+    - phrase: "how should we be arranged to run these capabilities"
+      route_to: yea.business.operating-model-design
+    - phrase: "in what order should we close these gaps, against our capacity"
+      route_to: yea.portfolio.roadmap-sequencing
+    - phrase: "should we build or buy the capability"
+      route_to: yea.technology.build-vs-buy
+    - phrase: "does closing this gap pay for itself"
+      route_to: yea.business.business-case
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — the target is derived from what the strategy requires. A target of
+#    "level 5 everywhere" is not a target, it is an absence of one, and it is
+#    the most expensive assumption in this method.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Assess {capability_model} against the maturity {strategic_requirements} requires by
+    {strategy_horizon}, with targets sourced from {target_source} and current state rated
+    on the basis of {assessment_basis}, given that funding is {investment_context}.
+  decision_statement_fields:
+    - capability_model
+    - strategic_requirements
+    - strategy_horizon
+    - target_source
+    - assessment_basis
+    - investment_context
+  out_of_scope:
+    - Building the capability model. This assesses one; it does not construct it.
+    - Sequencing the gap closures against delivery capacity. That is roadmap sequencing.
+    - Deciding whether to build or buy what closes a gap.
+    - Building the funding case for any individual gap.
+    - Designing the organization that would run the target capability.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: target_source
+    question: "Where does the target maturity come from — derived from what the strategy needs, a benchmark, an aspiration, or not defined yet?"
+    why: "This is the answer the whole assessment rests on. A target derived from a stated strategic requirement produces a defensible gap; a target set at the top of the scale produces a backlog of expensive work on capabilities nobody competes on, and it is the most common and most costly failure in maturity work."
+    type: choice
+    options: [derived_from_strategy, external_benchmark, aspiration, not_defined]
+    option_labels:
+      derived_from_strategy: "From what the strategy actually requires"
+      external_benchmark: "From a benchmark or peer comparison"
+      aspiration: "Where we would like to be"
+      not_defined: "Not defined yet"
+    required: true
+    default_if_skipped: derived_from_strategy
+    affects: [strategic_dependency, gap_size]
+
+  - id: assessment_basis
+    question: "How was the current state rated — independently assessed, self-assessed by the people who run the capability, or the architect's own read?"
+    why: "Self-assessment inflates, consistently and in a known direction: capability owners rate process and governance generously and technology harshly, because they experience the technology and inhabit the process. This answer caps the confidence of every gap in the run."
+    type: choice
+    options: [independently_assessed, self_assessed_by_owners, architect_judgement, none]
+    option_labels:
+      independently_assessed: "Assessed by someone outside the capability"
+      self_assessed_by_owners: "Rated by the people who run it"
+      architect_judgement: "My own read"
+      none: "Not yet rated"
+    required: true
+    default_if_skipped: self_assessed_by_owners
+    affects: [gap_size, consequence_of_not_closing]
+
+  - id: strategy_horizon
+    question: "By when does the strategy need these capabilities — twelve months, twenty-four, or thirty-six and beyond?"
+    why: "The horizon decides which gaps are closable at all. A capability that takes eighteen months to build is not available to a twelve-month strategy however important it is, and saying that early is more useful than producing a backlog that cannot be delivered in the time the strategy assumes."
+    type: choice
+    options: [twelve_months, twenty_four_months, thirty_six_months_or_more]
+    option_labels:
+      twelve_months: "Within a year"
+      twenty_four_months: "Two years"
+      thirty_six_months_or_more: "Three years or more"
+    required: true
+    default_if_skipped: twenty_four_months
+    affects: [gap_size, effort_to_close]
+
+  - id: investment_context
+    question: "Is funding for closing these gaps agreed, being competed for, or not yet on the table?"
+    why: "A gap backlog produced against agreed funding is a plan; one produced against no funding is a list, and the two should be presented differently. Where funding is being competed for, the assessment is an input to that argument and its evidence has to survive contest."
+    type: choice
+    options: [agreed, being_competed_for, not_yet_on_the_table]
+    option_labels:
+      agreed: "Funding is agreed"
+      being_competed_for: "We are competing for it"
+      not_yet_on_the_table: "No funding yet"
+    required: true
+    default_if_skipped: being_competed_for
+    affects: [readiness_to_start, effort_to_close]
+
+  - id: gap_appetite
+    question: "Are you looking to close every gap, only the strategically critical ones, or to accept the ones that cost more than they return?"
+    why: "Not every gap should be closed, and treating that as obvious produces a backlog where accepted gaps are silently absent rather than explicitly decided. An accepted gap is a decision the organization has made and should be able to point at later."
+    type: choice
+    options: [close_all, close_strategic_only, accept_where_costly]
+    option_labels:
+      close_all: "Close everything we find"
+      close_strategic_only: "Only where the strategy depends on it"
+      accept_where_costly: "Accept the ones that cost more than they return"
+    required: true
+    default_if_skipped: close_strategic_only
+    affects: [closability, effort_to_close]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: capability_model
+      description: "The capabilities being assessed, at the level decisions are made. This method assesses a model; it does not build one."
+      source: [user, context.capability_model, skill.yea.business.business-capability-map]
+      format: table
+
+    - id: strategic_requirements
+      description: "What the strategy says the organization will do, specific enough that a required capability level can be derived from it rather than asserted."
+      source: [user, context.organization_profile]
+      format: document
+
+    - id: current_maturity_evidence
+      description: "The evidence behind the current rating for each capability — what is actually in place, and what demonstrates it."
+      source: user
+      format: table
+
+  optional:
+    - id: maturity_scale_definition
+      description: "The scale in use, with what each level means behaviourally for a capability at that level."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: five_level_behavioural
+      assumption_template: "No organization-defined maturity scale was supplied, so a five-level behavioural scale has been applied and its anchors stated in the artifact. Ratings on an unstated scale are not comparable across capabilities or across time, so the scale used is recorded with the assessment rather than assumed to be understood."
+      confidence_penalty: medium
+
+    - id: target_maturity_definitions
+      description: "The target level for each capability, and the strategic requirement each target is derived from."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: capability_owners
+      description: "Who is accountable for each capability today, and who would be accountable for closing its gap."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: unassigned
+      assumption_template: "Capability owners were not supplied and are recorded as unassigned. A gap with no owner is not a backlog item, it is a wish — and unowned capabilities are disproportionately the ones with the largest gaps, because nobody has been accountable for closing them."
+      confidence_penalty: high
+
+    - id: prior_assessments
+      description: "Previous maturity assessments of the same capabilities, with their dates and their scales."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No prior assessment was available, so this is a point-in-time rating with no trend behind it. A capability that has been at the same level for three years and one that has just dropped to it need different responses, and this assessment cannot tell them apart."
+      confidence_penalty: medium
+
+    - id: intervention_options
+      description: "What is known about how each gap could be closed — the change required, whether it has been done before, and by whom."
+      source: user
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Interventions were not supplied and have been derived from the nature of each gap. A derived intervention states what has to change and cannot state whether this organization can do it, which is what closability actually turns on."
+      confidence_penalty: medium
+
+    - id: capacity_and_funding
+      description: "The delivery capacity and money available to close gaps within the horizon."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: unknown
+      assumption_template: "Capacity and funding were not supplied, so the backlog is unconstrained. An unconstrained gap backlog is systematically larger than anything the organization can deliver, and presenting it without saying so invites a commitment nobody can meet."
+      confidence_penalty: medium
+
+    - id: benchmark_data
+      description: "How comparable organizations perform on these capabilities, where any credible comparison exists."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No benchmark was available, so targets and ratings are internal judgements with no external reference point. This matters most for capabilities the organization believes are differentiating, where an internal view has nothing to check it against."
+      confidence_penalty: low
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - strategic_priorities
+    - investment_thresholds
+    - budget_ceiling
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - budget_ceiling
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the score orders gaps for attention. The gap STATUS comes from
+#    the score pattern, because closing a gap, accepting one, and discovering a
+#    target was set too high are three different outcomes.
+#    See ./references/gap-and-target-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: strategic_dependency
+      display_name: How much the strategy depends on it
+      weight: 0.25
+      description: "Whether a stated strategic commitment fails if this capability stays where it is. Weighted highest because it is the only criterion that distinguishes a gap worth money from a gap that is merely real — and most assessments produce far more of the second than of the first."
+      evidence: [strategic_requirements, target_maturity_definitions, target_source, capability_model]
+      direction: higher_is_better
+
+    - id: consequence_of_not_closing
+      display_name: What happens if it stays as it is
+      weight: 0.20
+      description: "The specific consequence of leaving the capability where it is — a commitment missed, a cost carried, an exposure accepted. A gap whose consequence cannot be stated is a gap against an aspiration rather than against a requirement."
+      evidence: [strategic_requirements, current_maturity_evidence, assessment_basis, strategy_horizon]
+      direction: higher_is_better
+
+    - id: gap_size
+      display_name: How far apart current and target are
+      weight: 0.20
+      description: "The distance between where the capability is and where it needs to be, on a stated scale. Deliberately not the top-weighted criterion: a large gap on a capability nothing depends on is not a priority, and ranking by gap size alone is how commodity capabilities get expensive."
+      evidence: [current_maturity_evidence, target_maturity_definitions, maturity_scale_definition, assessment_basis, target_source, strategy_horizon]
+      direction: higher_is_better
+
+    - id: closability
+      display_name: Whether it can actually be closed
+      weight: 0.15
+      description: "Whether a known intervention exists, whether this organization has closed a comparable gap before, and whether anything else has to happen first. A gap that cannot be closed within the horizon is a constraint on the strategy, not a backlog item."
+      evidence: [intervention_options, prior_assessments, benchmark_data, gap_appetite, strategy_horizon]
+      direction: higher_is_better
+
+    - id: effort_to_close
+      display_name: What closing it takes
+      weight: 0.10
+      description: "The scale of change required across process, people, information, technology, and governance. Weighted modestly because effort estimates at this stage are weak, and a weak number given heavy weight produces a confident wrong order."
+      evidence: [intervention_options, capacity_and_funding, gap_appetite, investment_context]
+      direction: lower_is_better
+
+    - id: readiness_to_start
+      display_name: Whether anyone could start
+      weight: 0.10
+      description: "Whether the gap has an owner, a sponsor, and enough definition to begin. A gap with no owner is not a backlog item, it is a wish — and it will still be on the list at the next assessment."
+      evidence: [capability_owners, investment_context, capacity_and_funding, intervention_options]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — on this dimension alone the gap should not be worked now."
+      - value: 2
+        meaning: "Unfavourable — a material argument against acting on this gap yet."
+      - value: 3
+        meaning: "Neutral — no particular claim on attention or funding."
+      - value: 4
+        meaning: "Favourable — a clear argument a reviewer would recognize for acting."
+      - value: 5
+        meaning: "Strongly favourable — the strongest available claim on the next round of investment."
+
+  steps:
+    - "Confirm the capability model and the scale. Ratings on an unstated scale are not comparable across capabilities or across time, and the scale must travel with the assessment."
+    - "Derive each target from a STATED strategic requirement, and record which requirement. A target with no requirement behind it is an aspiration, and it will be defended in a steering committee as though it were a need."
+    - "Where a target has been set at the top of the scale, challenge it. For most capabilities — and for every commodity one — the correct target is well below the maximum, and over-targeting is the most expensive error available in this method."
+    - "Rate current state against the scale's behavioural anchors, recording for each capability WHO assessed it and what evidence supports the rating. A maturity score is an opinion until you say whose."
+    - "Where ratings were self-assessed, apply the known bias explicitly: owners rate process and governance generously and technology harshly. Say so rather than silently adjusting the numbers."
+    - "Express every gap as what has to CHANGE — across process, people, information, technology, and governance — not as the distance between two numbers. '2 to 4' is not actionable and cannot be estimated, argued with, or assigned."
+    - "Test each gap against the horizon. A capability that takes longer to build than the strategy has is a constraint on the strategy, and reporting that is more useful than a backlog item nobody can deliver in time."
+    - "Apply hard constraints. Where a budget ceiling is declared and a gap closure exceeds it, report the elimination with the policy ID rather than scoring it down."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any conclusion depends on it."
+    - "Score each gap, then assign a status from the SCORE PATTERN rather than the total — see ./references/gap-and-target-rules.md."
+    - "Record accepted gaps explicitly as decisions, with who accepted them and what consequence was accepted. An accepted gap that is silently absent from the backlog is indistinguishable from one that was overlooked."
+    - "Name every gap with no owner. These are disproportionately the largest gaps, because nobody has been accountable for closing them, and they will still be here at the next assessment unless an owner is assigned now."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the gap that blocks other gaps. Capability rarely builds in isolation, and an enabling gap returns its investment through everything downstream of it."
+    - "Prefer the gap with a named owner over an equally important gap with none. The second will not move, and saying so is more useful than ranking it highly."
+    - "Prefer the gap whose closure has been done before, here or elsewhere. Closability is worth more than theoretical value at the point where somebody has to commit."
+    - "If still tied, prefer the smaller gap. It closes sooner, it demonstrates that the assessment leads somewhere, and the assessment's credibility is what funds the larger ones."
+
+  references:
+    - ./references/maturity-assessment-rules.md
+    - ./references/gap-and-target-rules.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, delivery_team]
+  artifacts:
+    - id: maturity_assessment
+      display_name: Maturity assessment
+      description: "Current and target maturity per capability, with the strategic requirement behind each target, who assessed the current state, and on what evidence."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/maturity-assessment.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: capability_id
+            type: string
+          - id: capability_name
+            type: string
+          - id: strategic_position
+            type: enum
+            enum_values: [differentiating, parity, commodity, not_assessed]
+          - id: current_level
+            type: score
+          - id: current_evidence
+            type: string
+            description: "What demonstrates the rating. A level with no evidence is an opinion with a number attached."
+          - id: assessed_by
+            type: string
+            description: "Named. A maturity score is an opinion until you say whose."
+          - id: assessment_basis
+            type: enum
+            enum_values: [independently_assessed, self_assessed_by_owners, architect_judgement, none]
+          - id: target_level
+            type: score
+          - id: target_derived_from
+            type: string
+            description: "The stated strategic requirement. A target with nothing here is an aspiration and must be marked as one."
+          - id: target_basis
+            type: enum
+            enum_values: [derived_from_strategy, external_benchmark, aspiration, not_defined]
+          - id: gap
+            type: number
+          - id: prior_level
+            type: score
+          - id: owner
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: gap_backlog
+      display_name: Gap backlog
+      description: "Every gap expressed as what has to change, with its status, owner, priority, and whether it can be closed within the horizon."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/gap-backlog.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: gap_id
+            type: string
+          - id: capability_id
+            type: string
+          - id: gap_statement
+            type: string
+            description: "What has to change, in business language. Never expressed as a movement between two numbers."
+          - id: process_change
+            type: string
+          - id: people_change
+            type: string
+          - id: information_change
+            type: string
+          - id: technology_change
+            type: string
+          - id: governance_change
+            type: string
+          - id: status
+            type: enum
+            enum_values: [close_now, close_next, accept_gap, over_targeted, not_closable_in_horizon, blocked_by_another_gap, insufficient_evidence]
+          - id: driving_criterion
+            type: string
+          - id: weighted_score
+            type: number
+            description: "An ordering aid. It is NOT the status and must never be presented as the decision."
+          - id: blocks_gaps
+            type: string
+            description: "Other gaps that cannot close until this one does. A populated value marks an enabling gap."
+          - id: owner
+            type: string
+            description: "Or 'unassigned'. A gap with no owner is a wish, and it will still be here at the next assessment."
+          - id: sponsor
+            type: string
+          - id: consequence_if_not_closed
+            type: string
+          - id: accepted_by
+            type: string
+            description: "For accepted gaps only. An accepted gap is a decision and must be attributable."
+          - id: policy_ref
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: assessment_rationale
+      display_name: Assessment rationale
+      description: "Where the targets came from, what the assessment rests on, which gaps constrain the strategy, and what the analysis does and does not support."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/assessment-rationale.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: what_the_strategy_requires
+            heading: "What the strategy requires"
+            required: true
+          - id: where_targets_came_from
+            heading: "Where the targets came from"
+            required: true
+            description: "Per capability. A target with no stated requirement behind it is an aspiration and is named as one here."
+          - id: how_current_state_was_rated
+            heading: "How current state was rated, and by whom"
+            required: true
+          - id: the_gaps_that_matter
+            heading: "The gaps that matter"
+            required: true
+          - id: over_targeted
+            heading: "Where the target is higher than the strategy needs"
+            required: true
+            description: "The counterpart to the gaps. Over-targeting commodity capabilities is the most expensive error in maturity work and nobody asks for this section."
+          - id: constrains_the_strategy
+            heading: "Gaps that cannot close in time"
+            required: true
+            description: "Where a capability takes longer to build than the strategy has, that is a constraint on the strategy rather than a backlog item."
+          - id: accepted_gaps
+            heading: "Gaps we are accepting"
+            required: true
+            description: "Recorded as decisions with who accepted them. A silently absent gap is indistinguishable from an overlooked one."
+          - id: unowned_gaps
+            heading: "Gaps nobody owns"
+            required: true
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "current state was independently assessed against a defined scale with evidence recorded per capability, targets were derived from stated strategic requirements, owners are named, and a prior assessment exists for comparison."
+    - level: medium
+      when: "current state was self-assessed by capability owners against a defined scale, targets were derived from strategy, and owners are named — but no prior assessment or benchmark exists."
+    - level: low
+      when: "the assessment basis is architect judgement or none, or targets came from aspiration or are undefined, or no maturity scale was supplied, or capability owners are unassigned across most of the model."
+
+  sensitivity_targets:
+    - target: target_maturity_definitions
+      variation: "lower every target by one level"
+      report: "How many gaps disappear and how much effort is released. Targets are set high by default and defended as requirements, and this is the cheapest available test of which ones are real."
+    - target: assessment_basis
+      variation: "reduce every self-assessed process and governance rating by one level"
+      report: "Which gaps grow. Self-assessment inflates in a known direction — owners inhabit the process and experience the technology — and this makes the size of that bias visible rather than leaving it implicit."
+    - target: strategic_dependency
+      variation: "weight +/- 0.10"
+      report: "Whether the top of the backlog reorders. If a small weight change reorders it, report a band rather than a ranked list — the evidence is not separating those gaps."
+    - target: capacity_and_funding
+      variation: "assume capacity for a third of the backlog"
+      report: "Which gaps make the cut and which strategic commitments become unsupported. An unconstrained backlog is always larger than what can be delivered, and this is where that becomes a decision rather than a discovery."
+
+  evals: ./evals/

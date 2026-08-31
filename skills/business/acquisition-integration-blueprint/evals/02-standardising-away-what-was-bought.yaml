@@ -1,0 +1,125 @@
+spec_version: "1.0"
+id: 02-standardising-away-what-was-bought
+skill: yea.business.acquisition-integration-blueprint
+fixture: context/fixtures/northwind-corp
+description: >
+  The deal was for a capability, and the integration programme's own logic is to standardise
+  it onto the acquirer's way. This checks that the acquired capability is named and protected,
+  that adopting the acquirer's approach is treated as a decision rather than a default, and
+  that adopt_target is available as an answer.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind has acquired a smaller distributor specifically for its route planning and
+    delivery scheduling. The acquired business runs same-day dynamic routing: routes are
+    recalculated through the day against live vehicle positions, and drivers are re-tasked in
+    flight. Their on-time delivery is materially better than Northwind's on comparable
+    density, and this was the stated reason for the deal.
+
+    Northwind's own routing is nw-007 Route Planning System, technical fitness 2, which
+    allocates in an overnight batch. Route planning and delivery reliability is one of the
+    four capabilities Northwind says it competes on.
+
+    The integration programme's scorecard counts processes standardised onto Northwind's way,
+    and it has proposed migrating the acquired business onto nw-007 in the first hundred days
+    "to get everyone on one platform". The programme lead's argument is that two routing
+    approaches across one combined fleet is exactly the duplication the acquisition should
+    remove.
+
+    Three people at the acquired business designed and operate the dynamic routing method.
+    None of it is documented.
+
+  ask:
+    deal_rationale: capability_acquisition
+    integration_ambition: selective
+    separation_arrangement: fully_standalone
+    close_date_certainty: signed_with_date
+    access_to_target_information: full_diligence
+
+  gather:
+    provided:
+      deal_definition: "Acquisition of a regional distributor, bought for its same-day dynamic route planning and delivery scheduling capability"
+      acquirer_capability_model: "cap-04-02 Route Planning and Delivery, differentiating; supported by nw-007, technical fitness 2, overnight batch allocation"
+      target_capability_view: "Same-day dynamic routing with in-flight re-tasking; materially better on-time delivery at comparable density"
+      target_people_and_knowledge: "Three people designed and operate the method; nothing is documented"
+      target_application_inventory: "Routing runs on the acquired business's own tooling"
+    withheld:
+      - target_contracts
+      - target_cost_base
+      - integration_capacity
+      - day_one_obligations
+      - separation_service_schedule
+    available_context:
+      - context.capability_model
+      - context.application_inventory
+      - context.organization_profile
+
+expect:
+  disposition_for_routing: protect_do_not_touch
+  migration_to_nw007_rejected: true
+  adopt_target_considered: true
+  knowledge_capture_flagged: true
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    full diligence access, but the separation schedule and day-one obligations were not
+    supplied and contracts have not been checked
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That the acquired routing capability is the reason the deal happened, and that it is
+      therefore protected from standardisation in the first hundred days.
+    - That migrating it onto nw-007 would remove the capability that was bought — nw-007
+      allocates in an overnight batch and the acquired method recalculates through the day,
+      so this is a loss of function rather than a change of platform.
+    - That the correct question at this overlap is which way is better, not which organization
+      owns it, and that on the evidence the answer is the acquired business's way — so
+      `adopt_target` is on the table for Northwind's own routing, not only for theirs.
+    - That the programme lead's argument is sound as a general principle and wrong here, and
+      that the mechanism of loss is a scorecard counting standardised processes rather than
+      anyone's error.
+    - That the method is held by three people and is undocumented, that the window to capture
+      it is weeks, and that it closes on its own — so capture is more urgent than any
+      consolidation decision.
+    - The asymmetry: consolidation deferred can be revisited next year, and a capability
+      standardised away does not come back, because by the time anyone notices the people who
+      carried it have left.
+    - That nw-007 has a technical fitness of 2, so the platform being standardised onto is
+      also the weaker one.
+
+  must_not:
+    - Recommend migrating the acquired business onto nw-007.
+    - Treat the two routing approaches as duplication to be removed.
+    - Recommend retiring nw-007, or migrating Northwind onto the acquired tooling. Adopting
+      the target's method is a capability decision; which system runs it is a portfolio one.
+    - Frame the knowledge capture as a retention question or make any recommendation about
+      the three individuals.
+
+fails_if:
+  - The blueprint endorses standardising onto nw-007. It matches the programme's remit,
+    satisfies its scorecard, is what integration programmes do, and destroys the asset the
+    company paid for — using a platform rated fitness 2 to replace one that works better.
+  - The undocumented knowledge is noted without urgency. The window is weeks and closes
+    without anyone deciding, and after it the protected capability exists only as a
+    description of something that used to work.
+
+tolerance: >
+  Whether the recommendation extends to Northwind adopting the acquired method for its own
+  fleet, or stops at protecting it and deferring that question, is free — both are defensible
+  and the second is more cautious. Protecting the capability and flagging the knowledge
+  window are not.
+
+notes: >
+  The programme lead is doing their job. Two routing approaches across one fleet genuinely is
+  the kind of duplication an acquisition should resolve, their scorecard measures exactly
+  that, and nobody has told them this capability is the reason for the deal. That is the
+  whole mechanism: the capability gets standardised away by people performing correctly
+  against the wrong instruction, which is why naming it has to be written down rather than
+  intended.

@@ -1,0 +1,114 @@
+spec_version: "1.0"
+id: 02-the-stream-that-starts-too-late
+skill: yea.business.value-stream-map
+fixture: context/fixtures/northwind-corp
+description: >
+  The boundary failure, and it is the one that makes an otherwise good map answer the wrong
+  question. Operations commissioned the map and drew it from the point work reaches
+  Operations. Everything the customer did to get there — which is where the complaints come
+  from — sits outside the frame.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    The map was commissioned by the Director of Operations after customer complaints about
+    lead time. It is drawn from "order accepted into the warehouse queue" to "goods
+    delivered", and on that span the stream performs well: two days, few exceptions,
+    nothing obviously broken.
+
+    The complaints are about something else. Trade customers place orders through nw-002
+    Customer Order Portal, which is on an out-of-support framework and is the top customer
+    complaint in its own right. Roughly a third of orders need a price or product query
+    resolved before they are accepted, which is handled by email between the customer, a
+    sales representative, and Commercial. Customers report this taking two to four days
+    before the order is accepted at all, and describe it as the worst part of dealing with
+    Northwind.
+
+    Commercial does not consider that part of the order stream. Operations did not
+    commission it and has no visibility of it.
+
+  ask:
+    value_recipient: external_customer
+    timing_evidence: observed_walkthrough
+    path_coverage: includes_exceptions
+    improvement_intent: speed
+    boundary_confidence: contested
+
+  gather:
+    provided:
+      stream_definition: "As commissioned: begins at order accepted into the warehouse queue, ends at delivery to the customer site"
+      stage_sequence:
+        - "Order accepted into warehouse queue"
+        - "Stock allocated"
+        - "Route assigned"
+        - "Picked and loaded"
+        - "Delivered"
+      stage_evidence:
+        - "All five stages observed on a walkthrough over two days"
+        - "nw-006 Warehouse Management System and nw-007 Route Planning System"
+      recipient_feedback:
+        - "Top customer complaint is the ordering experience, not delivery"
+        - "Price and product queries before acceptance reported as taking two to four days"
+      system_touchpoints:
+        - "nw-002 Customer Order Portal — sunset, out-of-support framework, 2650 users"
+        - "nw-001 Order Capture System, nw-003 Pricing Engine, nw-006, nw-007"
+    withheld:
+      - elapsed_and_work_time
+      - volume_and_demand
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.organization_profile
+
+expect:
+  boundary_challenged: true
+  confidence: low
+  confidence_reason_must_reference: >
+    the start boundary is contested
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That the stream as commissioned starts after the part the customer complains about,
+      and that a map drawn on this boundary will conclude the stream performs well while
+      the recipient's experience is poor. Both are true and only one answers the question.
+    - What a wider boundary would include — order placement through nw-002, and the query
+      resolution loop running by email between the customer, sales, and Commercial.
+    - That roughly a third of orders pass through a two-to-four day loop that is outside the
+      current frame, which is plausibly larger than the entire mapped stream.
+    - That the boundary is contested between Operations and Commercial, and that this is a
+      finding about ownership rather than a setup problem to resolve quietly — no one is
+      accountable for the stream end to end, so every part can be locally well-run.
+    - That the query loop is carried by email and therefore invisible to any system-derived
+      touchpoint analysis.
+
+  must_not:
+    - Map only the commissioned span and report that the stream performs well.
+    - Silently redraw the boundary and present the wider map as what was asked for. The
+      boundary belongs to the organization; naming what is excluded and what it appears to
+      cost is this method's job.
+    - Treat the recipient feedback as out of scope because it concerns stages outside the
+      map. It is the evidence that the map is drawn in the wrong place.
+    - Recommend replacing nw-002. Its sunset status is a real finding and the disposition
+      is not this skill's.
+
+fails_if:
+  - The map is produced on the commissioned boundary with no challenge. It would be
+    internally consistent, well evidenced from a genuine walkthrough, and would tell the
+    Director of Operations that the problem they were asked about does not exist.
+  - The excluded region is mentioned only as a caveat at the end. It carries more elapsed
+    time than the mapped stream and belongs in the rationale's opening section.
+
+tolerance: >
+  Whether the wider stream is mapped, or only specified as what should be mapped next, is a
+  judgement call and either is acceptable — the evidence for the excluded stages is thin.
+  What is not negotiable is that the boundary is challenged before the stream is scored.
+
+notes: >
+  This is what a commissioned scope usually looks like: drawn where the commissioner's
+  authority ends, which is exactly where the interesting problems begin. The Director of
+  Operations is not avoiding anything — the part they cannot see is genuinely not theirs.

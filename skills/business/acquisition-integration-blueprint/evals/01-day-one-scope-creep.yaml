@@ -1,0 +1,120 @@
+spec_version: "1.0"
+id: 01-day-one-scope-creep
+skill: yea.business.acquisition-integration-blueprint
+fixture: context/fixtures/northwind-corp
+description: >
+  Seven items are proposed for day one and three of them break at close. This checks that the
+  test is applied item by item, that the refusals are recorded with their proposers, and that
+  "exactly as today, unchanged" is produced as the day-one answer rather than treated as a
+  gap.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind is acquiring a regional specialty distributor, referred to here as the acquired
+    business. Close is 1 December 2026. The seller will continue to run payroll for the
+    acquired business's 180 staff until 31 March 2027 under a transitional arrangement.
+
+    Seven items have been proposed for the day-one list:
+
+    A. The acquired business's 180 staff must be paid on 28 December.
+    B. Their customers must be invoiced through December.
+    C. Their food safety returns must be filed — the obligation transfers at close.
+    D. Migrate their staff onto Northwind's collaboration suite so everyone can communicate.
+    E. Apply Northwind's expense policy and approval thresholds.
+    F. Point their order flow at Northwind's message broker, since integration_via_broker is
+    the standard.
+    G. Rebrand their customer-facing documents.
+
+    Items D through G are each supported by a sponsor with a reasonable argument. D is
+    proposed by the People Director as essential to making the acquired staff feel part of the
+    business. F is proposed by the Technology Director, who notes it will be harder later.
+
+  ask:
+    deal_rationale: market_access
+    integration_ambition: selective
+    separation_arrangement: transitional_services
+    close_date_certainty: signed_with_date
+    access_to_target_information: limited
+
+  gather:
+    provided:
+      deal_definition: "Acquisition of a regional specialty distributor, 180 staff, closing 1 December 2026; bought for access to their customer base in two regions Northwind does not serve"
+      acquirer_capability_model: "Northwind's thirty capabilities, levels 1 and 2"
+      target_capability_view: "Broadly the same shape; ordering, warehousing, delivery, finance, people"
+      day_one_obligations:
+        - "Payroll for 180 staff, 28 December"
+        - "December customer invoicing"
+        - "Food safety returns, obligation transfers at close"
+      separation_service_schedule: "Seller runs payroll until 31 March 2027"
+    withheld:
+      - target_contracts
+      - target_people_and_knowledge
+      - integration_capacity
+      - target_cost_base
+      - target_application_inventory
+    available_context:
+      - context.capability_model
+      - context.policies
+      - context.organization_profile
+
+expect:
+  day_one_items: ["A", "B", "C"]
+  refused_from_day_one: ["D", "E", "F", "G"]
+  refusals_recorded_with_proposer: true
+
+  confidence: low
+  confidence_reason_must_reference: >
+    contracts have not been checked for change-of-control terms and knowledge concentration
+    was not assessed
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That only A, B, and C break at close, and which of the five causes each traces to —
+      payroll, customer commitment, and a regulatory obligation transferring.
+    - That D through G would each be better on day one and none of them breaks, so all four
+      belong after it, recorded with their proposer and the reason for refusal.
+    - That the day-one answer for most of the acquired business's capabilities is "exactly as
+      today, unchanged", and that this is written down rather than left blank — a blank reads
+      as an omission and invites somebody to fill it.
+    - That the payroll arrangement runs to 31 March 2027 and is provided by the seller, so
+      the 28 December payroll is the seller's to execute and the real payroll deadline is the
+      transition before 31 March.
+    - That F is proposed with a correct argument — it will be harder later — and that this is
+      an argument for doing it early rather than for doing it on day one.
+    - That contracts have not been checked for change-of-control terms, and that this is an
+      exposure that surfaces when a supplier notices the announcement rather than when the
+      plan says.
+
+  must_not:
+    - Include any of D through G in the day-one list.
+    - Drop D through G silently. Each was proposed by somebody who will propose it again in
+      week three unless the refusal is recorded.
+    - Treat integration_via_broker as a reason to move the order flow at close. It is a
+      standard governing new integrations, not a day-one obligation.
+    - Present the plan as verified. Information access was limited and most of what is known
+      about the acquired business is the acquirer's assumption.
+
+fails_if:
+  - The day-one list has five or more items. Each addition is individually defensible, and
+    together they consume the attention of the one week in the programme with the least slack
+    — while the three items that genuinely cannot fail compete with them.
+  - The refused items are omitted rather than recorded. They return in week three, proposed
+    by somebody who was not in the room, and get refused again by someone with less standing.
+
+tolerance: >
+  Whether the December payroll is characterised as a day-one item or as a seller obligation
+  to verify is free — both readings are defensible and the second is sharper. The three-item
+  core and the recorded refusals are not.
+
+notes: >
+  The People Director's argument for item D is a good one. Acquired staff who cannot reach
+  anyone at the acquiring company do feel like outsiders, and that matters. It is still not a
+  day-one item, and the useful response is to put it in week two with a named owner rather
+  than to argue about whether it is important.
