@@ -2,7 +2,7 @@
   "name": "yuman-ea",
   "displayName": "Yuman EA",
   "version": "0.1.0",
-  "description": "Enterprise architecture methods as executable skills — build-vs-buy and high level architecture, each stating its criteria, its assumptions, and its confidence.",
+  "description": "Enterprise architecture methods as executable skills across business, technology, and portfolio architecture — each stating its criteria, its assumptions, and its confidence.",
   "author": {
     "name": "Yuman EA maintainers",
     "url": "https://github.com/yuman-ea"
@@ -14,6 +14,8 @@
     "enterprise-architecture",
     "architecture-governance",
     "application-portfolio-management",
+    "business-architecture",
+    "capability-model",
     "togaf",
     "build-vs-buy",
     "solution-architecture"
@@ -28,12 +30,22 @@
     "./skills/portfolio/license-and-contract-review",
     "./skills/portfolio/portfolio-health-dashboard",
     "./skills/portfolio/vendor-product-selection",
-    "./skills/portfolio/roadmap-sequencing"
+    "./skills/portfolio/roadmap-sequencing",
+    "./skills/business/business-capability-map",
+    "./skills/business/value-stream-map",
+    "./skills/business/business-process-model",
+    "./skills/business/customer-journey-to-system-map",
+    "./skills/business/capability-gap-assessment",
+    "./skills/business/operating-model-design",
+    "./skills/business/stakeholder-and-concern-map",
+    "./skills/business/business-case",
+    "./skills/business/acquisition-integration-blueprint"
   ],
   "agents": [
     "./agents/orchestrator",
     "./agents/technology-ea",
-    "./agents/portfolio-ea"
+    "./agents/portfolio-ea",
+    "./agents/business-ea"
   ],
   "settings": {
     "agent": "orchestrator"

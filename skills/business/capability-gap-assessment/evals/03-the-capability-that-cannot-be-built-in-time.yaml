@@ -1,0 +1,124 @@
+spec_version: "1.0"
+id: 03-the-capability-that-cannot-be-built-in-time
+skill: yea.business.capability-gap-assessment
+fixture: context/fixtures/northwind-corp
+description: >
+  A twelve-month strategy depends on a capability that takes longer than twelve months to
+  build. This checks that the finding is reported as a constraint on the strategy rather than
+  as a backlog item, that the enabling gap blocking three others is surfaced, and that the
+  options are named as decisions for the organization.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind's board has committed to a twelve-month plan: customer self-service ordering
+    with live pricing, trade pricing agility, and field sales able to quote accurately at the
+    point of sale. All three commitments were made publicly at the trading update.
+
+    All three depend on Customer Master Data. nw-015 Customer Master has a technical fitness
+    of 1, was built in 2007, has eleven dependent interfaces of which two are direct database
+    links, and has no named business owner. Trade account records are also maintained in
+    nw-001 and nw-020, against the customer_master_authority policy.
+
+    An architect who has scoped comparable master data remediation elsewhere estimates
+    eighteen to twenty-four months to reach a level where the three commitments could rest on
+    it, driven by the dependent interfaces rather than by the data work itself.
+
+    Nobody has proposed the remediation. It has no sponsor and appears on no plan.
+
+  ask:
+    target_source: derived_from_strategy
+    assessment_basis: independently_assessed
+    strategy_horizon: twelve_months
+    investment_context: agreed
+    gap_appetite: close_strategic_only
+
+  gather:
+    provided:
+      capability_model: "cap-01-03 Customer Master Data, cap-01-02 Customer Self-Service, cap-02-02 Pricing and Promotions"
+      strategic_requirements:
+        - "Customer self-service ordering with live pricing, within twelve months"
+        - "Trade pricing agility, within twelve months"
+        - "Field sales quoting accurately at point of sale, within twelve months"
+      current_maturity_evidence:
+        - "cap-01-03 Customer Master Data at level 1 — nw-015 fitness 1, no business owner, account records duplicated in nw-001 and nw-020"
+        - "cap-01-02 Customer Self-Service at level 2 — nw-002 sunset, out-of-support framework"
+        - "cap-02-02 Pricing and Promotions at level 3 — nw-003 fitness 4"
+      target_maturity_definitions:
+        - "cap-01-03 target 3, derived from all three commitments requiring one trusted account record"
+      intervention_options:
+        - "Master data remediation estimated at eighteen to twenty-four months, driven by eleven dependent interfaces including two direct database links"
+      capacity_and_funding: "Funding agreed for the twelve-month plan"
+    withheld:
+      - capability_owners
+      - prior_assessments
+      - benchmark_data
+    available_context:
+      - context.capability_model
+      - context.application_inventory
+      - context.integrations
+      - context.policies
+
+expect:
+  status_for_customer_master_data: not_closable_in_horizon
+  enabling_gap_identified: true
+  blocks_gaps: ["cap-01-02 Customer Self-Service", "cap-02-02 Pricing and Promotions", "field sales quoting"]
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    independently assessed with targets derived from strategy, but no capability owners and
+    no prior assessment
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That Customer Master Data cannot reach its target within the twelve-month horizon, and
+      that this is a constraint on the strategy rather than an item for the backlog.
+    - That all three public commitments rest on it, so the constraint applies to the plan
+      rather than to one commitment.
+    - The options, named as decisions for the organization: extend the horizon, reduce what
+      the commitments claim, or source the capability differently. All three are the
+      organization's to choose and none of them is this method's to pick.
+    - That the remediation is enabling work with no sponsor, on no plan, and no business case
+      of its own — because its benefit accrues entirely to the three things it unblocks.
+    - That nw-015 has no named business owner, so there is currently nobody whose job it is
+      to propose the work.
+    - That the eighteen-to-twenty-four month estimate is driven by the eleven dependent
+      interfaces rather than by the data, and that two of them are direct database links,
+      which constrains how the remediation can be sequenced.
+    - That the estimate came from comparable work elsewhere rather than from this estate, and
+      is therefore indicative.
+
+  must_not:
+    - Place the master data gap in the twelve-month backlog as a close_now item. It cannot be
+      closed in the horizon and listing it as though it can is how a plan becomes undeliverable
+      without anyone deciding to make it so.
+    - Compress the estimate to fit the horizon, or assume the interfaces resolve faster than
+      stated.
+    - Choose among the three options. Naming them is the deliverable.
+    - Sequence the remediation, or produce a wave plan. That is roadmap sequencing and needs
+      capacity evidence this method does not hold.
+    - Recommend retiring or consolidating nw-001, nw-015, or nw-020.
+
+fails_if:
+  - The gap appears in the backlog as deliverable within twelve months. Everything downstream
+    of that entry — the plan, the commitments, the trading update — then rests on a date the
+    assessment itself does not support.
+  - The three commitments are assessed independently without the shared dependency being
+    surfaced. Each looks individually feasible; the shared blocker is what makes the plan
+    undeliverable, and it is visible only when they are assessed together.
+
+tolerance: >
+  How the three options are characterised, and whether a partial remediation sufficient for
+  one commitment is offered as a fourth, is free — the fourth is a good answer. Reporting the
+  gap as a constraint on the strategy rather than as a backlog item is not.
+
+notes: >
+  The commitments were made publicly, which changes nothing about the analysis and everything
+  about how it will be received. That is precisely why the finding has to be stated in the
+  assessment rather than discovered in month nine, and why naming three options is more
+  useful than naming a problem.

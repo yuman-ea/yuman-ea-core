@@ -1,0 +1,542 @@
+spec_version: "1.0"
+id: yea.business.operating-model-design
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: operating-model-design
+display_name: Operating Model Design
+description: >
+  Designs how an organization is arranged to deliver what it has committed to — across work,
+  organization, locations, information, suppliers, and the management system that governs
+  them. Starts from the value proposition rather than the current structure, requires every
+  design choice to name what it makes harder, and treats the transition as part of the design
+  rather than as an implementation detail. Produces the operating model canvas, a design
+  decision register, a transition view, and the reasoning behind all three.
+
+version: 0.1.0
+domain: business
+category: design
+owner_agent: business-ea
+maturity: draft
+license: Apache-2.0
+
+# A value proposition, a capability list, and how things work today. No consultancy toolkit.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "target operating model"
+    - "operating model design"
+    - "how should we be organized"
+    - "operating model canvas"
+    - "we are reorganizing"
+    - "how do we run this after the acquisition"
+    - "stand up a new business line"
+    - "centralise or devolve"
+    - "shared services or embedded teams"
+    - "what does the future organization look like"
+  decision_types:
+    - operating_model_design
+    - organization_design
+  not_this_skill:
+    - phrase: "what does the organization do, as capabilities"
+      route_to: yea.business.business-capability-map
+    - phrase: "where are we against the capability maturity we need"
+      route_to: yea.business.capability-gap-assessment
+    - phrase: "how does work flow end to end today"
+      route_to: yea.business.value-stream-map
+    - phrase: "what has to work on day one after the acquisition"
+      route_to: yea.business.acquisition-integration-blueprint
+    - phrase: "in what order do we make these changes, against our capacity"
+      route_to: yea.portfolio.roadmap-sequencing
+    - phrase: "does this reorganization pay for itself"
+      route_to: yea.business.business-case
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — an operating model is how the organization delivers its value
+#    proposition. A design that starts from the current structure has already
+#    decided the answer and will spend its effort rearranging it.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Design an operating model for {design_scope} that delivers {value_proposition},
+    prompted by {design_trigger}, with {change_appetite} appetite for change, operating by
+    {time_to_operate}, given that {people_constraint}.
+  decision_statement_fields:
+    - design_scope
+    - value_proposition
+    - design_trigger
+    - change_appetite
+    - time_to_operate
+    - people_constraint
+  out_of_scope:
+    - Defining what the organization does. That is the capability model, and this consumes it.
+    - Assessing how mature current capabilities are.
+    - Naming individuals to roles, or making any decision about specific people.
+    - Sequencing the transition against delivery capacity. That is roadmap sequencing.
+    - Building the funding case for the change.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: design_trigger
+    question: "What prompted this — a reorganization, an acquisition, a new business line, cost reduction, or a change of strategy?"
+    why: "The trigger decides what the design is allowed to hold constant and what it must question. A cost-reduction trigger that questions the value proposition is answering a different brief; a strategy change that holds the structure constant is a reorganization wearing a strategy label."
+    type: choice
+    options: [reorganization, acquisition, new_business_line, cost_reduction, strategy_change]
+    option_labels:
+      reorganization: "We are reorganizing"
+      acquisition: "We have bought or merged with something"
+      new_business_line: "We are standing up something new"
+      cost_reduction: "We need to run for less"
+      strategy_change: "The strategy has changed"
+    required: true
+    default_if_skipped: strategy_change
+    affects: [value_proposition_fit, transition_feasibility]
+
+  - id: centralisation_preference
+    question: "Is there a stated preference — centralised, federated, devolved — or is that genuinely open?"
+    why: "This is the axis on which nearly every operating model argument actually runs, and it is usually decided before the design starts and defended afterwards as a conclusion. Asking makes the difference visible between a preference the design must accommodate and a question the design should answer."
+    type: choice
+    options: [centralised, federated, devolved, genuinely_open]
+    option_labels:
+      centralised: "Centralised"
+      federated: "Federated — shared where it helps, local where it matters"
+      devolved: "Devolved to the business units"
+      genuinely_open: "Genuinely open"
+    required: true
+    default_if_skipped: genuinely_open
+    affects: [decision_coherence, cost_to_operate]
+
+  - id: people_constraint
+    question: "What is fixed about people — no role changes, role changes expected, or a headcount reduction is part of the objective?"
+    why: "Most operating model work is done under an unstated headcount assumption, and leaving it unstated distorts every other choice while making the design impossible to argue with. A model designed around avoiding role changes is a legitimate model; it is not the same model as one designed for the value proposition."
+    type: choice
+    options: [no_role_changes, role_changes_expected, headcount_reduction_expected]
+    option_labels:
+      no_role_changes: "Roles stay as they are"
+      role_changes_expected: "Roles will change"
+      headcount_reduction_expected: "Reducing headcount is part of the objective"
+    required: true
+    default_if_skipped: role_changes_expected
+    affects: [transition_feasibility, decision_coherence]
+
+  - id: change_appetite
+    question: "How much change can the organization absorb — incremental, significant, or a clean sheet?"
+    why: "It decides which designs are worth evaluating at all. A clean-sheet design presented to an organization with incremental appetite is an interesting document that nothing happens to, and the effort would have been better spent on a design that could be adopted."
+    type: choice
+    options: [incremental, significant, clean_sheet]
+    option_labels:
+      incremental: "Incremental — evolve what we have"
+      significant: "Significant — substantial change is acceptable"
+      clean_sheet: "Clean sheet — design it as if starting again"
+    required: true
+    default_if_skipped: significant
+    affects: [transition_feasibility, cost_to_operate]
+
+  - id: time_to_operate
+    question: "By when does the new model have to be running — six months, a year, or longer?"
+    why: "The date constrains the design rather than only the plan. A model requiring capabilities the organization does not have cannot be operating in six months whatever the transition plan says, and discovering that after the design is signed off is the expensive order to discover it in."
+    type: choice
+    options: [six_months, twelve_months, longer_than_a_year]
+    option_labels:
+      six_months: "Within six months"
+      twelve_months: "Within a year"
+      longer_than_a_year: "Longer than a year"
+    required: true
+    default_if_skipped: twelve_months
+    affects: [transition_feasibility, resilience_to_change]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: value_proposition
+      description: "What the organization has committed to deliver, to whom, and what makes that promise credible. The design is measured against this and against nothing else."
+      source: [user, context.organization_profile]
+      format: document
+
+    - id: capability_model
+      description: "The capabilities that have to be delivered, at the level decisions are made. This method arranges capabilities; it does not define them."
+      source: [user, context.capability_model, skill.yea.business.business-capability-map]
+      format: table
+
+    - id: design_scope
+      description: "What is being designed — the whole enterprise, one business unit, one capability group — and what is explicitly held constant around it."
+      source: user
+      format: scalar
+
+  optional:
+    - id: current_operating_arrangement
+      description: "How things are arranged today across all six dimensions, not only the reporting lines."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: decision_rights_map
+      description: "Who currently decides what, what gets escalated, and where decisions are made away from the information they need."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: value_stream_definitions
+      description: "How value currently reaches the customer, and which capabilities each stage consumes."
+      source: [user, skill.yea.business.value-stream-map]
+      format: list
+      on_missing: use_proxy_metric
+      proxy: "The sequences implied by the capability model and the interfaces recorded between supporting applications."
+      assumption_template: "Value streams were inferred from the capability model and the interface map rather than from how value actually reaches the customer. A design arranged around inferred flows will place boundaries where the systems hand over rather than where the work does, and those are rarely the same place."
+      confidence_penalty: medium
+
+    - id: performance_measures
+      description: "What is currently measured, who is accountable for each measure, and what behaviour it drives."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: location_footprint
+      description: "Where work is done today, why it is done there, and what is genuinely location-bound."
+      source: [user, context.organization_profile]
+      format: table
+      on_missing: use_default_value
+      default_value: unknown
+      assumption_template: "The location footprint was not supplied, so the design treats work as location-independent except where a capability is obviously physical. Warehouse, cold storage, and delivery work is location-bound by nature; anything else assumed movable here has not been checked."
+      confidence_penalty: medium
+
+    - id: supplier_arrangements
+      description: "What is currently delivered by third parties, under what commercial arrangement, and how tightly coupled the organization is to them."
+      source: [user, context.vendors]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Supplier relationships recorded against applications in the estate, treated as the outsourced footprint."
+      assumption_template: "Supplier arrangements were inferred from application supplier records, which captures technology suppliers and misses outsourced business process, contracted labour, and logistics partners. In a distribution business those are usually the larger commitments."
+      confidence_penalty: medium
+
+    - id: cost_baseline
+      description: "What the current arrangement costs to operate, broken down far enough to compare against an alternative."
+      source: [user, context.application_costs]
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "No operating cost baseline was supplied, so cost comparisons between design options are relative rather than absolute. Any figure describing what the new model saves is directional, and it should not be carried into a business case without being rebuilt."
+      confidence_penalty: medium
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - segregation_of_duties
+    - data_residency
+    - approval_thresholds
+    - outsourcing_policy
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - segregation_of_duties
+    - data_residency
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — candidate operating models are scored against each other. The
+#    six dimensions must ALL be answered; a design covering organization and
+#    technology is a reorganization with a diagram.
+#    See ./references/operating-model-dimensions.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: value_proposition_fit
+      display_name: Whether it delivers what was promised
+      weight: 0.25
+      description: "Whether this arrangement can actually deliver the value proposition, including the parts of it that are hard. Weighted highest because it is the only criterion that distinguishes an operating model from a rearrangement — every option will look tidy, and only some of them will deliver the promise."
+      evidence: [value_proposition, capability_model, value_stream_definitions, design_trigger]
+      direction: higher_is_better
+
+    - id: capability_coverage
+      display_name: Whether every capability has a home
+      weight: 0.20
+      description: "Whether each required capability has somewhere it lives and someone accountable for it, with no capability split across units in a way that leaves nobody owning the outcome. Splits are where capabilities quietly stop being anybody's job."
+      evidence: [capability_model, current_operating_arrangement, design_scope, centralisation_preference]
+      direction: higher_is_better
+
+    - id: decision_coherence
+      display_name: Whether decisions happen where the information is
+      weight: 0.20
+      description: "Whether the management system puts decisions where the knowledge sits, measures what the value proposition requires, and escalates the right things. This is the dimension most often skipped and the one that most reliably determines whether the model works in practice."
+      evidence: [decision_rights_map, performance_measures, centralisation_preference, people_constraint]
+      direction: higher_is_better
+
+    - id: transition_feasibility
+      display_name: Whether you can get there from here
+      weight: 0.15
+      description: "Whether a viable path exists within the time and the change appetite available, including what has to keep running throughout. A target with no viable path is a picture, and it is the most common output of operating model work."
+      evidence: [current_operating_arrangement, change_appetite, time_to_operate, people_constraint, design_trigger]
+      direction: higher_is_better
+
+    - id: cost_to_operate
+      display_name: What it costs to run
+      weight: 0.10
+      description: "The ongoing cost of the arrangement — people, locations, suppliers, and the coordination overhead the structure creates. Weighted modestly because operating cost estimates at design stage are weak, and a weak number given heavy weight produces a confident wrong choice."
+      evidence: [cost_baseline, supplier_arrangements, location_footprint, change_appetite, centralisation_preference]
+      direction: lower_is_better
+
+    - id: resilience_to_change
+      display_name: Whether it survives what comes next
+      weight: 0.10
+      description: "Whether the arrangement holds through growth, an acquisition, a volume shift, or the loss of a key supplier — or whether it has been optimised so tightly for today's shape that the next change requires another redesign."
+      evidence: [value_proposition, supplier_arrangements, time_to_operate, design_trigger]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — this alone is grounds to reject the option."
+      - value: 2
+        meaning: "Unfavourable — a material weakness a reviewer would raise unprompted."
+      - value: 3
+        meaning: "Acceptable — workable, with known compromises."
+      - value: 4
+        meaning: "Favourable — a clear advantage over the alternatives."
+      - value: 5
+        meaning: "Strongly favourable — the reason to choose this option."
+
+  steps:
+    - "Start from the value proposition. State what the organization has committed to deliver and to whom, and treat that as the only thing the design is measured against."
+    - "Do NOT start from the current structure or the org chart. A design that begins there has already decided the answer, and will spend its effort rearranging boxes while the other five dimensions go unexamined."
+    - "Derive the work required from the capability model and the value streams — what has to be done, at what volume, to what standard, in what sequence."
+    - "Design all six dimensions: the work, the organization, the locations, the information, the suppliers, and the management system. A design that answers organization and technology and skips the rest is a reorganization with a diagram."
+    - "Design the MANAGEMENT SYSTEM explicitly — what is measured, who decides what, what escalates, and how performance is reviewed. It is the most-skipped dimension and the one that decides whether the model works, because it is what people actually respond to."
+    - "Check that every capability has a home and an owner. Where a capability is split across units, name who owns the outcome — a split capability with no outcome owner is a capability that quietly stops being anybody's job."
+    - "For every design choice, name what it makes HARDER. An arrangement that optimises for something de-optimises for something else, and a choice with no stated trade-off has not been made, only asserted."
+    - "Apply hard constraints. A design placing initiation and approval in one role, or placing regulated data outside its permitted jurisdiction, is eliminated rather than scored down, and the elimination is reported with the policy ID."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any option depends on it."
+    - "Score the candidate models against each other. Where two are within the indifference band, report them as too close to separate rather than announcing a winner."
+    - "Design the transition as part of the design: what changes, in what order, what has to keep running throughout, and what breaks first if it stalls halfway. A target with no viable path is a picture."
+    - "Name the roles the model needs, never the individuals who would fill them. Designing around the people currently available produces a model that works once and is obsolete at the first departure."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the option whose management system is simplest to operate. Coordination overhead is the cost that never appears in the business case and never goes away."
+    - "Prefer the option that fails more gracefully halfway. Transitions stall, and the arrangement that is workable in a partial state is worth more than a better end state that is unworkable in transit."
+    - "Prefer the option requiring fewer new capabilities. A model depending on capabilities the organization does not have is a capability programme with an organization chart attached."
+    - "If still tied, prefer the option that is easier to reverse. Operating models are wrong more often than they are catastrophic, and the cost of being wrong is dominated by how hard it is to change again."
+
+  references:
+    - ./references/operating-model-dimensions.md
+    - ./references/design-choice-rules.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, delivery_team]
+  artifacts:
+    - id: operating_model_canvas
+      display_name: Operating model canvas
+      description: "The recommended model across all six dimensions, with the value proposition it delivers and what each dimension is arranged to achieve."
+      formats: [md, docx, pptx]
+      preferred_format: md
+      markdown_template: ./assets/operating-model-canvas.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: value_proposition
+            heading: "What we have committed to deliver"
+            required: true
+            description: "The design is measured against this and nothing else."
+          - id: work
+            heading: "The work — what gets done"
+            required: true
+            description: "The processes and value streams that deliver the proposition, and the capabilities behind them."
+          - id: organization
+            heading: "The organization — who does it"
+            required: true
+            description: "Roles and accountabilities, never named individuals. Designed after the other dimensions, not before."
+          - id: locations
+            heading: "Locations — where it happens"
+            required: true
+          - id: information
+            heading: "Information — what has to be known"
+            required: true
+          - id: suppliers
+            heading: "Suppliers — what others do for us"
+            required: true
+          - id: management_system
+            heading: "The management system — how it is run"
+            required: true
+            description: "What is measured, who decides what, what escalates, how performance is reviewed. The most-skipped dimension and the one that decides whether the model works."
+          - id: capability_homes
+            heading: "Where each capability lives"
+            required: true
+          - id: what_this_makes_harder
+            heading: "What this arrangement makes harder"
+            required: true
+            description: "Every operating model de-optimises for something. A model with nothing in this section has not made a choice."
+
+    - id: design_decision_register
+      display_name: Design decision register
+      description: "Every significant design choice, the options considered, what was chosen, what it makes harder, and who decided."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/design-decision-register.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: decision_id
+            type: string
+          - id: dimension
+            type: enum
+            enum_values: [work, organization, locations, information, suppliers, management_system]
+          - id: decision
+            type: string
+          - id: options_considered
+            type: string
+          - id: chosen
+            type: string
+          - id: because
+            type: string
+          - id: makes_harder
+            type: string
+            description: "Mandatory. A design choice with no stated trade-off has not been made, only asserted."
+          - id: reversibility
+            type: enum
+            enum_values: [easily_reversed, costly_to_reverse, effectively_permanent]
+          - id: decided_by
+            type: string
+          - id: policy_ref
+            type: string
+          - id: eliminated_by_constraint
+            type: string
+            description: "Options removed by a hard constraint rather than scored down, named with the policy ID."
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: transition_view
+      display_name: Transition view
+      description: "What has to change to reach the model, in what order, what must keep running throughout, and what breaks if it stalls."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/transition-view.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: change_id
+            type: string
+          - id: dimension
+            type: enum
+            enum_values: [work, organization, locations, information, suppliers, management_system]
+          - id: from_state
+            type: string
+          - id: to_state
+            type: string
+          - id: depends_on
+            type: string
+          - id: must_keep_running
+            type: string
+            description: "What cannot stop while this change happens. The constraint that turns a plausible transition into an implausible one."
+          - id: if_it_stalls_here
+            type: string
+            description: "What state the organization is left in. Transitions stall, and a model that is unworkable halfway is a worse choice than a weaker one that is not."
+          - id: new_capability_required
+            type: boolean
+          - id: earliest_feasible
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: model_rationale
+      display_name: Model rationale
+      description: "Why this model, what was rejected, what it assumes, and what would change the recommendation."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/model-rationale.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: what_we_designed_for
+            heading: "What we designed for"
+            required: true
+          - id: options_considered
+            heading: "The models we compared"
+            required: true
+          - id: why_this_one
+            heading: "Why this one"
+            required: true
+          - id: too_close_to_separate
+            heading: "Where the options were too close to separate"
+            required: false
+            description: "Only where scores fell inside the indifference band. Announcing a winner separated by nothing is a failure mode, not a result."
+          - id: what_it_makes_harder
+            heading: "What this makes harder"
+            required: true
+          - id: management_system
+            heading: "How this will actually be run"
+            required: true
+          - id: transition
+            heading: "Getting there"
+            required: true
+          - id: new_capabilities
+            heading: "Capabilities we do not currently have"
+            required: true
+            description: "A model depending on capabilities the organization lacks is a capability programme with an organization chart attached. Name them."
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  confidence_rules:
+    - level: high
+      when: "the value proposition is stated and specific, the current arrangement is documented across all six dimensions, decision rights and performance measures were supplied, a cost baseline exists, and the transition has been tested against what must keep running."
+    - level: medium
+      when: "the value proposition is stated and the current arrangement is known across most dimensions, but the cost baseline was estimated or value streams were inferred."
+    - level: low
+      when: "the current arrangement was not documented, or decision rights and performance measures were not supplied, or the value proposition is too general to design against, or the management system dimension could not be evidenced."
+
+  sensitivity_targets:
+    - target: centralisation_preference
+      variation: "design the opposite of the stated preference and score it"
+      report: "Whether the recommendation survives. Where a stated preference and the winning option coincide, this is the only available test of whether the design was derived or assumed — and it is the question the design will be challenged on."
+    - target: decision_coherence
+      variation: "weight +/- 0.10"
+      report: "Whether the recommendation changes. The management system is the dimension most likely to be under-weighted by a design team focused on structure, and its sensitivity shows how much of the result rests on it."
+    - target: transition_feasibility
+      variation: "assume the transition stalls at the halfway point for a year"
+      report: "What state the organization is left in under each option. Transitions stall routinely, and an option that is unworkable halfway is a worse choice than a weaker end state that is not."
+    - target: cost_baseline
+      variation: "coordination overhead 30% higher than estimated"
+      report: "Whether the cost ranking changes. Coordination cost is the charge that never appears in the business case, never goes away, and rises with every boundary the design creates."
+
+  evals: ./evals/

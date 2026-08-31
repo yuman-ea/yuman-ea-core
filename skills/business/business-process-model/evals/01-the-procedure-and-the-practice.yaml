@@ -1,0 +1,117 @@
+spec_version: "1.0"
+id: 01-the-procedure-and-the-practice
+skill: yea.business.business-process-model
+fixture: context/fixtures/northwind-corp
+description: >
+  A written procedure exists and nobody follows it. This checks that the model records the
+  observed process with the documented one alongside, that the divergence is reported as a
+  finding rather than corrected, and that the reason for the workaround is pursued rather
+  than the workaround being treated as an error.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind's order acceptance procedure, last revised in 2019, says the representative
+    confirms the trade account, credit position, and delivery site against nw-015 Customer
+    Master before the order is submitted.
+
+    Nobody does this. Field representatives raise orders in nw-020 Field Sales Application,
+    which holds its own copy of trade account data synchronised overnight, because nw-015 is
+    slow, has no usable search, and cannot be reached from a vehicle. Office-based
+    representatives use nw-001 Order Capture System, which also holds account records.
+
+    Both groups describe the documented step as impractical rather than optional. Neither
+    group has raised it, because the process works — 76% of the time. The remaining 24% stop
+    at the credit and terms check with an account, terms, or delivery site mismatch.
+
+    The team wants the process documented before deciding whether to automate order capture.
+
+  ask:
+    model_state: as_is_only
+    evidence_source: walkthrough_with_performers
+    control_context: internally_audited
+    modelling_purpose: redesign
+    exception_appetite: named_exceptions
+
+  gather:
+    provided:
+      process_definition: "Triggered when a trade customer places an order; ends when the order is accepted into the warehouse queue"
+      activity_sequence:
+        - "Representative raises the order"
+        - "Account, credit, and delivery site confirmed"
+        - "Order submitted"
+        - "Credit and terms checked by Finance"
+        - "Order accepted into warehouse queue"
+      performers_and_systems:
+        - "Field representative — nw-020 Field Sales Application"
+        - "Office representative — nw-001 Order Capture System"
+        - "Finance analyst — nw-015 Customer Master"
+      documented_procedure: "2019 order acceptance procedure: confirm account, credit position, and delivery site against the customer master before submission"
+      exception_and_volume_data:
+        - "24% of orders returned at the credit and terms check"
+    withheld:
+      - control_inventory
+      - decision_rules
+      - timing_and_volume
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.policies
+
+expect:
+  divergence_recorded_not_corrected: true
+  confidence: medium
+  confidence_reason_must_reference: >
+    walked through with performers and a documented procedure was available, but decision
+    rules were inferred and no control inventory was supplied
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That the modelled step is the one performed — confirmation against nw-020 or nw-001 —
+      and that the documented step is recorded alongside it, flagged as a divergence.
+    - Why the workaround exists: nw-015 is slow, has no usable search, and is unreachable
+      from a vehicle. The documented route failed in a specific way and the workaround is
+      the rational response to it.
+    - That the divergence is plausibly the cause of the 24% return rate, since the account
+      data used to raise the order is a synchronised copy rather than the master.
+    - That customer_master_authority is the relevant policy, by ID, and that account records
+      held in nw-020 and nw-001 sit against it — without restating what the policy says.
+    - That decision rules were inferred rather than stated, and that this matters
+      disproportionately here because automation is the decision this model feeds.
+    - That the procedure has not been revised since 2019 and that nobody has raised the
+      divergence, because the process works most of the time.
+
+  must_not:
+    - Model the documented step as the as-is. It is the single most common way this method
+      is misapplied and it produces a model of a process nobody runs.
+    - Record the workaround as an error, a compliance failure, or a training gap.
+    - Recommend that representatives be required to follow the 2019 procedure. That
+      recommendation ignores why they do not, and it has a foreseeable outcome.
+    - Recommend a system change, a consolidation, or a retirement. The disposition is
+      portfolio's.
+
+fails_if:
+  - The model shows confirmation against nw-015. The result would be tidy, would match the
+    document, would be signed off by people who have never performed the step, and would
+    describe a process that does not happen.
+  - The divergence appears without the reason. "Practice differs from procedure" is an
+    observation; the reason is the finding, and it is what makes the redesign solve
+    something.
+
+tolerance: >
+  How strongly the link between the divergence and the 24% return rate is asserted is a
+  judgement call — the evidence is suggestive rather than conclusive, and either a firm
+  hypothesis or a stated correlation is acceptable. Modelling the observed step rather than
+  the documented one is not negotiable.
+
+notes: >
+  Nobody in this scenario is at fault. The 2019 procedure was reasonable when written, the
+  representatives found the only workable route, and Finance has been absorbing the
+  consequence without anyone connecting the two. That is what an undocumented variance
+  usually looks like from the inside — not a rule being broken, but a rule that quietly
+  stopped being possible.

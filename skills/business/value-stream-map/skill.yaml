@@ -1,0 +1,516 @@
+spec_version: "1.0"
+id: yea.business.value-stream-map
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: value-stream-map
+display_name: Value Stream Map
+description: >
+  Maps how value reaches the stakeholder who triggered the work — stage by stage, with the
+  value each stage adds, the capabilities it consumes, and where the flow sticks. Measures
+  waiting as well as working, because elapsed time in most streams is dominated by queues
+  between stages rather than effort within them, and locates friction at handoffs rather
+  than inside the teams either side of them. Produces the stream map, a capability
+  cross-map, a friction register, and the reasoning behind all three.
+
+version: 0.1.0
+domain: business
+category: discover
+owner_agent: business-ea
+maturity: draft
+license: Apache-2.0
+
+# A stage list and whatever timings exist. Usable from a walkthrough and a whiteboard.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "value stream map"
+    - "how does work flow end to end"
+    - "map the order to cash flow"
+    - "where does it get stuck"
+    - "why does this take six weeks"
+    - "end to end process view"
+    - "value stream"
+    - "where are the handoffs"
+    - "we keep doing the same work twice"
+    - "map how value gets delivered"
+  decision_types:
+    - value_stream_analysis
+    - flow_diagnosis
+  not_this_skill:
+    - phrase: "map the customer journey"
+      route_to: yea.business.customer-journey-to-system-map
+    - phrase: "document this process with its controls and handoffs"
+      route_to: yea.business.business-process-model
+    - phrase: "what does the organization do, as capabilities"
+      route_to: yea.business.business-capability-map
+    - phrase: "how should we be organized to run this"
+      route_to: yea.business.operating-model-design
+    - phrase: "which systems should we replace to fix this"
+      route_to: yea.portfolio.application-rationalization
+
+# ---------------------------------------------------------------------------
+# 2. FRAME — a stream that ends at an internal handoff is a process. A stream
+#    that starts when the order arrives hides everything the customer did to
+#    get it there, which is very often where the delay is.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Map the value stream that begins at {stream_definition} and ends in value received by
+    {value_recipient}, covering {path_coverage}, to improve {improvement_intent}, using
+    timings whose basis is {timing_evidence}.
+  decision_statement_fields:
+    - stream_definition
+    - value_recipient
+    - path_coverage
+    - improvement_intent
+    - timing_evidence
+  out_of_scope:
+    - Documenting a single process in detail, with its tasks, gateways, and controls.
+    - Designing the future organization. A stream shows where work sticks, not who should own it.
+    - Deciding which systems to replace. Friction at a system is a finding, not a disposition.
+    - Mapping the customer's experience of the stream. That is the journey-to-system map.
+    - Redesigning the stream. This produces the as-is and, on request, a to-be shape — not a plan.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: value_recipient
+    question: "Who receives the value at the end of this stream — an external customer, someone inside the business, a supplier or partner, or a regulator?"
+    why: "A value stream is defined by who it delivers to, and the answer decides what counts as value at every stage. A stream delivering to a regulator is optimised for evidence and completeness; one delivering to a customer is optimised for elapsed time. Scoring the same stages against the wrong recipient produces confident, useless conclusions."
+    type: choice
+    options: [external_customer, internal_consumer, supplier_or_partner, regulator]
+    option_labels:
+      external_customer: "A customer outside the business"
+      internal_consumer: "Someone inside the business"
+      supplier_or_partner: "A supplier or trading partner"
+      regulator: "A regulator or auditor"
+    required: true
+    default_if_skipped: external_customer
+    affects: [value_contribution, capability_support]
+
+  - id: timing_evidence
+    question: "Where do the timings come from — measured from the systems, observed by walking the stream, asked of the teams, or not available?"
+    why: "Timings are the spine of the analysis and self-reported ones are systematically wrong in one direction: teams report their own work time accurately and have no visibility of the queue before it. That is the exact gap this method exists to find, so where the timings came from caps everything downstream."
+    type: choice
+    options: [measured_from_systems, observed_walkthrough, asked_the_teams, none]
+    option_labels:
+      measured_from_systems: "Pulled from system timestamps"
+      observed_walkthrough: "We walked the stream and watched it"
+      asked_the_teams: "The teams told us"
+      none: "No timings yet"
+    required: true
+    default_if_skipped: asked_the_teams
+    affects: [elapsed_time_share, rework_rate]
+
+  - id: path_coverage
+    question: "Are we mapping the way it runs when everything goes right, or including the exceptions?"
+    why: "The happy path is where the value is and the exceptions are where the time goes. A stream where eighty per cent of items flow through in two days and twenty per cent take five weeks has an average nobody experiences, and mapping only the happy path finds nothing worth fixing."
+    type: choice
+    options: [happy_path, includes_exceptions, exceptions_only]
+    option_labels:
+      happy_path: "The way it is supposed to run"
+      includes_exceptions: "Including the ones that go wrong"
+      exceptions_only: "Only the problem cases"
+    required: true
+    default_if_skipped: includes_exceptions
+    affects: [rework_rate, handoff_friction]
+
+  - id: improvement_intent
+    question: "What are you trying to improve — speed, cost, quality, or how much the stream can handle?"
+    why: "The same map supports four different conclusions. A stage consuming most of the elapsed time is the target for speed and irrelevant to cost if it costs nothing to run; a stage with heavy rework is the target for quality and may be improving speed by catching errors early."
+    type: choice
+    options: [speed, cost, quality, capacity]
+    option_labels:
+      speed: "Make it faster end to end"
+      cost: "Make it cheaper to run"
+      quality: "Make it right first time"
+      capacity: "Handle more without adding people"
+    required: true
+    default_if_skipped: speed
+    affects: [value_contribution, elapsed_time_share]
+
+  - id: boundary_confidence
+    question: "Is everyone agreed on where this stream starts and ends, or is that still contested?"
+    why: "Streams are routinely drawn starting at the moment work arrives in the department that commissioned the map, which hides everything the customer did to get it there — usually where most of the elapsed time sits. A contested boundary is a finding in itself and changes what the map is allowed to conclude."
+    type: choice
+    options: [agreed, contested, not_discussed]
+    option_labels:
+      agreed: "Everyone agrees on the boundaries"
+      contested: "There is disagreement about where it starts or ends"
+      not_discussed: "Nobody has raised it"
+    required: true
+    default_if_skipped: not_discussed
+    affects: [value_contribution, handoff_friction]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: stream_definition
+      description: "What triggers the stream, what value it delivers, and where it is considered to end. The three things that make it a value stream rather than a process."
+      source: user
+      format: scalar
+
+    - id: stage_sequence
+      description: "The stages in the order they actually run, not the order the procedure says. Each stage as it is described by someone who does it."
+      source: user
+      format: table
+
+    - id: stage_evidence
+      description: "Whatever exists per stage: who does it, what systems are touched, what volumes pass through, what is known to go wrong."
+      source: [user, context.application_inventory]
+      format: table
+
+  optional:
+    - id: elapsed_and_work_time
+      description: "Per stage, how long the work takes and how long items wait before it starts. Two separate numbers — the gap between them is the finding."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: rework_and_exception_rates
+      description: "How often work arrives at a stage incomplete or wrong and has to go back, and how often an item leaves the standard path."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: capability_model
+      description: "The capabilities the organization has, so each stage can be cross-mapped to what it consumes."
+      source: [user, context.capability_model]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Capabilities derived from the stage names themselves, marked as derived rather than drawn from an existing model."
+      assumption_template: "No capability model was supplied, so capabilities were derived from the stage names. This makes the cross-map circular — the stages define the capabilities that are then mapped back to the stages — and it cannot be used to find capabilities that no stage consumes."
+      confidence_penalty: medium
+
+    - id: system_touchpoints
+      description: "Which systems each stage touches, and where data crosses between them."
+      source: [user, context.application_inventory, context.integrations]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "Applications attributed to the capabilities the stage consumes, plus the interfaces recorded between them."
+      assumption_template: "System touchpoints were inferred from the application inventory and the interface map. This finds the automated handoffs and misses every one carried by email, spreadsheet, or a phone call — which is disproportionately where the friction is."
+      confidence_penalty: medium
+
+    - id: volume_and_demand
+      description: "How many items pass through the stream, how that varies, and whether demand is level or peaked."
+      source: user
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Volumes were not supplied and have been estimated from the scale of the business. Peaked demand and level demand produce completely different queues from the same capacity, so a stream that flows in an average week may not flow in any actual week."
+      confidence_penalty: medium
+
+    - id: stage_owners
+      description: "Who is accountable for each stage, and who is accountable for the stream end to end."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: unassigned
+      assumption_template: "Stage owners were not supplied. Where no one is accountable for the stream end to end — which is the usual case — every stage can be locally optimal while the whole performs badly, and nobody's remit covers the gap."
+      confidence_penalty: medium
+
+    - id: recipient_feedback
+      description: "What the recipient of the value actually says about it — complaints, survey themes, escalations, churn reasons."
+      source: user
+      format: list
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No recipient feedback was available, so value at each stage is judged from the inside. Internal judgements of what a customer values are reliably generous about the stages the organization finds difficult and blind to the waiting it does not see."
+      confidence_penalty: medium
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - service_level_commitments
+    - segregation_of_duties
+    - customer_master_authority
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - segregation_of_duties
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the score orders stages for attention. The stage STATUS comes
+#    from the score pattern, because a slow stage, a rework-bound stage, and a
+#    handoff-bound stage need three different interventions.
+#    See ./references/flow-analysis-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: elapsed_time_share
+      display_name: Share of the total elapsed time
+      weight: 0.25
+      description: "How much of the end-to-end elapsed time this stage accounts for, counting waiting as well as working. Weighted jointly highest because queue time between stages typically dominates work time within them, and it is the component no team reports because no team can see it."
+      evidence: [elapsed_and_work_time, volume_and_demand, timing_evidence, improvement_intent]
+      direction: lower_is_better
+
+    - id: value_contribution
+      display_name: Value the stage adds
+      weight: 0.25
+      description: "Whether the recipient would recognize this stage as adding value, or whether it exists to serve the organization's own arrangement. A stage nobody can state the value of is a candidate for removal, and naming it is more useful than optimising it."
+      evidence: [stream_definition, recipient_feedback, value_recipient, improvement_intent, boundary_confidence]
+      direction: higher_is_better
+
+    - id: rework_rate
+      display_name: How often work comes back
+      weight: 0.20
+      description: "How often work arrives at this stage incomplete or wrong and has to be returned or redone. Rework is invisible in a stage-time measurement because it is counted as work, and it is usually caused by the stage before rather than the one doing it."
+      evidence: [rework_and_exception_rates, stage_evidence, timing_evidence, path_coverage]
+      direction: lower_is_better
+
+    - id: handoff_friction
+      display_name: Friction at the handoff
+      weight: 0.15
+      description: "What it costs to pass work into this stage — how many teams, systems, and re-keyings are involved, and whether context survives the transfer. Friction lives between stages, not inside them, which is why it belongs to nobody and persists."
+      evidence: [system_touchpoints, stage_evidence, stage_owners, path_coverage, boundary_confidence]
+      direction: lower_is_better
+
+    - id: capability_support
+      display_name: Whether the capability behind it is in place
+      weight: 0.15
+      description: "Whether the capabilities this stage consumes actually exist at the level it needs. A stage failing because the capability behind it is immature cannot be fixed by changing the stage."
+      evidence: [capability_model, system_touchpoints, stage_evidence, value_recipient]
+      direction: higher_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Severe — this stage alone would justify redesigning the stream around it."
+      - value: 2
+        meaning: "Poor — a material constraint that someone in the stream would name unprompted."
+      - value: 3
+        meaning: "Workable — known irritations, nothing that changes the outcome."
+      - value: 4
+        meaning: "Good — not a constraint on the stream."
+      - value: 5
+        meaning: "Excellent — this stage is why the stream works as well as it does."
+
+  steps:
+    - "Confirm the trigger, the recipient, and the value delivered. If the stream ends at an internal handoff rather than value reaching someone, it is a process — say so and route to the process model rather than mapping it as a stream."
+    - "Test the start boundary explicitly. A stream that begins when the order arrives excludes everything the customer did to place it, which is frequently where most of the elapsed time sits and always where the complaints come from."
+    - "Lay out the stages as they actually run, from the accounts of people who do the work, not from the documented procedure. Where the two differ, record both — the difference is a finding."
+    - "For every stage capture work time and wait time SEPARATELY. A single duration per stage conceals the queue, and the queue is usually the answer."
+    - "Compute the ratio of value-adding time to total elapsed time across the stream. Report it. In most unmeasured streams it is under ten per cent, and the number reframes the conversation faster than any individual stage finding."
+    - "Locate friction at the handoffs — between stages, between functions, between systems. Friction belongs to nobody, which is precisely why it survives every round of local improvement."
+    - "Cross-map each stage to the capabilities it consumes, and check the reverse: capabilities the model claims that no stage in any mapped stream uses."
+    - "Apply hard constraints. A stage merge that breaks segregation of duties is eliminated, not scored down, and the elimination is reported with the policy ID."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any conclusion depends on it."
+    - "Score each stage on all five criteria separately, then assign a status from the SCORE PATTERN rather than the total — see ./references/flow-analysis-rules.md."
+    - "Name every stage whose value nobody could state. Do not optimise it; report it as a candidate for removal and say who would have to agree."
+    - "Where the intent is speed, check whether the constraint is a stage or the handoffs between them. Improving a stage that is not the constraint changes the end-to-end time by nothing, and it is the most common way improvement effort is spent."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the stage that is the constraint. Improving anything other than the bottleneck changes end-to-end time by nothing, however bad the other stage looks."
+    - "Prefer the stage where the queue is, over the stage where the work is. The queue is invisible to everyone in the stream and is usually larger."
+    - "Prefer the handoff over either stage either side of it. A problem owned by two teams is owned by neither."
+    - "If still tied, prefer the stage nearest the recipient. Its failures are the ones they experience."
+
+  references:
+    - ./references/value-stream-rules.md
+    - ./references/flow-analysis-rules.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, delivery_team]
+  artifacts:
+    - id: value_stream_map
+      display_name: Value stream map
+      description: "Every stage in order, with the value it adds, its work and wait times, the systems it touches, and its flow status."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/value-stream-map.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: stage_id
+            type: string
+          - id: stage_name
+            type: string
+          - id: value_item
+            type: string
+            description: "What the recipient has at the end of this stage that they did not have before. 'None stated' is a permitted and important value."
+          - id: performed_by
+            type: string
+          - id: work_time
+            type: string
+          - id: wait_time
+            type: string
+            description: "Recorded separately from work time, always. A single duration conceals the queue, and the queue is usually the answer."
+          - id: rework_rate
+            type: string
+          - id: systems_touched
+            type: string
+          - id: capabilities_consumed
+            type: string
+          - id: flow_status
+            type: enum
+            enum_values: [flows, queue_bound, rework_bound, handoff_bound, no_stated_value, insufficient_evidence]
+          - id: driving_criterion
+            type: string
+          - id: is_constraint
+            type: boolean
+            description: "The bottleneck. Improving anything else changes end-to-end time by nothing."
+          - id: evidence_basis
+            type: enum
+            enum_values: [measured_from_systems, observed_walkthrough, asked_the_teams, inferred, none]
+          - id: assumption_ref
+            type: string
+
+    - id: capability_cross_map
+      display_name: Capability cross-map
+      description: "Which capabilities each stage consumes, how well they support it, and which claimed capabilities no stage uses."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/capability-cross-map.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: stage_id
+            type: string
+          - id: capability_id
+            type: string
+          - id: capability_name
+            type: string
+          - id: dependency_strength
+            type: enum
+            enum_values: [critical, contributing, incidental]
+          - id: support_adequacy
+            type: enum
+            enum_values: [adequate, strained, absent, not_assessed]
+          - id: supporting_systems
+            type: string
+          - id: consequence_if_absent
+            type: string
+          - id: capability_source
+            type: enum
+            enum_values: [existing_model, derived_from_stages]
+            description: "Where derived_from_stages, the cross-map is circular and cannot find unused capabilities. Must be visible per row."
+
+    - id: friction_register
+      display_name: Friction register
+      description: "Every friction point, located at the handoff rather than inside a stage, with what it costs and who would have to agree to fix it."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/friction-register.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: friction_id
+            type: string
+          - id: located_at
+            type: string
+            description: "The handoff — 'between stage 3 and stage 4' — not a stage, wherever the friction is genuinely between them."
+          - id: friction_type
+            type: enum
+            enum_values: [queue, rework_loop, re_keying, approval_wait, information_gap, system_boundary, function_boundary, unclear_ownership]
+          - id: elapsed_cost
+            type: string
+          - id: frequency
+            type: string
+          - id: root_stage
+            type: string
+            description: "Where the cause is, which is frequently the stage BEFORE the one where the problem appears."
+          - id: owned_by
+            type: string
+            description: "Or 'nobody', which is the usual answer at a handoff and is the reason it has survived."
+          - id: who_must_agree
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: stream_rationale
+      display_name: Stream rationale
+      description: "What the map shows, where the constraint is, what the flow ratio says, and what the analysis does and does not support."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/stream-rationale.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: the_stream
+            heading: "The stream, and where it starts"
+            required: true
+            description: "Including whether the start boundary was contested, and what a wider boundary would have included."
+          - id: flow_ratio
+            heading: "How much of the time is value-adding"
+            required: true
+            description: "Value-adding time as a share of total elapsed time. In most unmeasured streams this is under ten per cent, and the number reframes the conversation faster than any single stage finding."
+          - id: the_constraint
+            heading: "Where the constraint is"
+            required: true
+          - id: where_it_sticks
+            heading: "Where it sticks"
+            required: true
+          - id: stages_without_value
+            heading: "Stages nobody could name the value of"
+            required: true
+          - id: capability_findings
+            heading: "What the capability cross-map shows"
+            required: true
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  confidence_rules:
+    - level: high
+      when: "timings were measured from systems or observed on a walkthrough, work and wait time were captured separately, rework rates were supplied, exceptions were included, and the start boundary is agreed."
+    - level: medium
+      when: "timings were observed or reported by the teams with work and wait separated, rework rates were supplied, and the stream boundary is agreed, but volumes or system touchpoints were inferred."
+    - level: low
+      when: "timings were self-reported without wait time separated, or no timings exist, or rework rates were not supplied, or only the happy path was mapped, or the start boundary is contested."
+
+  sensitivity_targets:
+    - target: elapsed_and_work_time
+      variation: "wait time doubled at every handoff"
+      report: "Whether the constraint moves. Where timings were self-reported, queue time is the component nobody could see, and doubling it is closer to reality than the reported figure in most unmeasured streams."
+    - target: path_coverage
+      variation: "include the exception paths at their stated frequency"
+      report: "How the end-to-end time changes. A stream where four items in five flow through in days and one takes weeks has an average that nobody experiences, and the happy-path map finds nothing worth fixing."
+    - target: value_contribution
+      variation: "judge value from recipient feedback rather than internal assessment"
+      report: "Which stages change status. Internal judgements are reliably generous about the stages the organization finds difficult and blind to the waiting the recipient does."
+    - target: elapsed_time_share
+      variation: "weight +/- 0.10"
+      report: "Whether the constraint changes. If the identified bottleneck depends on a small weight change, the evidence is not separating the stages and the finding should be reported as a band rather than a single constraint."
+
+  evals: ./evals/

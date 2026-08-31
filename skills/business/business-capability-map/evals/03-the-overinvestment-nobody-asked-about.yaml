@@ -1,0 +1,118 @@
+spec_version: "1.0"
+id: 03-the-overinvestment-nobody-asked-about
+skill: yea.business.business-capability-map
+fixture: context/fixtures/northwind-corp
+description: >
+  The finding nobody requests. The brief asks where the business is weak; the most actionable
+  answer is a commodity capability quietly consuming a fifth of the technology run cost while
+  performing perfectly well. This case checks the overinvested status is produced unprompted,
+  that the cost basis is stated, and that regulatory capabilities are excluded from the rule
+  rather than caught by it.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind's technology run cost for FY2026 is 9,995,500 across twenty applications. The
+    organization profile classifies Finance, payroll, and human resources administration as
+    commodity — explicitly not things it competes on.
+
+    Finance alone runs on 2,126,000 of that: nw-010 Financial Accounting at 1,597,000, the
+    largest single line in the estate, and nw-011 Billing and Receivables at 529,000, whose
+    licence is apportioned from a bundle with nw-010. Both are rated technical fitness 3,
+    both are critical, neither has a performance complaint against it, and Financial
+    Accounting serves 180 users.
+
+    The brief the architect was given asks where the business is weak.
+
+  ask:
+    modelling_purpose: investment_prioritisation
+    depth_required: level_2
+    heat_basis: assessed_by_owners
+    structural_starting_point: existing_internal_model
+    change_context: stable
+
+  gather:
+    provided:
+      business_description: "Specialty food and beverage distribution; the organization competes on perishable route planning, cold chain integrity, trade pricing, and demand forecasting"
+      scope_boundary: "The whole enterprise, level 2"
+      activity_evidence:
+        - "Existing level 1 and level 2 capability model, thirty capabilities"
+        - "Twenty applications attributed to capabilities"
+      strategic_positioning: "From the organization profile: Finance, payroll and human resources administration are commodity"
+      capability_performance_evidence:
+        - "No open complaints against Financial Accounting or Billing and Receivables"
+        - "Statutory close completed on time for the last eight periods"
+      capability_owners: "Finance Director owns Financial Accounting and Billing and Receivables"
+    withheld:
+      - cost_by_capability
+      - value_stream_definitions
+    available_context:
+      - context.application_inventory
+      - context.application_costs
+      - context.organization_profile
+      - context.policies
+
+expect:
+  overinvested_identified:
+    - capability: "Financial Accounting"
+      position: commodity
+      annual_cost_usd: 1597000
+      performance: "no complaints, statutory close on time"
+    - capability: "Billing and Receivables"
+      position: commodity
+      annual_cost_usd: 529000
+      caveat: "licence apportioned from a bundled agreement with Financial Accounting, so the split between the two is an allocation rather than a measurement"
+
+  was_in_the_brief: false
+  confidence: medium
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That Finance consumes roughly a fifth of the technology run cost for capabilities the
+      organization explicitly says it does not compete on.
+    - That this was not asked for. The brief asked where the business is weak, and these
+      capabilities are not weak — that is precisely why the finding is invisible to a map
+      that only colours weakness.
+    - That the cost basis is application run cost rolled up by capability, which captures
+      technology only. Labour, third-party service, and process cost are excluded, so
+      people-intensive commodity capabilities are understated by the same rule.
+    - That the split between Financial Accounting and Billing and Receivables rests on an
+      apportioned licence from a bundled agreement, so the two figures are firmer together
+      than apart.
+    - That reducing spend on something nobody competes on needs a decision rather than a
+      business case, which is why this is usually the most actionable finding in a run.
+    - That Cold Chain Compliance and the temperature retention obligation are excluded from
+      the overinvestment rule, and why.
+
+  must_not:
+    - Report Financial Accounting as a hotspot. It is not weak; it is expensive relative to
+      what the organization says it is worth, and conflating the two produces the wrong
+      intervention.
+    - Recommend replacing either system. The finding is that the spend warrants a question,
+      not that a course of action is settled.
+    - Catch regulatory or safety capabilities in the overinvested rule. Nobody competes on
+      them and the correct spend is whatever satisfies the obligation.
+    - Present the rolled-up cost as the full cost of the capability.
+
+fails_if:
+  - No overinvestment section is produced. The run answers the brief, produces a defensible
+    set of hotspots, and misses the largest single addressable number in the estate.
+  - The finding is stated without the cost basis. A figure of 1,597,000 in a steering
+    committee acquires authority from the room, and the caveat has to travel with it.
+
+tolerance: >
+  Whether Collaboration and Productivity at 644,000 is also flagged is a judgement call and
+  either answer is defensible — 1800 users makes it unremarkable per head. The Finance
+  finding is not optional.
+
+notes: >
+  Worth being precise about what is being claimed. Nothing here says Northwind spends too
+  much on finance systems; a distribution business with statutory obligations may well need
+  exactly this. What it says is that the largest line in the estate supports something the
+  organization has stated it does not compete on, and that nobody has asked why. That
+  question is the deliverable.

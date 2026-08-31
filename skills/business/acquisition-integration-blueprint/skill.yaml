@@ -1,0 +1,503 @@
+spec_version: "1.0"
+id: yea.business.acquisition-integration-blueprint
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: acquisition-integration-blueprint
+display_name: Acquisition Integration Blueprint
+description: >
+  Plans what must keep working the day an acquisition closes and which capabilities
+  consolidate in the hundred days after it. Separates continuity from integration so day one
+  carries only what genuinely breaks at close, decides consolidation at the capability level
+  and routes application disposition elsewhere, treats adopting the acquirer's way as a
+  decision rather than a default, and names the capability the deal was for so that
+  standardisation does not remove it. Produces the day-one plan, the capability
+  consolidation map, and the reasoning behind both.
+
+version: 0.1.0
+domain: business
+category: design
+owner_agent: business-ea
+maturity: draft
+license: Apache-2.0
+
+# What was bought, what each side does, and what breaks at close. No data room required.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "acquisition integration plan"
+    - "day 1 and day 100"
+    - "we are acquiring a business"
+    - "post merger integration"
+    - "merger integration blueprint"
+    - "what has to work on day one"
+    - "integrating the company we bought"
+    - "which systems survive the merger"
+    - "m and a integration"
+    - "carve out and integrate"
+  decision_types:
+    - acquisition_integration
+    - capability_consolidation
+  not_this_skill:
+    - phrase: "which of the two order systems should we retire"
+      route_to: yea.portfolio.application-rationalization
+    - phrase: "in what order should the integration work happen, against our capacity"
+      route_to: yea.portfolio.roadmap-sequencing
+    - phrase: "how should the combined organization be arranged"
+      route_to: yea.business.operating-model-design
+    - phrase: "what will the two contracts cost us to merge or exit"
+      route_to: yea.portfolio.license-and-contract-review
+    - phrase: "does the acquisition pay for itself"
+      route_to: yea.business.business-case
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — day one is a CONTINUITY question. Everything that is not
+#    "what breaks at close" belongs after it, and day-one scope creep is the
+#    commonest way an integration fails in its first week.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Plan the integration of {deal_definition}, acquired for {deal_rationale}, with
+    {integration_ambition} ambition, under {separation_arrangement}, against a close that is
+    {close_date_certainty}, using information access that is {access_to_target_information}.
+  decision_statement_fields:
+    - deal_definition
+    - deal_rationale
+    - integration_ambition
+    - separation_arrangement
+    - close_date_certainty
+    - access_to_target_information
+  out_of_scope:
+    - Deciding which named application survives. That is a portfolio disposition.
+    - Sequencing the integration work against delivery capacity.
+    - Designing the combined operating model beyond where capabilities live.
+    - Valuing the deal, or building the case for it.
+    - Anything about specific people, roles at risk, or retention decisions.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: deal_rationale
+    question: "What was bought — a capability you do not have, access to a market, scale and cost synergy, or people?"
+    why: "This decides what must be protected from the integration. Where a capability was acquired, standardising it onto the acquirer's way is the fastest route to destroying the thing that was paid for — and it happens by default, because standardisation is what integration programmes are set up to do."
+    type: choice
+    options: [capability_acquisition, market_access, scale_and_cost, talent]
+    option_labels:
+      capability_acquisition: "A capability we do not have"
+      market_access: "Access to customers or a market"
+      scale_and_cost: "Scale and cost synergy"
+      talent: "The people"
+    required: true
+    default_if_skipped: scale_and_cost
+    affects: [acquired_value_protection, consolidation_benefit]
+
+  - id: integration_ambition
+    question: "How far are you integrating — full absorption, operate it separately, or selectively?"
+    why: "It sets what the hundred-day plan is for. Full absorption and selective integration produce completely different consolidation maps from the same evidence, and an ambition that is assumed rather than stated is usually assumed to be full absorption by everyone doing the work."
+    type: choice
+    options: [full_absorption, operate_separately, selective]
+    option_labels:
+      full_absorption: "Absorb it fully"
+      operate_separately: "Run it as a separate business"
+      selective: "Integrate some things, leave others"
+    required: true
+    default_if_skipped: selective
+    affects: [consolidation_benefit, acquired_value_protection]
+
+  - id: separation_arrangement
+    question: "After close, does the acquired business stand alone, depend on the seller under a transitional arrangement, or share something indefinitely?"
+    why: "A transitional service has an end date set by somebody outside the organization, and it is harder than any internal deadline. Where one exists it constrains the whole plan, because the work has to finish before the service stops rather than before the organization is ready."
+    type: choice
+    options: [fully_standalone, transitional_services, shared_indefinitely]
+    option_labels:
+      fully_standalone: "It stands alone"
+      transitional_services: "The seller provides services for a period"
+      shared_indefinitely: "Something stays shared with no end date"
+    required: true
+    default_if_skipped: transitional_services
+    affects: [separation_dependency, integration_complexity]
+
+  - id: close_date_certainty
+    question: "Is the deal signed with a close date, expected, or still speculative?"
+    why: "It decides how much of this is planning and how much is preparation. A speculative deal produces a blueprint that must survive a change of scope; a signed one with a date means the day-one list is a commitment, and the difference changes what may be left unresolved."
+    type: choice
+    options: [signed_with_date, expected, speculative]
+    option_labels:
+      signed_with_date: "Signed, with a close date"
+      expected: "Expected to complete"
+      speculative: "Still speculative"
+    required: true
+    default_if_skipped: expected
+    affects: [day_one_continuity, separation_dependency]
+
+  - id: access_to_target_information
+    question: "How much do you actually know about the acquired business — full diligence access, limited, or clean-room only?"
+    why: "Integration plans are routinely built on what the acquirer assumes the target looks like, because that is all anyone had before close. This answer caps the confidence of the whole blueprint and decides which findings are conclusions and which are questions to ask on day one."
+    type: choice
+    options: [full_diligence, limited, clean_room_only]
+    option_labels:
+      full_diligence: "Full diligence access"
+      limited: "Limited"
+      clean_room_only: "Clean room only"
+    required: true
+    default_if_skipped: limited
+    affects: [day_one_continuity, integration_complexity]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: deal_definition
+      description: "What is being acquired, what is included and excluded, when it closes, and what the acquirer has said the deal is for."
+      source: user
+      format: document
+
+    - id: acquirer_capability_model
+      description: "What the acquiring organization does, as capabilities, at the level decisions are made."
+      source: [user, context.capability_model, skill.yea.business.business-capability-map]
+      format: table
+
+    - id: target_capability_view
+      description: "What the acquired business does, described in the same terms, however roughly. Both sides must be described the same way or nothing can be compared."
+      source: user
+      format: table
+
+  optional:
+    - id: day_one_obligations
+      description: "What legally, contractually, or operationally has to work the moment the deal closes — paying people, invoicing customers, meeting regulatory reporting, honouring service commitments."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: separation_service_schedule
+      description: "What the seller will continue to provide after close, for how long, and what stops when it ends."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: target_application_inventory
+      description: "The systems the acquired business runs and what each supports."
+      source: user
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "The capabilities named in the target capability view, treated as the shape of the estate without naming the systems beneath them."
+      assumption_template: "No target application inventory was available, so consolidation is planned at the capability level with the systems beneath it unknown. That is the right level for this method in any case, and it does mean nothing here can be checked against what the acquired business actually runs."
+      confidence_penalty: medium
+
+    - id: target_contracts
+      description: "Supplier agreements the acquired business holds, their terms, and whether they survive a change of control."
+      source: [user, context.vendors]
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: target_people_and_knowledge
+      description: "Who in the acquired business holds knowledge that exists nowhere else, and what is undocumented."
+      source: user
+      format: list
+      on_missing: estimate_with_assumption
+      assumption_template: "Knowledge concentration in the acquired business was not assessed. Undocumented knowledge leaves faster after an acquisition than at any other time, and the window to capture it is measured in weeks — so anything not identified now is likely to be lost rather than found later."
+      confidence_penalty: high
+
+    - id: integration_capacity
+      description: "The delivery and change capacity available for integration work, on both sides."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: unknown
+      assumption_template: "Integration capacity was not supplied, so the blueprint is unconstrained. Integration work competes with everything else both organizations are doing, and an unconstrained hundred-day plan is reliably larger than what either side can deliver while also running a business."
+      confidence_penalty: medium
+
+    - id: target_cost_base
+      description: "What the acquired business costs to run, by capability where possible."
+      source: user
+      format: table
+      on_missing: use_default_value
+      default_value: unknown
+      assumption_template: "The acquired cost base was not supplied, so consolidation benefit is judged on duplication rather than on money. Two capabilities that overlap may cost very different amounts to run, and the cheaper one is not always the acquirer's."
+      confidence_penalty: medium
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - data_residency
+    - security_baseline
+    - approved_vendors
+    - records_retention
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - data_residency
+    - security_baseline
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the score orders capabilities for attention. The DISPOSITION
+#    comes from the score pattern, and it is a capability disposition, never an
+#    application one. See ./references/consolidation-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: day_one_continuity
+      display_name: Whether it breaks at close
+      weight: 0.25
+      description: "Whether this stops working the moment the deal completes — people unpaid, customers uninvoiced, a regulatory return missed, a service commitment broken. Weighted highest because day one has exactly one job, and everything that is not continuity competes with it for the same attention."
+      evidence: [day_one_obligations, separation_service_schedule, deal_definition, close_date_certainty, access_to_target_information]
+      direction: higher_is_better
+
+    - id: acquired_value_protection
+      display_name: Whether this is what we bought
+      weight: 0.20
+      description: "Whether this capability is the reason the deal happened. Standardising an acquired capability onto the acquirer's way is the fastest route to destroying the thing that was paid for, and it happens by default rather than by decision."
+      evidence: [target_capability_view, deal_rationale, integration_ambition, target_people_and_knowledge]
+      direction: higher_is_better
+
+    - id: consolidation_benefit
+      display_name: What merging actually returns
+      weight: 0.20
+      description: "What is gained by running one of these rather than two — cost, consistency, or a single view of something that matters. Judged on evidence rather than on the assumption that duplication is inherently waste."
+      evidence: [target_cost_base, acquirer_capability_model, target_capability_view, integration_ambition, deal_rationale]
+      direction: higher_is_better
+
+    - id: separation_dependency
+      display_name: How tied it is to the seller
+      weight: 0.15
+      description: "Whether this depends on something the seller still provides, and what happens when that stops. A transitional service end date is set by somebody outside the organization and is harder than any internal deadline."
+      evidence: [separation_service_schedule, target_contracts, separation_arrangement, close_date_certainty]
+      direction: lower_is_better
+
+    - id: integration_complexity
+      display_name: What integrating it takes
+      weight: 0.10
+      description: "The scale of work to merge or migrate this capability — data, process, contracts, and the coordination between two organizations that have never worked together. Weighted modestly because pre-close estimates of it are weak."
+      evidence: [target_application_inventory, target_capability_view, integration_capacity, access_to_target_information, separation_arrangement]
+      direction: lower_is_better
+
+    - id: constraint_exposure
+      display_name: What the rules will not allow
+      weight: 0.10
+      description: "Regulatory, contractual, and data constraints on merging the two — change-of-control terms, residency obligations, retention requirements, and security baselines the acquired business does not meet."
+      evidence: [target_contracts, day_one_obligations, target_application_inventory, deal_definition]
+      direction: lower_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Strongly unfavourable — this alone would change the integration approach for this capability."
+      - value: 2
+        meaning: "Unfavourable — a material argument a reviewer would raise unprompted."
+      - value: 3
+        meaning: "Neutral — no particular claim on early attention."
+      - value: 4
+        meaning: "Favourable — a clear argument for acting on this in the first hundred days."
+      - value: 5
+        meaning: "Strongly favourable — the strongest claim on integration attention available."
+
+  steps:
+    - "Describe both organizations' capabilities in the SAME terms before comparing anything. Where the acquired business uses different language, translate it and record the translation — a comparison across two vocabularies produces false overlaps and misses real ones."
+    - "Establish what the deal was for, and name the capability it was for explicitly. That capability is the thing standardisation will remove by default, and naming it is the only reliable protection against it."
+    - "Build the day-one list from ONE question: what breaks the moment the deal closes? People unpaid, customers uninvoiced, a regulatory return missed, a service commitment broken."
+    - "Refuse everything else from day one. Anything that would merely be better on day one belongs after it — day-one scope creep is the commonest way an integration fails in its first week, and every added item competes for the same attention as the ones that cannot fail."
+    - "Map the separation dependencies and their end dates. A transitional service end date is set by somebody outside the organization, and the work has to finish before the service stops rather than before the organization is ready."
+    - "Compare capabilities pairwise: where both organizations do the same thing, ask which way is better rather than which organization it belongs to. Adopting the acquirer's is a DECISION and not a default, and the acquired business's way is better often enough that assuming otherwise is expensive."
+    - "Apply hard constraints. Where the acquired business cannot meet the security baseline or a residency obligation, that is reported with the policy ID as a constraint on the integration, not scored as a weakness."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any conclusion depends on it."
+    - "Score each capability, then assign a disposition from the SCORE PATTERN — see ./references/consolidation-rules.md. The disposition is at the CAPABILITY level; which named application survives is a portfolio decision made on evidence this method does not hold."
+    - "Mark every capability that must not be touched in the first hundred days, with the reason. This list is short and it is the most important output — it protects what was bought while the organization is at its most enthusiastic about standardising."
+    - "Identify where knowledge exists only in people's heads on the acquired side. The window to capture it is weeks, it closes faster after an acquisition than at any other time, and anything not identified now is lost rather than found later."
+    - "State plainly which findings are conclusions and which are questions to verify on day one. Where information access was limited, most of the blueprint is the second, and presenting it as the first is how an integration plan built on assumptions survives contact with the actual business."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the capability that fails at close. Nothing else on the list has a deadline set by a legal event."
+    - "Prefer the capability tied to a separation end date. That date is somebody else's to move and they have no reason to."
+    - "Prefer protecting the acquired capability over consolidating it. Consolidation deferred can be revisited; a capability standardised away does not come back, and the people who carried it will have left."
+    - "If still tied, prefer the capability where knowledge is concentrated in people. The window closes on its own, without anyone deciding."
+
+  references:
+    - ./references/day-one-rules.md
+    - ./references/consolidation-rules.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, delivery_team]
+  artifacts:
+    - id: day_one_plan
+      display_name: Day one plan
+      description: "Everything that has to work the moment the deal closes, what makes it work, who owns it, and what happens if it does not."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/day-one-plan.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: item_id
+            type: string
+          - id: what_must_work
+            type: string
+            description: "Stated as an outcome — 'people get paid on the 28th' — not as a system or a task."
+          - id: breaks_because
+            type: enum
+            enum_values: [seller_service_stops, contract_change_of_control, regulatory_obligation, customer_commitment, payroll_or_people, data_access_lost, none]
+          - id: capability
+            type: string
+          - id: how_it_works_on_day_one
+            type: string
+            description: "Frequently 'exactly as it does today, unchanged'. That is the correct answer far more often than an integration."
+          - id: owner
+            type: string
+          - id: verified_or_assumed
+            type: enum
+            enum_values: [verified_with_target, assumed_by_acquirer]
+            description: "Where information access was limited, most of this list is assumed. A day-one item built on an assumption is the one that fails on day one."
+          - id: consequence_if_it_fails
+            type: string
+          - id: deadline
+            type: date
+          - id: policy_ref
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: capability_consolidation_map
+      display_name: Capability consolidation map
+      description: "Every capability across both organizations, whether they overlap, what happens to each, and when."
+      formats: [md, csv, xlsx]
+      preferred_format: xlsx
+      markdown_template: ./assets/capability-consolidation-map.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: capability_id
+            type: string
+          - id: capability_name
+            type: string
+          - id: acquirer_has_it
+            type: boolean
+          - id: target_has_it
+            type: boolean
+          - id: target_term_used
+            type: string
+            description: "The acquired business's own name for it. Recorded because comparing across two vocabularies produces false overlaps and misses real ones."
+          - id: disposition
+            type: enum
+            enum_values: [day_one_critical, adopt_acquirer, adopt_target, run_both_for_now, consolidate_later, protect_do_not_touch, blocked_by_separation, insufficient_evidence]
+          - id: driving_criterion
+            type: string
+          - id: rationale
+            type: string
+          - id: horizon
+            type: enum
+            enum_values: [day_one, day_hundred, beyond_day_hundred, not_planned]
+          - id: separation_end_date
+            type: date
+          - id: knowledge_concentrated_in_people
+            type: boolean
+            description: "The window to capture it is weeks. Anything not identified now is lost rather than found later."
+          - id: application_disposition_owner
+            type: string
+            description: "Always the portfolio method. Which named system survives is decided on cost, contract, and dependency evidence this method does not hold."
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: integration_blueprint
+      display_name: Integration blueprint
+      description: "What the deal was for, what must not be touched, what happens in the first hundred days, and what is assumed rather than known."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/integration-blueprint.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: what_we_bought
+            heading: "What we bought, and what must survive it"
+            required: true
+            description: "The capability the deal was for, named explicitly. It is the first casualty of standardisation and this is its only protection."
+          - id: day_one
+            heading: "Day one: what cannot fail"
+            required: true
+          - id: not_day_one
+            heading: "What we are deliberately not doing on day one"
+            required: true
+            description: "As important as the day-one list. Every item here was proposed by somebody and refused for a reason."
+          - id: do_not_touch
+            heading: "What we are not touching in the first hundred days"
+            required: true
+          - id: day_hundred
+            heading: "The first hundred days"
+            required: true
+          - id: separation_dependencies
+            heading: "What the seller still does, and when it stops"
+            required: true
+          - id: knowledge_at_risk
+            heading: "Knowledge that will leave"
+            required: true
+          - id: assumed_not_known
+            heading: "What we have assumed about the acquired business"
+            required: true
+            description: "Where access was limited, most of the blueprint is questions to verify on day one rather than conclusions. Say which is which."
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  confidence_rules:
+    - level: high
+      when: "full diligence access was available, day-one obligations were verified with the acquired business, the separation schedule and its end dates are known, contracts have been checked for change-of-control terms, and knowledge concentration has been assessed."
+    - level: medium
+      when: "access was limited but day-one obligations and the separation schedule were supplied and partly verified, and contracts are known — with the capability comparison resting on the acquirer's description of the target."
+    - level: low
+      when: "access was clean-room only, or day-one obligations were not supplied, or the separation schedule is unknown, or contracts have not been checked for change-of-control terms, or knowledge concentration was not assessed."
+
+  sensitivity_targets:
+    - target: day_one_obligations
+      variation: "assume every assumed day-one item is wrong in some detail"
+      report: "Which items still hold and which need verification before close. Where access was limited, this is the difference between a day-one plan and a day-one hypothesis, and there is exactly one opportunity to find out."
+    - target: separation_service_schedule
+      variation: "transitional services end three months earlier than scheduled"
+      report: "What becomes unachievable. Separation end dates are set by a party with no interest in the acquirer's readiness, and they are renegotiated from a weak position."
+    - target: acquired_value_protection
+      variation: "standardise every acquired capability onto the acquirer's way"
+      report: "What is lost, named specifically. This is the default outcome of an integration programme left to run on its own logic, and stating its cost is the argument for the do-not-touch list."
+    - target: integration_capacity
+      variation: "assume half the assumed integration capacity"
+      report: "What falls out of the first hundred days. Integration competes with everything else both organizations are doing, and both are also absorbing an acquisition."
+
+  evals: ./evals/

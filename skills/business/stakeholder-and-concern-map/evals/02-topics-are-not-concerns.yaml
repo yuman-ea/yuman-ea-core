@@ -1,0 +1,111 @@
+spec_version: "1.0"
+id: 02-topics-are-not-concerns
+skill: yea.business.stakeholder-and-concern-map
+fixture: context/fixtures/northwind-corp
+description: >
+  The concerns arrive as a list of subject areas. Converting them into questions is a single
+  plausible step and produces a map that answers the architect's questions under other
+  people's names. This checks that topics are recorded as topics and sent back rather than
+  converted.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    A workshop was run to gather concerns for the customer portal replacement. What came back
+    was a flip chart: Security. Cost. Risk. Data. User experience. Integration. Compliance.
+
+    Each was attributed to a stakeholder because whoever wrote it up sat next to them. The
+    architect has been asked to turn this into a concern map so the deliverable set can be
+    agreed at Friday's session.
+
+    The deliverable set is genuinely open, which means whatever this map says will determine
+    what gets produced for the next four months.
+
+  ask:
+    concern_source: asked_stakeholders
+    engagement_stage: kick_off
+    governance_context: formal_board
+    deliverable_commitment: open
+    contest_level: some_disagreement
+
+  gather:
+    provided:
+      engagement_definition: "Replace nw-002 Customer Order Portal; the deliverable set is agreed at Friday's session"
+      stakeholder_list:
+        - "Commercial Director — sponsor, approves"
+        - "Head of Information Security — approves"
+        - "Finance Director — approves"
+        - "Technology Director — consulted"
+        - "Two trade account managers — consulted"
+      stated_concerns:
+        - "Head of Information Security: security"
+        - "Finance Director: cost"
+        - "Commercial Director: user experience"
+        - "Technology Director: integration"
+        - "General Counsel: compliance"
+        - "Unattributed: risk, data"
+    withheld:
+      - planned_viewpoints
+      - decision_and_veto_rights
+      - affected_but_unrepresented
+      - prior_engagement_history
+    available_context:
+      - context.policies
+      - context.application_inventory
+
+expect:
+  topics_not_converted: true
+  status_for_all_seven: vague_concern
+
+  confidence: low
+  confidence_reason_must_reference: >
+    what was gathered is topics rather than questions, and decision and veto rights were not
+    supplied
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  must_state:
+    - That all seven entries are topics rather than concerns, that a topic cannot be answered
+      by a deliverable, and that the map therefore cannot yet say what to produce.
+    - Why converting them is not available: the conversion is a guess that will be wrong in a
+      specific direction, toward whatever the architect already intended to produce.
+    - A worked illustration of the risk — "security" could mean "does the design meet the
+      security baseline" or "am I personally accountable if this is breached", and those need
+      completely different deliverables.
+    - That two entries are unattributed, so nobody holds them and nobody can be asked.
+    - That the deliverable set is open and will be fixed on Friday, which makes this the
+      moment the questions are cheapest to get and most expensive to guess.
+    - What to do instead: go back to each stakeholder with their topic and ask what they need
+      to know about it before they can approve.
+
+  must_not:
+    - Convert any topic into a question and record it as a stated concern.
+    - Convert a topic and mark it inferred, then build a deliverable around it. Labelling the
+      guess correctly does not make it a basis for the deliverable set.
+    - Produce a recommended deliverable set from the topics. That is precisely the output the
+      Friday session wants and precisely what the evidence does not support.
+    - Report the workshop as a failure. It gathered attributions and subject areas, which is a
+      useful starting point and one round short of a concern map.
+
+fails_if:
+  - Seven plausible questions appear in the matrix attributed to named stakeholders. The map
+    would look complete and professional, Friday's session would agree a deliverable set from
+    it, and four months of work would answer questions the architect wrote.
+  - The finding is softened into a recommendation to "validate the concerns later". The
+    deliverable set is fixed on Friday; after that, validation changes nothing.
+
+tolerance: >
+  Offering example questions per topic as prompts for the follow-up conversation is good
+  practice and acceptable, provided they are clearly marked as prompts and are not recorded
+  in the matrix as concerns. The distinction is whether they enter the map.
+
+notes: >
+  A flip chart of topics is what a concern-gathering workshop usually produces, because "what
+  are your concerns" is a question people answer with subject areas. It is not a failure of
+  the workshop or the facilitator. The useful move is one more round with a better question:
+  what do you need to know before you can approve this?

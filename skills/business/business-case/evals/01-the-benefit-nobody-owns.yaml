@@ -1,0 +1,116 @@
+spec_version: "1.0"
+id: 01-the-benefit-nobody-owns
+skill: yea.business.business-case
+fixture: context/fixtures/northwind-corp
+description: >
+  The benefit is real, the arithmetic is correct, and it is not a saving. Effort released in
+  fractions across eight teams, totalled into a currency figure, with nobody accountable for
+  turning it into money. This checks the classification, the ownership requirement, and the
+  cashable-only view.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    A case is being prepared to replace nw-002 Customer Order Portal. Build and
+    implementation are estimated at 1,400,000 over eighteen months by the delivery team.
+
+    The benefit side has one large line. Order queries currently handled by phone and email
+    would move to self-service: roughly 0.4 of a person's time across each of eight
+    commercial and operations teams, valued at 155,000 fully loaded per head, giving
+    3.2 FTE and 496,000 a year. Over five years that is the case.
+
+    No team has agreed to reduce headcount. No budget line has been identified that would
+    fall. The sponsor's position is that the capacity will be redeployed to account growth,
+    which is a genuine intention and not a saving. Nobody has been asked to own the benefit.
+
+    Run cost after go-live has not been estimated. nw-002 currently costs 327,500 a year.
+
+  ask:
+    benefit_owner_commitment: not_discussed
+    benefit_type: released_effort
+    cost_basis: delivery_team_estimate
+    appraisal_period: five_years
+    decision_being_supported: new_investment
+
+  gather:
+    provided:
+      investment_definition: "Replace nw-002 Customer Order Portal with a self-service ordering capability; excludes pricing engine changes and customer master remediation"
+      cost_estimate: "1,400,000 build and implementation over eighteen months, delivery team estimate"
+      benefit_estimate: "496,000 a year from 3.2 FTE of released effort across eight teams"
+      do_nothing_baseline: "nw-002 run cost 327,500 a year; framework out of support"
+      discount_rate: "0.08 from the organization profile"
+    withheld:
+      - benefit_owners
+      - ongoing_run_cost
+      - realisation_timeline
+      - transition_and_change_cost
+      - comparable_outcomes
+    available_context:
+      - context.application_costs
+      - context.application_inventory
+      - context.organization_profile
+
+expect:
+  benefit_classified_as: released_effort
+  reduces_a_budget: false
+  status: not_yet_a_case
+  cashable_only_npv_reported: true
+
+  confidence: low
+  confidence_reason_must_reference: >
+    benefit ownership was not discussed and ongoing run cost was estimated rather than known
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That the 496,000 is released effort, not a cashable saving, and that no budget falls as
+      a result of it.
+    - That 0.4 of a person across eight teams is eight fractions of a person, and that
+      converting fractions into 3.2 FTE and then into currency assumes a consolidation
+      nobody has agreed to.
+    - That the sponsor's intention to redeploy capacity to account growth is a legitimate
+      benefit and a different one, which should be stated as capacity returned rather than as
+      money saved.
+    - That the case on cashable benefits alone is negative, and that this is the figure the
+      finance function will construct independently in the meeting.
+    - That no benefit has an owner, a measure, or a baseline, so nothing here can be
+      demonstrated afterwards even if it is fully delivered.
+    - That run cost after go-live is missing, that over five years it is routinely the
+      largest number in a model, and that nw-002 currently costs 327,500 a year as a
+      reference point.
+    - That the do-nothing baseline is not zero — nw-002 costs 327,500 a year and is on an
+      out-of-support framework, which is a continuity argument distinct from a return.
+
+  must_not:
+    - Present 496,000 as an annual saving, or include it in a total described as savings.
+    - Total released effort with any cashable line.
+    - Report a positive case on the strength of the released-effort benefit.
+    - Refuse to produce the artifacts. A case at low confidence with the classification
+      corrected and the gaps named is exactly what the sponsor needs before the board paper.
+    - Invent a run cost figure. Estimating it from comparable systems with the assumption
+      stated is the declared behaviour; presenting the estimate as known is not.
+
+fails_if:
+  - The 496,000 appears as a saving. The arithmetic is correct at every step, the number is
+    defensible in isolation, and two years later the budget will not have fallen — which is
+    how a project that delivered everything it promised is remembered as a failure.
+  - The cashable-only view is omitted. It is the first thing a finance reviewer constructs,
+    and constructing it first is the difference between a case that survives the meeting and
+    one rebuilt in it.
+
+tolerance: >
+  Whether the recommendation is to restate the benefit as capacity returned, to seek a
+  headcount commitment from the eight teams, or to build the case on continuity grounds
+  instead is free — all three are defensible and the third may be the strongest. The
+  classification and the ownership finding are not.
+
+notes: >
+  The sponsor is not inflating anything. The effort released is real, the valuation method is
+  standard, and redeploying capacity to account growth is a better outcome than cutting heads.
+  The defect is a presentational one with expensive consequences: money and capacity are
+  different things, and a board pack that calls one the other will be held to the wrong
+  promise.

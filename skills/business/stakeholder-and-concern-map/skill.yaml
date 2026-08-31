@@ -1,0 +1,492 @@
+spec_version: "1.0"
+id: yea.business.stakeholder-and-concern-map
+# Slug form: host tools use this as the invocation name. The human title is display_name.
+name: stakeholder-and-concern-map
+display_name: Stakeholder and Concern Map
+description: >
+  Establishes who has a stake in a piece of architecture work, what question each of them
+  needs answered, and which deliverable answers it. Requires a concern to be a question
+  rather than a topic, distinguishes concerns stakeholders actually stated from ones the
+  architect inferred on their behalf, records conflicting concerns as conflicts rather than
+  resolving them silently, and surfaces the stakeholder who can stop the work and has never
+  been asked. Produces the stakeholder register, the concern-to-viewpoint matrix, and the
+  reasoning behind both.
+
+version: 0.1.0
+domain: business
+category: align
+owner_agent: business-ea
+maturity: draft
+license: Apache-2.0
+
+# A stakeholder list and a willingness to ask them. Nothing else.
+data_intensity: low
+
+hosts_verified:
+  - claude-code
+
+triggers:
+  phrases:
+    - "stakeholder map"
+    - "who are the stakeholders"
+    - "stakeholder and concern map"
+    - "what does each stakeholder care about"
+    - "who needs to see what"
+    - "kick off the architecture engagement"
+    - "who can block this"
+    - "we keep getting pushback late"
+    - "which views do we need to produce"
+    - "stakeholder analysis"
+  decision_types:
+    - stakeholder_analysis
+    - engagement_planning
+  not_this_skill:
+    - phrase: "how should the organization be arranged"
+      route_to: yea.business.operating-model-design
+    - phrase: "record why we chose this option"
+      route_to: yea.technology.architecture-decision-record
+    - phrase: "what does the customer experience"
+      route_to: yea.business.customer-journey-to-system-map
+    - phrase: "which domain should answer this question"
+      route_to: orchestrator
+    - phrase: "does this investment stand up"
+      route_to: yea.business.business-case
+
+# ---------------------------------------------------------------------------
+# 1. FRAME — run this at kick-off. Run at the end, it explains why the work
+#    landed badly; run at the start, it prevents it.
+# ---------------------------------------------------------------------------
+frame:
+  restatement_template: >
+    Map the stakeholders and concerns for {engagement_definition} at {engagement_stage},
+    under {governance_context} governance, where the deliverable set is
+    {deliverable_commitment} and the work is {contest_level}, with concerns sourced from
+    {concern_source}.
+  decision_statement_fields:
+    - engagement_definition
+    - engagement_stage
+    - governance_context
+    - deliverable_commitment
+    - contest_level
+    - concern_source
+  out_of_scope:
+    - Resolving conflicts between stakeholders. This records them; resolution is a decision.
+    - Producing the views themselves. This says which ones are needed and what each must answer.
+    - Deciding which domain owns a question. That is the orchestrator's.
+    - Managing the engagement, or planning communications beyond who needs which answer.
+    - Judging whether a stated concern is reasonable. A concern held by someone who can stop the work is material whether or not it is well founded.
+
+# ---------------------------------------------------------------------------
+# 2. ASK — five, hard capped.
+# ---------------------------------------------------------------------------
+ask:
+  - id: concern_source
+    question: "Were the concerns asked of the stakeholders, carried over from previous work, or worked out on their behalf?"
+    why: "An inferred concern is the architect's concern wearing somebody else's name, and it produces deliverables that answer questions nobody asked while the real ones surface at sign-off. This answer caps the confidence of the whole map."
+    type: choice
+    options: [asked_stakeholders, from_prior_engagements, inferred_by_architect, mixed]
+    option_labels:
+      asked_stakeholders: "We asked them"
+      from_prior_engagements: "Carried over from previous work"
+      inferred_by_architect: "Worked out on their behalf"
+      mixed: "Some asked, some inferred"
+    required: true
+    default_if_skipped: mixed
+    affects: [evidence_of_concern, concern_specificity]
+
+  - id: engagement_stage
+    question: "Where are you — kicking off, mid-engagement, approaching a decision point, or reacting to pushback?"
+    why: "It changes what the map is for. At kick-off it shapes the deliverables; approaching a decision it identifies who has not been consulted while there is still time; after pushback it is usually diagnosing which stakeholder was missed, and the honest answer is often that they were on the list and never asked."
+    type: choice
+    options: [kick_off, mid_engagement, before_decision_point, after_pushback]
+    option_labels:
+      kick_off: "Kicking off"
+      mid_engagement: "Part way through"
+      before_decision_point: "Approaching a decision"
+      after_pushback: "Reacting to pushback"
+    required: true
+    default_if_skipped: kick_off
+    affects: [blocking_power, evidence_of_concern]
+
+  - id: governance_context
+    question: "How is this governed — a formal board, informal agreement, or a regulated process with defined approvers?"
+    why: "It determines who can actually stop the work, which is not the same as who is interested. In a regulated process an approver with no interest in the content still holds a veto, and that combination is the most dangerous cell in the matrix."
+    type: choice
+    options: [formal_board, informal, regulated_approval]
+    option_labels:
+      formal_board: "A board or steering committee decides"
+      informal: "Informal agreement"
+      regulated_approval: "A regulated process with defined approvers"
+    required: true
+    default_if_skipped: formal_board
+    affects: [blocking_power, coverage_by_view]
+
+  - id: deliverable_commitment
+    question: "Is the set of deliverables already committed, partly settled, or genuinely open?"
+    why: "Where deliverables are already committed, this map's job is to find the concerns nothing will answer, which is a gap to be declared rather than filled. Where the set is open, the concerns should determine it — and that is the only order that produces views anyone reads."
+    type: choice
+    options: [committed, partly_settled, open]
+    option_labels:
+      committed: "Already committed"
+      partly_settled: "Partly settled"
+      open: "Genuinely open"
+    required: true
+    default_if_skipped: partly_settled
+    affects: [coverage_by_view, conflict_exposure]
+
+  - id: contest_level
+    question: "Is this work contested — are there people who would prefer it did not happen or came out differently?"
+    why: "Contested work fails on stakeholder management rather than on analysis, and the failure arrives as a late objection from someone whose concern was never recorded. Where contest is expected, unstated concerns matter more than stated ones."
+    type: choice
+    options: [uncontested, some_disagreement, actively_contested]
+    option_labels:
+      uncontested: "Broadly agreed"
+      some_disagreement: "Some disagreement"
+      actively_contested: "Actively contested"
+    required: true
+    default_if_skipped: some_disagreement
+    affects: [conflict_exposure, blocking_power]
+
+# ---------------------------------------------------------------------------
+# 3. GATHER — three required inputs.
+# ---------------------------------------------------------------------------
+gather:
+  required:
+    - id: engagement_definition
+      description: "What the work is, what decision it feeds, and what it will produce. Concerns are only meaningful against a specific piece of work."
+      source: user
+      format: scalar
+
+    - id: stakeholder_list
+      description: "Everyone with a stake — those consulted, those who approve, and those affected. Roles rather than only names, so the map survives a departure."
+      source: user
+      format: table
+
+    - id: stated_concerns
+      description: "What each stakeholder has said they need to know, in their own words wherever possible."
+      source: user
+      format: table
+
+  optional:
+    - id: decision_and_veto_rights
+      description: "Who formally approves, who can veto, and what each of them is signing for."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: planned_viewpoints
+      description: "The deliverables planned, and what question each is intended to answer."
+      source: user
+      format: table
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: affected_but_unrepresented
+      description: "The people who will live with the outcome and have no seat — operators, support teams, customers, suppliers."
+      source: user
+      format: list
+      on_missing: ask_user
+      confidence_penalty: high
+
+    - id: stakeholder_influence
+      description: "How much each stakeholder can actually affect the outcome, formally and informally."
+      source: user
+      format: table
+      on_missing: estimate_with_assumption
+      assumption_template: "Influence was estimated from role and governance position rather than observed. Estimated influence maps consistently overweight formal seniority and miss the people whose objection reliably stops things without any authority to do so."
+      confidence_penalty: medium
+
+    - id: escalation_paths
+      description: "Where disagreements go when stakeholders cannot agree, and who arbitrates."
+      source: [user, context.organization_profile]
+      format: table
+      on_missing: use_proxy_metric
+      proxy: "The reporting structure recorded in the organization profile, treated as the escalation route."
+      assumption_template: "Escalation paths were inferred from the reporting structure. Real escalation frequently runs elsewhere — to whoever owns the budget, or to the person both parties trust — and a conflict routed up a line that does not resolve it simply stalls."
+      confidence_penalty: medium
+
+    - id: prior_engagement_history
+      description: "What has happened before with these stakeholders on related work — what was agreed, what was reopened, and by whom."
+      source: user
+      format: list
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No prior engagement history was available, so the map treats every stakeholder as approaching this work fresh. Stakeholders who reopened a settled decision before are the ones most likely to do it again, and that pattern is invisible here."
+      confidence_penalty: medium
+
+    - id: information_constraints
+      description: "What may not be shared with whom — commercially sensitive, personal, or restricted material."
+      source: [user, context.policies]
+      format: table
+      on_missing: use_default_value
+      default_value: none
+      assumption_template: "No information constraints were supplied, so every view is assumed shareable with every stakeholder. Where commercial, personal, or restricted material is in scope, a view that cannot lawfully be shown to the stakeholder whose concern it answers is a gap rather than an answer."
+      confidence_penalty: low
+
+# ---------------------------------------------------------------------------
+# 4. BOUND — policy IDs only.
+# ---------------------------------------------------------------------------
+bound:
+  policies:
+    - governance_framework
+    - approval_thresholds
+    - information_classification
+  on_policy_absent: proceed_and_note
+  hard_constraints:
+    - information_classification
+
+# ---------------------------------------------------------------------------
+# 5. ANALYZE — the score orders concerns for attention. The STATUS comes from
+#    the score pattern, because an unaddressed concern, a vague one, an inferred
+#    one, and a conflict need four different responses.
+#    See ./references/concern-and-viewpoint-rules.md.
+# ---------------------------------------------------------------------------
+analyze:
+  method: weighted_multi_criteria
+  weights_overridable: true
+  indifference_band: 0.3
+
+  criteria:
+    - id: blocking_power
+      display_name: Whether they can stop the work
+      weight: 0.25
+      description: "Whether this stakeholder can prevent the outcome — formally through approval, or in practice because nothing proceeds without their cooperation. Weighted highest because a concern held by someone who can stop the work is material whether or not it is well founded, and that is the concern most often deprioritised."
+      evidence: [decision_and_veto_rights, stakeholder_influence, governance_context, contest_level, escalation_paths]
+      direction: higher_is_better
+
+    - id: concern_specificity
+      display_name: Whether it is a question or a topic
+      weight: 0.20
+      description: "Whether the concern is a question that a deliverable could answer, or a subject area the stakeholder cares about. 'Security' cannot be addressed; 'will this pass our regulator's inspection' can, and only the second tells anyone what to produce."
+      evidence: [stated_concerns, concern_source, engagement_definition]
+      direction: higher_is_better
+
+    - id: coverage_by_view
+      display_name: Whether anything will answer it
+      weight: 0.20
+      description: "Whether a planned deliverable actually answers this concern, in a form this stakeholder can use. A concern with no view behind it will surface at sign-off, when changing anything is most expensive."
+      evidence: [planned_viewpoints, deliverable_commitment, stated_concerns, governance_context, information_constraints]
+      direction: higher_is_better
+
+    - id: evidence_of_concern
+      display_name: Whether they said it
+      weight: 0.20
+      description: "Whether the stakeholder stated this concern or it was inferred for them. An inferred concern is the architect's concern with somebody else's name on it, and it produces deliverables that answer questions nobody asked."
+      evidence: [stated_concerns, concern_source, prior_engagement_history, engagement_stage]
+      direction: higher_is_better
+
+    - id: conflict_exposure
+      display_name: Whether it collides with another
+      weight: 0.15
+      description: "Whether satisfying this concern makes another stakeholder's concern harder or impossible to satisfy. Conflicts recorded early are decisions; conflicts discovered late are crises with the same content."
+      evidence: [stated_concerns, escalation_paths, contest_level, deliverable_commitment]
+      direction: lower_is_better
+
+  scoring_scale:
+    type: ordinal_1_5
+    anchors:
+      - value: 1
+        meaning: "Severe — this alone would derail the engagement if left as it is."
+      - value: 2
+        meaning: "Weak — a material problem a reviewer would raise without prompting."
+      - value: 3
+        meaning: "Workable — manageable with ordinary attention."
+      - value: 4
+        meaning: "Good — no particular risk attached."
+      - value: 5
+        meaning: "Strong — this is handled and can be relied on."
+
+  steps:
+    - "Restate the work and the decision it feeds. A concern is only meaningful against a specific piece of work — 'what do you care about' produces topics, and topics cannot be answered."
+    - "List stakeholders in three groups: those consulted, those who APPROVE, and those AFFECTED with no seat. The third group is routinely omitted and is where late objections come from."
+    - "For each stakeholder, capture the concern as a QUESTION they need answered. Where what was supplied is a topic, say so and mark it rather than converting it on their behalf — the conversion is a guess about what they meant."
+    - "Record for every concern whether the stakeholder stated it or it was inferred. Never present an inferred concern as a stated one; the whole map's usefulness rests on that distinction."
+    - "Identify who can stop the work, separately from who is interested. In a regulated or board-governed process these are different lists, and the overlap is smaller than expected."
+    - "Find the blockers with no recorded concern. A stakeholder with high blocking power and nothing stated has either not been asked or has not engaged, and both are the same risk — they are the single most reliable source of late failure."
+    - "Map each concern to the deliverable that will answer it. Where the deliverable set is open, let the concerns determine it. Where it is committed, report the concerns nothing will answer as a declared gap rather than stretching a view to cover them."
+    - "Record conflicts between concerns as conflicts. Do NOT resolve them, average them, or pick a side — a conflict between two stakeholders is a decision someone has to make, and hiding it inside a deliverable removes their chance to make it."
+    - "Apply hard constraints. Where information classification means a view cannot be shown to the stakeholder whose concern it answers, that is a gap reported with the policy ID, not an answered concern."
+    - "Resolve every gather input. For each one absent, apply its declared on_missing behaviour and write the assumption into the register before any conclusion depends on it."
+    - "Score each concern, then assign a status from the SCORE PATTERN rather than the total — see ./references/concern-and-viewpoint-rules.md."
+    - "State what each view must contain to actually answer its concern, in the stakeholder's terms. A view that answers a concern in language the stakeholder cannot read has not answered it."
+    - "Derive the confidence rating from the confidence rules against the evidence actually used."
+
+  tie_breakers:
+    - "Prefer the blocker who has never been asked. Every other concern on the list is at least known about."
+    - "Prefer the stated concern over the inferred one. The inferred one may be more important and it is not evidence."
+    - "Prefer the concern held by someone affected with no seat. They cannot raise it themselves and their objection arrives through someone else, late and distorted."
+    - "If still tied, prefer the concern that conflicts with another. Conflicts get more expensive the longer they stay undeclared, and nothing else on the list does."
+
+  references:
+    - ./references/stakeholder-rules.md
+    - ./references/concern-and-viewpoint-rules.md
+
+# ---------------------------------------------------------------------------
+# 6. DELIVER
+# ---------------------------------------------------------------------------
+deliver:
+  audience: [architect, steering_committee, delivery_team]
+  artifacts:
+    - id: stakeholder_register
+      display_name: Stakeholder register
+      description: "Everyone with a stake, what they can do about the outcome, whether they have been asked, and how many of their concerns are answered."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/stakeholder-register.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: stakeholder_id
+            type: string
+          - id: role
+            type: string
+            description: "A role, so the register survives a departure. Names beside it where useful."
+          - id: relationship
+            type: enum
+            enum_values: [approves, consulted, affected_no_seat, informed]
+            description: "affected_no_seat is the group routinely omitted, and where late objections come from."
+          - id: blocking_power
+            type: enum
+            enum_values: [formal_veto, practical_veto, influential, none]
+            description: "practical_veto means nothing proceeds without their cooperation, whatever the governance says."
+          - id: has_been_asked
+            type: boolean
+            description: "A stakeholder with blocking power and false here is the single most reliable source of late failure."
+          - id: concerns_recorded
+            type: number
+          - id: concerns_addressed
+            type: number
+          - id: escalates_to
+            type: string
+          - id: information_restrictions
+            type: string
+          - id: assumption_ref
+            type: string
+
+    - id: concern_viewpoint_matrix
+      display_name: Concern to viewpoint matrix
+      description: "Every concern as a question, whose it is, whether they stated it, which deliverable answers it, and what that deliverable must contain."
+      formats: [md, csv, xlsx]
+      preferred_format: csv
+      markdown_template: ./assets/concern-viewpoint-matrix.md
+      always: true
+      content_schema:
+        type: table
+        columns:
+          - id: concern_id
+            type: string
+          - id: stakeholder_id
+            type: string
+          - id: concern
+            type: string
+            description: "Phrased as a QUESTION the stakeholder needs answered. A topic is recorded as a topic and marked, never converted on their behalf."
+          - id: stated_or_inferred
+            type: enum
+            enum_values: [stated_by_stakeholder, from_prior_engagement, inferred_by_architect]
+          - id: answered_by
+            type: string
+            description: "The deliverable. Blank is a real and important value."
+          - id: view_must_contain
+            type: string
+            description: "What the deliverable has to show to actually answer it, in the stakeholder's terms."
+          - id: status
+            type: enum
+            enum_values: [addressed, unaddressed, vague_concern, inferred_only, conflicting, blocker_unengaged, restricted_view, insufficient_evidence]
+          - id: driving_criterion
+            type: string
+          - id: conflicts_with
+            type: string
+            description: "Another concern that cannot be satisfied at the same time. Recorded, never resolved here."
+          - id: who_decides_the_conflict
+            type: string
+          - id: policy_ref
+            type: string
+          - id: confidence
+            type: enum
+            enum_values: [low, medium, high]
+
+    - id: engagement_rationale
+      display_name: Engagement rationale
+      description: "Who matters and why, what nothing will answer, which concerns collide, and what the map does and does not claim."
+      formats: [md, docx]
+      preferred_format: md
+      markdown_template: ./assets/engagement-rationale.md
+      always: true
+      content_schema:
+        type: document
+        sections:
+          - id: the_work
+            heading: "The work, and the decision it feeds"
+            required: true
+          - id: who_can_stop_this
+            heading: "Who can stop this"
+            required: true
+          - id: blockers_not_engaged
+            heading: "Blockers we have not asked"
+            required: true
+            description: "The single most reliable source of late failure, and the shortest section to act on."
+          - id: unaddressed
+            heading: "Concerns nothing will answer"
+            required: true
+          - id: conflicts
+            heading: "Concerns that collide"
+            required: true
+            description: "Recorded as decisions for someone to make, never resolved inside a deliverable."
+          - id: inferred_concerns
+            heading: "Concerns we assumed on someone's behalf"
+            required: true
+          - id: affected_without_a_seat
+            heading: "People who will live with this and have no say"
+            required: true
+          - id: views_required
+            heading: "What we therefore need to produce"
+            required: true
+          - id: what_we_assumed
+            heading: "What we assumed"
+            required: true
+          - id: confidence
+            heading: "How confident this is"
+            required: true
+          - id: what_would_change_this
+            heading: "What would change this"
+            required: true
+          - id: out_of_scope
+            heading: "Deliberately not decided here"
+            required: true
+
+# ---------------------------------------------------------------------------
+# 7. VERIFY
+# ---------------------------------------------------------------------------
+verify:
+  emits:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+    - dissent_note
+
+  confidence_rules:
+    - level: high
+      when: "concerns were asked of the stakeholders directly, decision and veto rights were supplied, the affected-without-a-seat group was identified, and every blocker has at least one recorded concern."
+    - level: medium
+      when: "most concerns were stated by stakeholders with some carried from prior engagements, and decision rights are known — but influence was estimated or the affected group was not identified."
+    - level: low
+      when: "concerns were inferred by the architect, or decision and veto rights were not supplied, or any stakeholder with blocking power has no recorded concern, or the affected-without-a-seat group was not identified."
+
+  sensitivity_targets:
+    - target: evidence_of_concern
+      variation: "remove every inferred concern from the map"
+      report: "What is left, and which deliverables lose their justification. Deliverables built to answer inferred concerns are the ones nobody reads, and this is the cheapest way to find them before they are produced."
+    - target: blocking_power
+      variation: "treat every unengaged stakeholder as holding a veto"
+      report: "How the priority changes. Where governance is informal, practical vetoes are more common than formal ones and are held by people whose authority to stop things appears nowhere."
+    - target: conflict_exposure
+      variation: "assume each recorded conflict is decided against the more senior stakeholder"
+      report: "Which concerns become unaddressed. Conflicts resolve by seniority far more often than by argument, and naming the likely loser in advance is what lets them be consulted rather than informed."
+    - target: planned_viewpoints
+      variation: "assume each deliverable answers only its primary concern"
+      report: "How many concerns become unaddressed. Views are routinely claimed to answer several concerns and reliably answer one well, and the rest are covered in a paragraph nobody finds."
+
+  evals: ./evals/

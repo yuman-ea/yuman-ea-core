@@ -20,6 +20,15 @@ This file also decides something: a skill cannot reach `proven` maturity without
 | [portfolio-health-dashboard](skills/portfolio/portfolio-health-dashboard/SKILL.md) | `draft` | 0 |
 | [vendor-product-selection](skills/portfolio/vendor-product-selection/SKILL.md) | `draft` | 0 |
 | [roadmap-sequencing](skills/portfolio/roadmap-sequencing/SKILL.md) | `draft` | 0 |
+| [business-capability-map](skills/business/business-capability-map/SKILL.md) | `draft` | 0 |
+| [value-stream-map](skills/business/value-stream-map/SKILL.md) | `draft` | 0 |
+| [business-process-model](skills/business/business-process-model/SKILL.md) | `draft` | 0 |
+| [customer-journey-to-system-map](skills/business/customer-journey-to-system-map/SKILL.md) | `draft` | 0 |
+| [capability-gap-assessment](skills/business/capability-gap-assessment/SKILL.md) | `draft` | 0 |
+| [operating-model-design](skills/business/operating-model-design/SKILL.md) | `draft` | 0 |
+| [stakeholder-and-concern-map](skills/business/stakeholder-and-concern-map/SKILL.md) | `draft` | 0 |
+| [business-case](skills/business/business-case/SKILL.md) | `draft` | 0 |
+| [acquisition-integration-blueprint](skills/business/acquisition-integration-blueprint/SKILL.md) | `draft` | 0 |
 
 ## Before you write one
 

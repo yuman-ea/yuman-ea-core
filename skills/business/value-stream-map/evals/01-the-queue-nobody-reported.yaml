@@ -1,0 +1,119 @@
+spec_version: "1.0"
+id: 01-the-queue-nobody-reported
+skill: yea.business.value-stream-map
+fixture: context/fixtures/northwind-corp
+description: >
+  The defining case for this method. Every team reports its own stage accurately, the
+  reported work times sum to a few hours, and the stream takes nine days. This checks that
+  the gap is reported as unmeasured queue rather than distributed across the stages to make
+  the arithmetic close.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind is mapping order-to-delivery for trade accounts after a run of complaints about
+    lead times. Six stages: order received, credit and terms checked, stock allocated, route
+    assigned, picked and loaded, delivered.
+
+    Each team was asked how long their stage takes. The answers were confident and
+    consistent: order received 15 minutes, credit check 20 minutes, stock allocation 10
+    minutes, route assignment 30 minutes, pick and load 90 minutes, delivery 3 hours.
+    Total: roughly 5 hours 45 minutes of work.
+
+    The systems show a median of nine calendar days from order received to delivered. Nobody
+    in the stream recognises that figure and everyone can account for their own part of it.
+
+  ask:
+    value_recipient: external_customer
+    timing_evidence: asked_the_teams
+    path_coverage: includes_exceptions
+    improvement_intent: speed
+    boundary_confidence: agreed
+
+  gather:
+    provided:
+      stream_definition: "Triggered by a trade account placing an order; ends when goods are delivered to the customer's site"
+      stage_sequence:
+        - "Order received"
+        - "Credit and terms checked"
+        - "Stock allocated"
+        - "Route assigned"
+        - "Picked and loaded"
+        - "Delivered"
+      stage_evidence:
+        - "Order received — nw-001 Order Capture System, 310 users"
+        - "Credit and terms checked — Finance, references nw-015 Customer Master"
+        - "Stock allocated — nw-006 Warehouse Management System"
+        - "Route assigned — nw-007 Route Planning System, runs as a batch each evening"
+        - "Picked and loaded — nw-006"
+        - "Delivered — driver confirmation into nw-007"
+      elapsed_and_work_time:
+        - "Work time per stage as reported by each team, totalling 5h45m"
+        - "End-to-end median of 9 calendar days from system timestamps"
+        - "No wait time was captured at any stage"
+    withheld:
+      - rework_and_exception_rates
+      - recipient_feedback
+      - volume_and_demand
+    available_context:
+      - context.application_inventory
+      - context.integrations
+
+expect:
+  confidence: low
+  confidence_reason_must_reference: >
+    wait time was not separated from work time at any stage
+
+  flow_ratio_reported: true
+  flow_ratio_directionally: "under 5% of elapsed time is value-adding"
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That roughly 5 hours 45 minutes of work is spread across nine calendar days, and that
+      the difference — over 99% of the elapsed time — is unmeasured waiting.
+    - That the reported figures are work times, that no wait time was captured, and that
+      this is the normal result of asking teams rather than a failing of the teams. A team
+      cannot see the queue in front of its own stage because the waiting is not happening
+      to them.
+    - That the route assignment batch runs each evening, so an order arriving after the run
+      waits until the following evening regardless of how quickly every other stage ran —
+      a queue visible in the system design rather than in anyone's timesheet.
+    - That the constraint cannot be identified from this evidence, because the wait is where
+      the time is and the wait is unmeasured.
+    - What evidence would resolve it: stage-entry and stage-exit timestamps from the systems
+      already in the stream.
+
+  must_not:
+    - Distribute the missing 9 days across the six stages to make the arithmetic reconcile.
+      This invents the exact quantity the analysis exists to find, and produces a plausible
+      map that supports a wrong conclusion.
+    - Name a constraint. Nothing in the evidence identifies one.
+    - Report medium or high confidence because the work times were confidently and
+      consistently given. Consistency across teams measuring the same wrong thing is not
+      corroboration.
+    - Conclude that any stage is slow. No stage is slow; the stream is stationary between
+      the stages.
+
+fails_if:
+  - The nine days are apportioned across stages. The resulting map looks complete, each
+    stage carries a credible duration, and every subsequent conclusion is drawn from a
+    number that was manufactured.
+  - A constraint is nominated on work-time evidence alone. The longest work time is delivery
+    at three hours, which is almost certainly not the constraint, and naming it would send
+    improvement effort to the one stage where the time demonstrably is not.
+
+tolerance: >
+  Whether the batch-run observation is presented as a probable major queue or only as a
+  hypothesis to test is free — both are defensible on this evidence. What is fixed is that
+  the missing time is reported as unmeasured rather than allocated.
+
+notes: >
+  Nobody in this scenario has done anything wrong. Each team answered the question it was
+  asked, accurately. The defect is in the question — "how long does your stage take" cannot
+  surface a queue — and the method's job is to notice that the sum does not reconcile and
+  say what the gap is, rather than closing it.

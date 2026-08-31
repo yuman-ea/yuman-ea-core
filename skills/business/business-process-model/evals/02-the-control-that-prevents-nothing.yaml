@@ -1,0 +1,136 @@
+spec_version: "1.0"
+id: 02-the-control-that-prevents-nothing
+skill: yea.business.business-process-model
+fixture: context/fixtures/northwind-corp
+description: >
+  Three steps present themselves as controls. One prevents a real failure and produces
+  evidence. One cannot say what it prevents. One is believed to prevent a failure it would
+  not catch. This checks that all three are distinguished, that ceremony is recorded rather
+  than deleted, and that the segregation breach is eliminated rather than scored.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Northwind is evidencing the controls in its credit override process ahead of an internal
+    audit, and considering a redesign that merges two steps.
+
+    Three steps are described as controls:
+
+    A. **Credit limit check.** The system blocks submission where the order takes the account
+    over its limit. Blocked attempts are logged with the account, the amount, and the user.
+
+    B. **Commercial sign-off on the daily override list.** A Commercial manager reviews a
+    list of the previous day's overrides each morning and signs it. Asked what this prevents,
+    the manager says it has been done since before they joined and that the list is long and
+    they are checking it looks reasonable. No override has ever been reversed by this step.
+
+    C. **Second-person approval on overrides above 50,000.** Described as preventing a single
+    person releasing large credit exposure alone. In practice the requesting representative
+    obtains approval verbally from whichever manager is available and records it themselves
+    in the notes field. Nothing in the system enforces a second identity.
+
+    The redesign under consideration merges C into the representative's step, on the grounds
+    that the approval is recorded there anyway.
+
+  ask:
+    model_state: as_is_and_to_be
+    evidence_source: walkthrough_with_performers
+    control_context: internally_audited
+    modelling_purpose: control_assurance
+    exception_appetite: named_exceptions
+
+  gather:
+    provided:
+      process_definition: "Triggered when an order would take a trade account over its credit limit; ends when the order is released or refused"
+      activity_sequence:
+        - "Order submitted"
+        - "Credit limit check"
+        - "Override requested"
+        - "Second-person approval above 50,000"
+        - "Order released"
+        - "Commercial sign-off on the daily override list"
+      performers_and_systems:
+        - "Representative — nw-001 Order Capture System"
+        - "Finance analyst — nw-011 Billing and Receivables"
+        - "Commercial manager — daily list by email"
+      control_inventory:
+        - "A: credit limit check, system-enforced, blocked attempts logged"
+        - "B: daily override list sign-off, no stated failure prevented, no override ever reversed"
+        - "C: second-person approval above 50,000, not system-enforced, recorded by the requester in a notes field"
+    withheld:
+      - audit_or_incident_findings
+      - decision_rules
+      - timing_and_volume
+    available_context:
+      - context.application_inventory
+      - context.policies
+
+expect:
+  control_classification:
+    - step: "A — credit limit check"
+      status: sound
+      type: preventive
+      evidence_produced: "blocked attempts logged with account, amount, and user"
+    - step: "B — daily override list sign-off"
+      status: ceremony
+      removed_from_model: false
+    - step: "C — second-person approval above 50,000"
+      status: control_gap
+      reason: "the requester records their own approval; no second identity is enforced"
+
+  to_be_merge_of_c_eliminated: true
+  eliminated_by_policy: segregation_of_duties
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    controls were described by the people who perform them but no audit or incident history
+    was available, so effectiveness is judged from design rather than outcome
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That C is a control gap rather than ceremony, and why the distinction matters: a
+      control everyone believes in attracts no compensating attention, which makes it worse
+      than a known gap.
+    - That B could not name the failure it prevents and is recorded as ceremony, NOT removed
+      — with the effort it consumes stated so the control owner can decide with a number.
+    - That the proposed merge of C into the representative's step is eliminated by
+      segregation_of_duties, by policy ID, rather than scored down — and that it is
+      eliminated because it formalises the breach rather than creating it.
+    - That merging two steps performed by two roles is the most obvious efficiency in any
+      process, and that the reason those two roles exist is frequently written nowhere.
+    - That no audit or incident history was available, so no control here can be
+      distinguished between one that works and one that has never been needed.
+    - That A produces evidence and the other two do not, and that a control producing no
+      evidence cannot be assured whatever it prevents.
+
+  must_not:
+    - Recommend removing B. Recording it as ceremony with its cost is the deliverable;
+      removal is the control owner's decision.
+    - Treat B and C as the same finding. They need opposite responses — B may be removable,
+      C must be fixed or the exposure accepted explicitly.
+    - Score the merge down rather than eliminating it. A hard constraint removes the option
+      and the removal is reported.
+    - Report the process as controlled because a system-enforced control exists at step A.
+
+fails_if:
+  - C is recorded as sound because a second-person approval step appears in the model. The
+    step exists, is named correctly, is in the procedure, and does not do what it claims —
+    which is exactly the shape of failure the control test exists to catch.
+  - B is deleted from the model as waste. Some ceremony is the residue of a real failure
+    whose reason has been forgotten, and this method is not positioned to know which.
+
+tolerance: >
+  Whether B is characterised as removable, as needing a stated purpose, or as needing
+  redesign into a genuine detective control is free. The three classifications and the
+  elimination of the merge are not.
+
+notes: >
+  The Commercial manager in this scenario is behaving entirely reasonably. They inherited a
+  step, they perform it conscientiously, and nobody has ever told them what it is for. That
+  is what ceremony looks like from the inside, and it is why the question has to be asked of
+  the step rather than of the person.

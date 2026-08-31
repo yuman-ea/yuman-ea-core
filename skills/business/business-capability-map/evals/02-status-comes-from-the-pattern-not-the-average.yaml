@@ -1,0 +1,116 @@
+spec_version: "1.0"
+id: 02-status-comes-from-the-pattern-not-the-average
+skill: yea.business.business-capability-map
+fixture: context/fixtures/northwind-corp
+description: >
+  A capability that scores well on four dimensions and badly on one. Averaged, it reads
+  adequate and disappears off the map. This case checks that the status comes from the score
+  pattern, that the driving dimension is named, and that the capability is not flattered by
+  the healthy system underneath it.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Cold Chain Compliance is one of the three capabilities Northwind says it competes on, and
+    a regulator requires seven-year retrieval of the temperature records evidencing it. The
+    supporting application, nw-008 Cold Chain Monitoring, is in good shape — technical
+    fitness 4, critical, 120 users, 278,000 a year, and nobody complains about it.
+
+    The capability is not in good shape. Sensor data lands in the monitoring system, but
+    evidencing an unbroken chain for an audit means reconciling it against delivery records
+    and manual exception logs from four sites, and one person in Quality knows how to do
+    that. It has never been documented. It has been done four times, each time under
+    deadline, each time slightly differently. There is no defined process and no second
+    person who could produce the evidence pack.
+
+  ask:
+    modelling_purpose: strategy_planning
+    depth_required: level_3
+    heat_basis: assessed_by_owners
+    structural_starting_point: existing_internal_model
+    change_context: stable
+
+  gather:
+    provided:
+      business_description: "Specialty food and beverage distribution across four distribution centres and one cold storage facility"
+      scope_boundary: "Warehouse and Logistics, to level 3"
+      activity_evidence:
+        - "Existing level 1 and level 2 capability model"
+        - "Application inventory with capability attribution"
+        - "FY2026 run cost per application"
+      strategic_positioning: "Cold chain integrity and traceability is stated as differentiating"
+      capability_performance_evidence:
+        - "Four audit evidence packs produced in three years, each assembled manually under deadline"
+        - "No documented procedure; one named individual in a four-person Quality function can produce the pack"
+        - "No exceptions raised by the regulator to date"
+      capability_owners: "Quality Manager owns Cold Chain Compliance"
+      system_support_map: "nw-008 Cold Chain Monitoring, technical fitness 4, no open complaints"
+    withheld:
+      - value_stream_definitions
+      - cost_by_capability
+    available_context:
+      - context.application_inventory
+      - context.application_costs
+      - context.policies
+      - context.organization_profile
+
+expect:
+  capability: "Cold Chain Compliance"
+  dimension_scores_directionally:
+    strategic_importance: high
+    system_support: high
+    ownership_clarity: high
+    performance_gap: "favourable on outcome — no regulatory exceptions"
+    process_maturity: low
+  heat_status: hotspot
+  driving_dimension: process_maturity
+  weighted_total_would_have_said: adequate
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    performance evidence was assessed by the capability owner rather than measured
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That the status comes from the score pattern and that the weighted total for this
+      capability says adequate — naming the discrepancy rather than only the result.
+    - That process maturity is the dimension driving the status, and that the intervention
+      it implies (document the procedure, train a second person) is completely different
+      from the one a systems-driven hotspot would imply.
+    - That a healthy supporting application does not make the capability healthy. The
+      evidence pack is the deliverable and the system produces only part of it.
+    - That the absence of regulatory exceptions to date is not evidence of a repeatable
+      capability — it is evidence that one person has been available on four occasions.
+    - Which policy governs the retention obligation, by ID, without restating its content.
+
+  must_not:
+    - Report Cold Chain Compliance as adequate, or as a strength, on the strength of the
+      application's technical fitness and the clean audit history.
+    - Blend the five dimensions into a single health figure before assigning the status.
+    - Classify this as fragile rather than hotspot. Fragile is for capabilities with no
+      dimension at or below 2; this one has process maturity on the floor and strategic
+      importance at the ceiling, which is the hotspot condition.
+    - Recommend a systems investment. Nothing in the evidence points at nw-008.
+
+fails_if:
+  - The capability is rated from the weighted total. This is the single defect the status
+    rules exist to prevent, and it is invisible in the output — an adequate rating on a
+    capability that is one resignation from stopping looks exactly like a correct one.
+  - The driving dimension is omitted. Without it the hotspot is indistinguishable from a
+    systems hotspot, and the organization buys software to fix a documentation problem.
+
+tolerance: >
+  The exact scores may vary by a point in either direction. What is fixed is that process
+  maturity is the low score, that the status is hotspot, that the driving dimension is
+  named, and that the healthy application does not raise the rating.
+
+notes: >
+  This is the shape of finding that justifies scoring dimensions separately. It is also the
+  shape that a capability owner recognises instantly and a dashboard never shows: the
+  capability works, it has always worked, and it works because of one person who has never
+  been asked to write it down.

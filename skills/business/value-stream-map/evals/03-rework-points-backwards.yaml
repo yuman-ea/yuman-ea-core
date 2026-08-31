@@ -1,0 +1,124 @@
+spec_version: "1.0"
+id: 03-rework-points-backwards
+skill: yea.business.value-stream-map
+fixture: context/fixtures/northwind-corp
+description: >
+  Rework shows up at one stage and is caused by another. This checks that the friction is
+  located at the handoff rather than inside the stage where it appears, that the root stage
+  is named, and that the improvement is not aimed at the team absorbing the problem.
+
+given:
+  review_date: "2026-08-28"
+  scenario: >
+    Credit and terms checking is the worst-performing stage in the order stream. Around a
+    quarter of orders stop there and go back: the trade account on the order does not match
+    the account on file, the credit terms differ from what the customer was quoted, or the
+    delivery site is not one recorded against the account.
+
+    Finance has been asked twice to improve the stage. They have added a second checker and
+    built a query template, and the rework rate has not moved.
+
+    The estate explains why. nw-015 Customer Master has a technical fitness of 1, no named
+    business owner, and eleven dependent interfaces, two of them direct database links
+    (int-08, int-09). Trade account records are also held in nw-001 Order Capture System and
+    in nw-020 Field Sales Application, both of which are used to raise orders. A
+    representative raising an order in the field is working from account data that may be
+    days out of step with the master.
+
+  ask:
+    value_recipient: external_customer
+    timing_evidence: measured_from_systems
+    path_coverage: includes_exceptions
+    improvement_intent: quality
+    boundary_confidence: agreed
+
+  gather:
+    provided:
+      stream_definition: "Triggered by a trade account placing an order; ends when goods are delivered"
+      stage_sequence:
+        - "Order raised"
+        - "Credit and terms checked"
+        - "Stock allocated"
+        - "Route assigned"
+        - "Picked and loaded"
+        - "Delivered"
+      stage_evidence:
+        - "Orders raised through nw-002 Customer Order Portal and nw-020 Field Sales Application"
+        - "Credit and terms checked by Finance against nw-015 Customer Master"
+      rework_and_exception_rates:
+        - "24% of orders returned at the credit and terms stage over the last two quarters"
+        - "Reasons recorded: account mismatch, terms mismatch, unrecognised delivery site"
+        - "Rate unchanged after a second checker and a query template were added"
+      elapsed_and_work_time:
+        - "Stage entry and exit timestamps available from nw-001 for all stages"
+      system_touchpoints:
+        - "nw-015 Customer Master — technical fitness 1, no business owner, eleven dependent interfaces"
+        - "int-08 and int-09 reach nw-015 by direct database link"
+        - "Trade account records also held in nw-001 and nw-020"
+    withheld:
+      - capability_model
+      - stage_owners
+    available_context:
+      - context.application_inventory
+      - context.integrations
+      - context.policies
+
+expect:
+  stage_with_visible_rework: "Credit and terms checked"
+  root_stage: "Order raised"
+  friction_located_at_handoff: true
+  flow_status_for_credit_stage: rework_bound
+
+  confidence: medium
+  confidence_reason_must_reference: >
+    timings measured from systems and rework rates supplied, but no capability model and no
+    stage owners
+
+  must_emit:
+    - assumptions_register
+    - confidence_rating
+    - sensitivity_analysis
+    - data_quality_note
+
+  must_state:
+    - That the rework appears at credit and terms checking and originates at order raising,
+      where account data is taken from systems that hold their own copies of trade account
+      records.
+    - That the friction belongs at the handoff between order raising and credit checking,
+      not inside the credit checking stage.
+    - Why the two previous improvements failed: both made the receiving stage better at
+      absorbing bad input, which entrenches the cause rather than removing it.
+    - That customer_master_authority is the governing policy here, by ID, and that trade
+      account records held in nw-001 and nw-020 sit against it — without restating what
+      the policy says.
+    - That nw-015 has no named business owner, so there is currently nobody accountable for
+      the data quality the whole stream depends on.
+    - That the rework is invisible in the credit stage's work time, because from inside the
+      stage it is simply work.
+
+  must_not:
+    - Recommend an improvement aimed at the credit and terms stage or at Finance.
+    - Record the friction inside the credit checking stage, which assigns it to a team that
+      has already demonstrated twice that it cannot resolve it alone.
+    - Recommend retiring or consolidating nw-001, nw-015, or nw-020. That is an application
+      disposition and belongs to portfolio.
+    - Present the direct database links as the cause. They constrain how a remediation can
+      be done; they are not why the orders are wrong.
+
+fails_if:
+  - The improvement is aimed at the stage where the rework is visible. This is the most
+    common misdiagnosis in flow work, it has already been made twice in this scenario, and
+    repeating it is the specific failure the root-stage column exists to prevent.
+  - The finding is expressed as a systems problem with a systems recommendation. The
+    disposition is portfolio's; the contribution here is locating the cause.
+
+tolerance: >
+  How the remediation is characterised — a single source for account data at the point of
+  order raising, or validation at capture — is free, and both are reasonable readings.
+  Naming the root stage and locating the friction at the handoff are not.
+
+notes: >
+  Finance is the team being measured on this stage and has twice been asked to fix it. Both
+  of their responses were sensible given the problem as it was described to them. The map's
+  contribution is not a better improvement idea — it is showing that the stage being
+  measured is not the stage causing the failure.
