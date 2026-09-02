@@ -1,7 +1,7 @@
 ---
 name: business-ea
 description: >
-  Use for business architecture questions: what the organization actually does as a set of
+  Use for business architecture related questions: what the organization actually does as a set of
   capabilities; how work flows end to end and where it sticks; how the organization should be
   arranged to run a target operating model; where capability falls short of what the strategy
   requires; who the stakeholders are and what each of them cares about; and whether an
